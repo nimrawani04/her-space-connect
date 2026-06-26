@@ -34,7 +34,7 @@ function Landing() {
   return (
     <div className="min-h-screen text-foreground font-sans selection:bg-earth/10 selection:text-earth">
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link to="/" className="font-serif text-2xl italic tracking-tight text-foreground">HerSpace</Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#pillars" className="text-sm font-medium text-muted-foreground hover:text-earth transition-colors">Ecosystem</a>
@@ -45,17 +45,20 @@ function Landing() {
               Join HerSpace
             </Link>
           </div>
-          <Link to="/auth" className="md:hidden text-sm font-medium bg-foreground text-background px-4 py-2 rounded-full">Join</Link>
+          <div className="md:hidden flex items-center gap-3">
+            <Link to="/auth" className="text-sm font-medium text-foreground">Sign in</Link>
+            <Link to="/auth" search={{ mode: "signup" }} className="text-sm font-medium bg-foreground text-background px-4 py-2 rounded-full">Join</Link>
+          </div>
         </div>
       </nav>
 
-      <section className="pt-24 pb-16 px-6">
+      <section className="pt-16 sm:pt-24 pb-16 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-7xl font-serif italic leading-[1.05] text-foreground text-balance mb-8">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif italic leading-[1.05] text-foreground text-balance mb-6 sm:mb-8">
               A quiet room for your health, shared with those you trust.
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-[56ch] text-pretty leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-[56ch] text-pretty leading-relaxed">
               The global digital ecosystem for women. From AI-led hormone insights to a verified safety network, HerSpace is built for privacy, clarity, and sisterhood.
             </p>
             <div className="flex flex-wrap gap-4">
@@ -76,14 +79,14 @@ function Landing() {
         </div>
       </section>
 
-      <section id="pillars" className="py-24 bg-sand/40">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-end justify-between mb-16">
+      <section id="pillars" className="py-16 sm:py-24 bg-sand/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-end justify-between mb-10 sm:mb-16 gap-4">
             <h2 className="text-3xl md:text-4xl font-serif italic text-foreground">Ten pillars of support.</h2>
             <span className="hidden md:block text-xs uppercase tracking-[0.2em] text-muted-foreground">One ecosystem</span>
           </div>
 
-          <div className="grid grid-cols-12 gap-6">
+          <div className="grid grid-cols-12 gap-4 sm:gap-6">
             <PillarCard tag="01" eyebrow="Intelligence" title="Clinical clarity, privately yours" body="A sovereign AI symptom assistant and research simplifier — never sold, never trained on you." className="col-span-12 md:col-span-7 bg-card min-h-[260px]" big />
             <PillarCard tag="02" eyebrow="Cycle" title="Rhythms & hormones" body="Predictive tracking that respects your autonomy." className="col-span-12 md:col-span-5 bg-foreground text-background" dark />
             <PillarCard tag="03" eyebrow="Safety" title="Safety Network" body="Verified safe-places map, female pros, real-time alerts." className="col-span-6 md:col-span-4 bg-card border-t-4 border-sage/60" />
@@ -96,10 +99,10 @@ function Landing() {
         </div>
       </section>
 
-      <section id="dashboard" className="py-24">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-20 items-center">
+      <section id="dashboard" className="py-16 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid md:grid-cols-2 gap-12 md:gap-20 items-center">
           <div>
-            <h2 className="text-4xl font-serif italic mb-6">Your morning at a glance.</h2>
+            <h2 className="text-3xl sm:text-4xl font-serif italic mb-6">Your morning at a glance.</h2>
             <p className="text-muted-foreground mb-8 max-w-[48ch] text-pretty">
               The HerSpace dashboard isn't another feed to scroll. It's a mirror for your health, a prompt for your mind, and a doorway to your community.
             </p>
@@ -146,24 +149,24 @@ function Landing() {
         </div>
       </section>
 
-      <section id="stories" className="py-24 bg-card">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-4xl font-serif italic mb-16">Stories from the ecosystem.</h2>
-          <div className="grid md:grid-cols-2 gap-12">
+      <section id="stories" className="py-16 sm:py-24 bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl sm:text-4xl font-serif italic mb-10 sm:mb-16">Stories from the ecosystem.</h2>
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12">
             <Story quote="I finally feel like my health data is mine again. No ads, no selling my cycle trends — just clinical support in a room that feels like home." attr="Lara, New York" />
             <Story quote="The Safety Network helped me when I was stranded in Bogotá. A map of verified safe spots run by other women is a game changer." attr="Maya, London" />
           </div>
         </div>
       </section>
 
-      <footer className="pt-24 pb-12 bg-foreground text-background/70">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between gap-12 mb-16">
+      <footer className="pt-16 sm:pt-24 pb-12 bg-foreground text-background/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col md:flex-row justify-between gap-10 md:gap-12 mb-12 sm:mb-16">
             <div className="max-w-xs">
               <span className="font-serif text-3xl italic text-background block mb-6">HerSpace</span>
               <p className="text-sm leading-relaxed">A global collective and digital harbor for every woman's journey.</p>
             </div>
-            <div className="flex gap-20">
+            <div className="flex flex-wrap gap-10 sm:gap-20">
               <FooterCol title="Ecosystem" links={["Health Hub", "Safe Space", "Safety Network", "Mentorship"]} />
               <FooterCol title="Trust" links={["Privacy manifesto", "Verification", "Community rules", "Contact"]} />
             </div>
