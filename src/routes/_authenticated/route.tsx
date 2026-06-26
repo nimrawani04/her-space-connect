@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -104,6 +105,7 @@ function AuthedShell() {
             <SidebarTrigger />
             <div className="flex-1" />
             <span className="text-xs text-muted-foreground">Welcome, <span className="font-medium text-foreground">{name}</span></span>
+            <ThemeSwitcher />
           </header>
           <main className="flex-1 p-6 md:p-10">
             <Outlet />

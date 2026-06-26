@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Radio } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/community")({
   head: () => ({ meta: [{ title: "Safe Space · HerSpace" }] }),
@@ -27,6 +28,7 @@ function Community() {
   const [category, setCategory] = useState<string>("Health");
   const [anon, setAnon] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [live, setLive] = useState(false);
 
   async function load() {
     let q = supabase.from("community_posts").select("*").order("created_at", { ascending: false }).limit(50);
@@ -35,6 +37,27 @@ function Community() {
     setPosts((data as Post[]) ?? []);
   }
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [filter]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("community_posts_feed")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_posts" }, (payload) => {
+        const p = payload.new as Post;
+        if (filter !== "all" && p.category !== filter) return;
+        setPosts((prev) => (prev.some((x) => x.id === p.id) ? prev : [p, ...prev]));
+        toast.message("New post in Safe Space", { description: p.title });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "community_posts" }, (payload) => {
+        const p = payload.new as Post;
+        setPosts((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_posts" }, (payload) => {
+        const old = payload.old as { id: string };
+        setPosts((prev) => prev.filter((x) => x.id !== old.id));
+      })
+      .subscribe((status) => setLive(status === "SUBSCRIBED"));
+    return () => { supabase.removeChannel(channel); };
+  }, [filter]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,7 +78,12 @@ function Community() {
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">02 · Sisterhood</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Safe Space</h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-4xl md:text-5xl font-serif italic">Safe Space</h1>
+          <span className={`inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full border ${live ? "border-sage/40 text-sage bg-sage/10" : "border-border text-muted-foreground"}`}>
+            <Radio className={`h-3 w-3 ${live ? "animate-pulse" : ""}`} /> {live ? "Live" : "Connecting…"}
+          </span>
+        </div>
         <p className="text-muted-foreground mt-3 max-w-2xl">A women-only space for honest conversation. Posts can be anonymous or under your name. Be kind. We moderate for harassment and toxicity.</p>
       </header>
 
