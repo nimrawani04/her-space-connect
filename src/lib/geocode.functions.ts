@@ -9,7 +9,7 @@ const geocodeInput = z.object({
 });
 
 export const reverseGeocode = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => geocodeInput.parse(d))
+  .validator((d: unknown) => geocodeInput.parse(d))
   .handler(async ({ data }) => {
     const { lat, lng } = data;
     const url = `${NOMINATIM_URL}?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`;
