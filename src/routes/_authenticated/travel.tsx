@@ -14,6 +14,7 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useServerFn } from "@tanstack/react-start";
 import { reverseGeocode } from "@/lib/geocode.functions";
 
 const travelSearchSchema = z.object({
