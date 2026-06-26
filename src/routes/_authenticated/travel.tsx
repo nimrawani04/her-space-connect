@@ -12,6 +12,10 @@ import { useMutation, useQueryClient, useInfiniteQuery, useSuspenseQuery, queryO
 import { toast } from "sonner";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useServerFn } from "@tanstack/react-start";
+import { reverseGeocode } from "@/lib/geocode.functions";
 
 const travelSearchSchema = z.object({
   city: fallback(z.string().max(100), "").default(""),
@@ -67,6 +71,8 @@ function Travel() {
   const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [postLocating, setPostLocating] = useState(false);
+  const [autoLoc, setAutoLoc] = useState(false);
+  const geocode = useServerFn(reverseGeocode);
 
   useEffect(() => {
     setDraft(search);
@@ -112,16 +118,33 @@ function Travel() {
     );
   }
 
-  function attachPostLocation() {
-    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); return; }
+  function detectLocation() {
+    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); setAutoLoc(false); return; }
     setPostLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setReq((r) => ({ ...r, latitude: pos.coords.latitude, longitude: pos.coords.longitude }));
-        setPostLocating(false);
-        toast.success("Location attached to your post");
+      async (pos) => {
+        try {
+          const { city, country } = await geocode({ data: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+          setReq((r) => ({
+            ...r,
+            city: city || r.city,
+            country: country || r.country,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }));
+          toast.success(city ? `Location set to ${city}, ${country}` : "Coordinates attached");
+        } catch (e: any) {
+          setReq((r) => ({
+            ...r,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }));
+          toast.error(e.message || "Could not resolve city/country");
+        } finally {
+          setPostLocating(false);
+        }
       },
-      (err) => { setPostLocating(false); toast.error(err.message || "Could not get location"); },
+      (err) => { setPostLocating(false); setAutoLoc(false); toast.error(err.message || "Could not get location"); },
       { enableHighAccuracy: false, timeout: 8000 },
     );
   }
@@ -192,6 +215,7 @@ function Travel() {
     },
     onSuccess: () => {
       setReq({ city: "", country: "", need: "", contact: "", latitude: null, longitude: null });
+      setAutoLoc(false);
       qc.invalidateQueries({ queryKey: ["travel_requests"] });
       toast.success("Shared — sisters nearby can reach you");
     },
@@ -257,14 +281,29 @@ function Travel() {
             maxLength={200}
             onChange={(e) => setReq({ ...req, contact: e.target.value })}
           />
-          <div className="sm:col-span-2 flex items-center gap-2 flex-wrap">
-            <Button type="button" variant="outline" className="rounded-full" onClick={attachPostLocation} disabled={postLocating}>
-              <LocateFixed className="h-4 w-4 mr-2" /> {postLocating ? "Locating…" : req.latitude != null ? "Update my location" : "Attach my location"}
-            </Button>
-            {req.latitude != null && req.longitude != null && (
-              <span className="text-xs text-muted-foreground">Pinned: {req.latitude.toFixed(3)}, {req.longitude.toFixed(3)}</span>
-            )}
+          <div className="sm:col-span-2 flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="use-my-location" className="font-medium flex items-center gap-2">
+                <LocateFixed className="h-4 w-4" /> Use my location
+              </Label>
+              <p className="text-xs text-muted-foreground">Auto-fill city and country and pin coordinates for nearby sisters.</p>
+            </div>
+            <Switch
+              id="use-my-location"
+              checked={autoLoc}
+              disabled={postLocating}
+              onCheckedChange={(checked) => {
+                setAutoLoc(checked);
+                if (checked) detectLocation();
+                else setReq((r) => ({ ...r, latitude: null, longitude: null }));
+              }}
+            />
           </div>
+          {req.latitude != null && req.longitude != null && (
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Pinned: {req.latitude.toFixed(3)}, {req.longitude.toFixed(3)} · {req.city && req.country ? `${req.city}, ${req.country}` : "Coordinates attached"}
+            </p>
+          )}
           <Button onClick={() => postRequest.mutate()} disabled={postRequest.isPending} className="rounded-full sm:col-span-2">
             Post to the network
           </Button>
