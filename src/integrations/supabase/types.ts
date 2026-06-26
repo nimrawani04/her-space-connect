@@ -148,6 +148,83 @@ export type Database = {
         }
         Relationships: []
       }
+      journey_members: {
+        Row: {
+          joined_at: string
+          journey_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          journey_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          journey_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_members_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journeys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          tags: string[]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          tags?: string[]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          tags?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
+      library_articles: {
+        Row: {
+          created_at: string
+          id: string
+          read_minutes: number
+          summary: string | null
+          title: string
+          topic: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          read_minutes?: number
+          summary?: string | null
+          title: string
+          topic: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          read_minutes?: number
+          summary?: string | null
+          title?: string
+          topic?: string
+        }
+        Relationships: []
+      }
       mentors: {
         Row: {
           bio: string | null
@@ -178,6 +255,39 @@ export type Database = {
           id?: string
           is_available?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      opportunities: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          org: string
+          region: string
+          title: string
+          type: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          org: string
+          region: string
+          title: string
+          type: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          org?: string
+          region?: string
+          title?: string
+          type?: string
+          url?: string | null
         }
         Relationships: []
       }
@@ -319,6 +429,66 @@ export type Database = {
           location?: string | null
           reporter_id?: string
           severity?: string
+        }
+        Relationships: []
+      }
+      service_listings: {
+        Row: {
+          craft: string
+          created_at: string
+          id: string
+          price: string
+          provider_name: string
+          tags: string[]
+          user_id: string
+        }
+        Insert: {
+          craft: string
+          created_at?: string
+          id?: string
+          price: string
+          provider_name: string
+          tags?: string[]
+          user_id: string
+        }
+        Update: {
+          craft?: string
+          created_at?: string
+          id?: string
+          price?: string
+          provider_name?: string
+          tags?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      travel_hosts: {
+        Row: {
+          city: string
+          country: string
+          created_at: string
+          id: string
+          note: string | null
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          city: string
+          country: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          city?: string
+          country?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+          verified?: boolean
         }
         Relationships: []
       }
