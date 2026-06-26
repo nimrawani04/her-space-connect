@@ -303,7 +303,7 @@ function Travel() {
                 {km === 0 ? "Any" : `${km} km`}
               </Button>
             ))}
-            <span className="text-xs text-muted-foreground ml-1">Sorted by distance. Posts without coordinates appear {search.radius > 0 ? "are hidden" : "last"}.</span>
+            <span className="text-xs text-muted-foreground ml-1">Sorted by distance. Posts without coordinates {search.radius > 0 ? "are hidden" : "appear last"}.</span>
           </div>
         )}
         {!myCoords && (
