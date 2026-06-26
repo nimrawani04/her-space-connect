@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWellnessRouteImport } from './routes/_authenticated/wellness'
 import { Route as AuthenticatedHealthRouteImport } from './routes/_authenticated/health'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCommunityRouteImport } from './routes/_authenticated/community'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -29,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWellnessRoute = AuthenticatedWellnessRouteImport.update({
+  id: '/wellness',
+  path: '/wellness',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHealthRoute = AuthenticatedHealthRouteImport.update({
   id: '/health',
   path: '/health',
@@ -39,39 +46,58 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCommunityRoute = AuthenticatedCommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/community': typeof AuthenticatedCommunityRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/health': typeof AuthenticatedHealthRoute
+  '/wellness': typeof AuthenticatedWellnessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/community': typeof AuthenticatedCommunityRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/health': typeof AuthenticatedHealthRoute
+  '/wellness': typeof AuthenticatedWellnessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/community': typeof AuthenticatedCommunityRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/health': typeof AuthenticatedHealthRoute
+  '/_authenticated/wellness': typeof AuthenticatedWellnessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/health'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/community'
+    | '/dashboard'
+    | '/health'
+    | '/wellness'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/health'
+  to: '/' | '/auth' | '/community' | '/dashboard' | '/health' | '/wellness'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/community'
     | '/_authenticated/dashboard'
     | '/_authenticated/health'
+    | '/_authenticated/wellness'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -103,6 +129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/wellness': {
+      id: '/_authenticated/wellness'
+      path: '/wellness'
+      fullPath: '/wellness'
+      preLoaderRoute: typeof AuthenticatedWellnessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/health': {
       id: '/_authenticated/health'
       path: '/health'
@@ -117,17 +150,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/community': {
+      id: '/_authenticated/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof AuthenticatedCommunityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCommunityRoute: typeof AuthenticatedCommunityRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHealthRoute: typeof AuthenticatedHealthRoute
+  AuthenticatedWellnessRoute: typeof AuthenticatedWellnessRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCommunityRoute: AuthenticatedCommunityRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHealthRoute: AuthenticatedHealthRoute,
+  AuthenticatedWellnessRoute: AuthenticatedWellnessRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
