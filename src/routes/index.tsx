@@ -32,7 +32,7 @@ const modules = [
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-earth/10 selection:text-earth">
+    <div className="min-h-screen text-foreground font-sans selection:bg-earth/10 selection:text-earth">
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="font-serif text-2xl italic tracking-tight text-foreground">HerSpace</Link>
