@@ -280,14 +280,29 @@ function Travel() {
             maxLength={200}
             onChange={(e) => setReq({ ...req, contact: e.target.value })}
           />
-          <div className="sm:col-span-2 flex items-center gap-2 flex-wrap">
-            <Button type="button" variant="outline" className="rounded-full" onClick={attachPostLocation} disabled={postLocating}>
-              <LocateFixed className="h-4 w-4 mr-2" /> {postLocating ? "Locating…" : req.latitude != null ? "Update my location" : "Attach my location"}
-            </Button>
-            {req.latitude != null && req.longitude != null && (
-              <span className="text-xs text-muted-foreground">Pinned: {req.latitude.toFixed(3)}, {req.longitude.toFixed(3)}</span>
-            )}
+          <div className="sm:col-span-2 flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="use-my-location" className="font-medium flex items-center gap-2">
+                <LocateFixed className="h-4 w-4" /> Use my location
+              </Label>
+              <p className="text-xs text-muted-foreground">Auto-fill city and country and pin coordinates for nearby sisters.</p>
+            </div>
+            <Switch
+              id="use-my-location"
+              checked={autoLoc}
+              disabled={postLocating}
+              onCheckedChange={(checked) => {
+                setAutoLoc(checked);
+                if (checked) detectLocation();
+                else setReq((r) => ({ ...r, latitude: null, longitude: null }));
+              }}
+            />
           </div>
+          {req.latitude != null && req.longitude != null && (
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Pinned: {req.latitude.toFixed(3)}, {req.longitude.toFixed(3)} · {req.city && req.country ? `${req.city}, ${req.country}` : "Coordinates attached"}
+            </p>
+          )}
           <Button onClick={() => postRequest.mutate()} disabled={postRequest.isPending} className="rounded-full sm:col-span-2">
             Post to the network
           </Button>
