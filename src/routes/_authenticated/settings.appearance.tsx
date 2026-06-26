@@ -93,14 +93,6 @@ function AppearancePage() {
     toast.success("Picture removed.");
   }
 
-  async function saveName() {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { error } = await supabase.from("profiles").update({ display_name: displayName || null }).eq("id", u.user.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Name saved.");
-  }
-
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <header>
@@ -141,11 +133,9 @@ function AppearancePage() {
                 )}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Display name</Label>
-              <Input id="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={60} />
-              <Button size="sm" onClick={saveName} className="rounded-full bg-earth text-earth-foreground hover:brightness-110">Save name</Button>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Your photo appears in the header and across HerSpace.
+            </p>
           </CardContent>
         </Card>
 
