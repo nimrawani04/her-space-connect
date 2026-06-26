@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/marketplace")({
@@ -13,21 +13,29 @@ export const Route = createFileRoute("/_authenticated/marketplace")({
   component: Marketplace,
 });
 
+const PAGE_SIZE = 12;
+
 function Marketplace() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ provider_name: "", craft: "", price: "", tags: "" });
 
-  const { data: services = [], isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["service_listings"],
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const from = pageParam * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       const { data, error } = await supabase
         .from("service_listings")
         .select("id,provider_name,craft,price,tags")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
       if (error) throw error;
       return data ?? [];
     },
+    getNextPageParam: (last, all) => (last.length < PAGE_SIZE ? undefined : all.length),
   });
+  const services = data?.pages.flat() ?? [];
 
   const addListing = useMutation({
     mutationFn: async () => {
@@ -88,6 +96,13 @@ function Marketplace() {
           </Card>
         ))}
       </div>
+      {hasNextPage && (
+        <div className="flex justify-center">
+          <Button variant="outline" className="rounded-full" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? "Loading…" : "Load more"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

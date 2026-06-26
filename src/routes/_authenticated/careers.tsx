@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/careers")({
@@ -13,21 +13,29 @@ export const Route = createFileRoute("/_authenticated/careers")({
   component: Careers,
 });
 
+const PAGE_SIZE = 12;
+
 function Careers() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ type: "", title: "", org: "", region: "", url: "" });
 
-  const { data: opps = [], isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["opportunities"],
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const from = pageParam * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       const { data, error } = await supabase
         .from("opportunities")
         .select("id,type,title,org,region,url")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
       if (error) throw error;
       return data ?? [];
     },
+    getNextPageParam: (last, all) => (last.length < PAGE_SIZE ? undefined : all.length),
   });
+  const opps = data?.pages.flat() ?? [];
 
   const addOpp = useMutation({
     mutationFn: async () => {
@@ -74,6 +82,13 @@ function Careers() {
                 </Button>
               </div>
             ))}
+            {hasNextPage && (
+              <div className="pt-2">
+                <Button variant="outline" className="rounded-full w-full" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                  {isFetchingNextPage ? "Loading…" : "Load more"}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card className="bg-sand/40 self-start">
