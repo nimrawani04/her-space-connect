@@ -492,6 +492,36 @@ export type Database = {
         }
         Relationships: []
       }
+      travel_requests: {
+        Row: {
+          city: string
+          contact: string
+          country: string
+          created_at: string
+          id: string
+          need: string
+          user_id: string
+        }
+        Insert: {
+          city: string
+          contact: string
+          country: string
+          created_at?: string
+          id?: string
+          need: string
+          user_id: string
+        }
+        Update: {
+          city?: string
+          contact?: string
+          country?: string
+          created_at?: string
+          id?: string
+          need?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
