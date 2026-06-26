@@ -7,7 +7,7 @@ import { Plane } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/travel")({
@@ -15,28 +15,38 @@ export const Route = createFileRoute("/_authenticated/travel")({
   component: Travel,
 });
 
+const PAGE_SIZE = 60;
+
 function Travel() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ city: "", country: "", note: "" });
 
-  const { data: cities = [], isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["travel_hosts"],
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const from = pageParam * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       const { data, error } = await supabase
         .from("travel_hosts")
-        .select("id,city,country,verified");
+        .select("id,city,country,verified")
+        .order("created_at", { ascending: false })
+        .range(from, to);
       if (error) throw error;
-      const map = new Map<string, { city: string; country: string; hosts: number; verified: boolean }>();
-      (data ?? []).forEach((h: any) => {
-        const key = `${h.city}|${h.country}`;
-        const cur = map.get(key) ?? { city: h.city, country: h.country, hosts: 0, verified: false };
-        cur.hosts += 1;
-        cur.verified = cur.verified || h.verified;
-        map.set(key, cur);
-      });
-      return Array.from(map.values()).sort((a, b) => b.hosts - a.hosts);
+      return data ?? [];
     },
+    getNextPageParam: (last, all) => (last.length < PAGE_SIZE ? undefined : all.length),
   });
+  const hosts = data?.pages.flat() ?? [];
+  const map = new Map<string, { city: string; country: string; hosts: number; verified: boolean }>();
+  hosts.forEach((h: any) => {
+    const key = `${h.city}|${h.country}`;
+    const cur = map.get(key) ?? { city: h.city, country: h.country, hosts: 0, verified: false };
+    cur.hosts += 1;
+    cur.verified = cur.verified || h.verified;
+    map.set(key, cur);
+  });
+  const cities = Array.from(map.values()).sort((a, b) => b.hosts - a.hosts);
 
   const becomeHost = useMutation({
     mutationFn: async () => {
@@ -90,6 +100,13 @@ function Travel() {
           </Card>
         ))}
       </div>
+      {hasNextPage && (
+        <div className="flex justify-center">
+          <Button variant="outline" className="rounded-full" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? "Loading…" : "Load more cities"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

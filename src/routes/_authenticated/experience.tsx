@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/experience")({
   head: () => ({ meta: [{ title: "Experience Match · HerSpace" }] }),
   component: Experience,
 });
+
+const PAGE_SIZE = 12;
 
 function Experience() {
   const [q, setQ] = useState("");
@@ -24,13 +26,18 @@ function Experience() {
     queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null,
   });
 
-  const { data: journeys = [], isLoading } = useQuery({
-    queryKey: ["journeys"],
-    queryFn: async () => {
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["journeys", userId],
+    initialPageParam: 0,
+    enabled: userId !== undefined,
+    queryFn: async ({ pageParam }) => {
+      const from = pageParam * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       const { data, error } = await supabase
         .from("journeys")
         .select("id,title,tags,journey_members(user_id)")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
       if (error) throw error;
       return (data ?? []).map((j: any) => ({
         id: j.id,
@@ -40,8 +47,9 @@ function Experience() {
         joined: !!j.journey_members?.some((m: any) => m.user_id === userId),
       }));
     },
-    enabled: userId !== undefined,
+    getNextPageParam: (last, all) => (last.length < PAGE_SIZE ? undefined : all.length),
   });
+  const journeys = data?.pages.flat() ?? [];
 
   const toggleJoin = useMutation({
     mutationFn: async (j: { id: string; joined: boolean }) => {
@@ -112,6 +120,13 @@ function Experience() {
           </Card>
         ))}
       </div>
+      {hasNextPage && (
+        <div className="flex justify-center">
+          <Button variant="outline" className="rounded-full" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? "Loading…" : "Load more"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
