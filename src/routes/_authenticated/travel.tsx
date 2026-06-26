@@ -58,7 +58,7 @@ const PAGE_SIZE = 60;
 
 function Travel() {
   const qc = useQueryClient();
-  const navigate = useNavigate({ from: Route.path });
+  const navigate = useNavigate();
   const search = Route.useSearch();
   const [form, setForm] = useState({ city: "", country: "", note: "" });
   const [req, setReq] = useState({ city: "", country: "", need: "", contact: "" });
@@ -220,7 +220,7 @@ function Travel() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                navigate({ search: { ...search, ...draft } });
+                navigate({ search: { ...search, ...draft } as any });
               }}
               className="grid sm:grid-cols-4 gap-2"
             >
@@ -250,7 +250,7 @@ function Travel() {
                   onClick={() => {
                     const empty = { city: "", country: "", need: "" };
                     setDraft(empty);
-                    navigate({ search: { ...search, ...empty } });
+                    navigate({ search: { ...search, ...empty } as any });
                   }}
                 >
                   <X className="h-4 w-4" />
