@@ -72,6 +72,7 @@ function Travel() {
   const [locating, setLocating] = useState(false);
   const [postLocating, setPostLocating] = useState(false);
   const [autoLoc, setAutoLoc] = useState(false);
+  const geocode = useServerFn(reverseGeocode);
 
   useEffect(() => {
     setDraft(search);
