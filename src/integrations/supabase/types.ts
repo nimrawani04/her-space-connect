@@ -183,6 +183,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accent_color: string | null
           avatar_url: string | null
           bio: string | null
           city: string | null
@@ -191,10 +192,12 @@ export type Database = {
           display_name: string | null
           id: string
           is_verified: boolean
+          theme_mode: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
+          accent_color?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
@@ -203,10 +206,12 @@ export type Database = {
           display_name?: string | null
           id: string
           is_verified?: boolean
+          theme_mode?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
+          accent_color?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
@@ -215,6 +220,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_verified?: boolean
+          theme_mode?: string | null
           updated_at?: string
           username?: string | null
         }
