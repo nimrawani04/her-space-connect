@@ -115,22 +115,27 @@ function AuthedShell() {
         </Sidebar>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-2 sm:gap-3 border-b border-border px-3 sm:px-4 sticky top-0 bg-background/80 backdrop-blur z-30">
-            <SidebarTrigger />
-            <div className="flex-1 min-w-0" />
-            <Link to="/settings/appearance" className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-foreground transition-colors items-center gap-1.5">
-              <Palette className="h-3.5 w-3.5" /> Appearance
+          <header className="h-14 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 border-b border-border px-3 sm:px-4 sticky top-0 bg-background/80 backdrop-blur z-30">
+            <SidebarTrigger className="shrink-0" />
+            <Link to="/dashboard" className="font-serif italic text-lg sm:hidden truncate min-w-0">
+              HerSpace
             </Link>
-            <Link to="/settings/appearance" className="flex items-center gap-2 group min-w-0">
-              <span className="text-xs text-muted-foreground hidden md:inline truncate max-w-[18ch]">
-                Welcome, <span className="font-medium text-foreground">{name}</span>
-              </span>
-              <Avatar className="h-8 w-8 shrink-0 ring-1 ring-border group-hover:ring-primary transition-all">
-                {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
-                <AvatarFallback className="bg-sand text-earth text-xs">{initials(name)}</AvatarFallback>
-              </Avatar>
-            </Link>
-            <ThemeSwitcher />
+            <div className="hidden sm:block min-w-0" />
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <Link to="/settings/appearance" className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-foreground transition-colors items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5" /> Appearance
+              </Link>
+              <Link to="/settings/appearance" className="flex items-center gap-2 group min-w-0 max-w-[40vw]">
+                <span className="text-xs text-muted-foreground hidden md:inline truncate max-w-[18ch]">
+                  Welcome, <span className="font-medium text-foreground">{name}</span>
+                </span>
+                <Avatar className="h-8 w-8 shrink-0 ring-1 ring-border group-hover:ring-primary transition-all">
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
+                  <AvatarFallback className="bg-sand text-earth text-xs">{initials(name)}</AvatarFallback>
+                </Avatar>
+              </Link>
+              <ThemeSwitcher />
+            </div>
           </header>
           <main className="flex-1 p-4 sm:p-6 md:p-10">
             <Outlet />
