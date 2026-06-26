@@ -70,6 +70,7 @@ function Travel() {
   const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [postLocating, setPostLocating] = useState(false);
+  const [autoLoc, setAutoLoc] = useState(false);
 
   useEffect(() => {
     setDraft(search);
