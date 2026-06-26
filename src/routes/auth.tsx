@@ -94,7 +94,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-dvh grid md:grid-cols-2 bg-background text-foreground">
+    <div className="min-h-dvh grid md:grid-cols-2 text-foreground">
       <div className="hidden md:flex flex-col justify-between p-12 bg-foreground text-background">
         <Link to="/" className="font-serif text-3xl italic">HerSpace</Link>
         <div className="max-w-md">
