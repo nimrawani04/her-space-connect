@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, FileDown, Printer } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/health")({
   head: () => ({ meta: [{ title: "Health Hub · HerSpace" }] }),
@@ -71,6 +71,62 @@ function SymptomAssistant() {
     "emergency": "bg-red-100 text-red-900 border-red-400",
   };
 
+  function buildReport(r: SymptomResult) {
+    const date = new Date().toLocaleString();
+    return [
+      `HerSpace — Doctor-Ready Symptom Report`,
+      `Generated: ${date}`,
+      age ? `Patient age: ${age}` : "",
+      "",
+      `SYMPTOMS REPORTED`,
+      symptoms,
+      "",
+      `URGENCY: ${r.urgency.replace(/-/g, " ").toUpperCase()}`,
+      "",
+      `SUMMARY`,
+      r.plainEnglishSummary,
+      "",
+      `POSSIBLE CONDITIONS TO DISCUSS`,
+      ...r.possibleConditions.map((c) => `• ${c.name} (confidence: ${c.confidence}) — ${c.why}`),
+      "",
+      `QUESTIONS FOR THE CLINICIAN`,
+      ...r.questionsForYourDoctor.map((q) => `• ${q}`),
+      "",
+      `SELF-CARE SUGGESTIONS`,
+      ...r.selfCareSuggestions.map((s) => `• ${s}`),
+      "",
+      r.redFlags.length ? `RED FLAGS — SEEK CARE IF NOTICED` : "",
+      ...r.redFlags.map((s) => `• ${s}`),
+      "",
+      `DISCLAIMER`,
+      r.disclaimer,
+    ].filter(Boolean).join("\n");
+  }
+
+  function downloadReport() {
+    if (!result) return;
+    const blob = new Blob([buildReport(result)], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `herspace-symptom-report-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function printReport() {
+    if (!result) return;
+    const w = window.open("", "_blank", "width=800,height=900");
+    if (!w) { toast.error("Allow pop-ups to print."); return; }
+    const safe = buildReport(result).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]!));
+    w.document.write(`<!doctype html><html><head><title>HerSpace Symptom Report</title>
+      <style>body{font:14px/1.55 Georgia,serif;max-width:680px;margin:40px auto;padding:0 24px;color:#2a241e}
+      pre{white-space:pre-wrap;font-family:inherit}h1{font-style:italic;font-weight:500;font-size:22px;margin:0 0 8px}</style>
+      </head><body><h1>HerSpace · Symptom Report</h1><pre>${safe}</pre>
+      <script>window.onload=()=>window.print()</script></body></html>`);
+    w.document.close();
+  }
+
   return (
     <div className="grid md:grid-cols-5 gap-6">
       <Card className="md:col-span-2">
@@ -118,6 +174,15 @@ function SymptomAssistant() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <p className="leading-relaxed">{result.plainEnglishSummary}</p>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={downloadReport} variant="outline" size="sm" className="rounded-full gap-2">
+                    <FileDown className="h-3.5 w-3.5" /> Download doctor-ready report
+                  </Button>
+                  <Button onClick={printReport} variant="outline" size="sm" className="rounded-full gap-2">
+                    <Printer className="h-3.5 w-3.5" /> Print / Save as PDF
+                  </Button>
+                </div>
 
                 <Section title="Possible things to discuss with a clinician">
                   <ul className="space-y-3">
