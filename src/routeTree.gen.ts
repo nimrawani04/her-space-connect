@@ -13,6 +13,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWellnessRouteImport } from './routes/_authenticated/wellness'
+import { Route as AuthenticatedSafetyRouteImport } from './routes/_authenticated/safety'
+import { Route as AuthenticatedMentorshipRouteImport } from './routes/_authenticated/mentorship'
 import { Route as AuthenticatedHealthRouteImport } from './routes/_authenticated/health'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCommunityRouteImport } from './routes/_authenticated/community'
@@ -34,6 +36,16 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedWellnessRoute = AuthenticatedWellnessRouteImport.update({
   id: '/wellness',
   path: '/wellness',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSafetyRoute = AuthenticatedSafetyRouteImport.update({
+  id: '/safety',
+  path: '/safety',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMentorshipRoute = AuthenticatedMentorshipRouteImport.update({
+  id: '/mentorship',
+  path: '/mentorship',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHealthRoute = AuthenticatedHealthRouteImport.update({
@@ -58,6 +70,8 @@ export interface FileRoutesByFullPath {
   '/community': typeof AuthenticatedCommunityRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/health': typeof AuthenticatedHealthRoute
+  '/mentorship': typeof AuthenticatedMentorshipRoute
+  '/safety': typeof AuthenticatedSafetyRoute
   '/wellness': typeof AuthenticatedWellnessRoute
 }
 export interface FileRoutesByTo {
@@ -66,6 +80,8 @@ export interface FileRoutesByTo {
   '/community': typeof AuthenticatedCommunityRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/health': typeof AuthenticatedHealthRoute
+  '/mentorship': typeof AuthenticatedMentorshipRoute
+  '/safety': typeof AuthenticatedSafetyRoute
   '/wellness': typeof AuthenticatedWellnessRoute
 }
 export interface FileRoutesById {
@@ -76,6 +92,8 @@ export interface FileRoutesById {
   '/_authenticated/community': typeof AuthenticatedCommunityRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/health': typeof AuthenticatedHealthRoute
+  '/_authenticated/mentorship': typeof AuthenticatedMentorshipRoute
+  '/_authenticated/safety': typeof AuthenticatedSafetyRoute
   '/_authenticated/wellness': typeof AuthenticatedWellnessRoute
 }
 export interface FileRouteTypes {
@@ -86,9 +104,19 @@ export interface FileRouteTypes {
     | '/community'
     | '/dashboard'
     | '/health'
+    | '/mentorship'
+    | '/safety'
     | '/wellness'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/community' | '/dashboard' | '/health' | '/wellness'
+  to:
+    | '/'
+    | '/auth'
+    | '/community'
+    | '/dashboard'
+    | '/health'
+    | '/mentorship'
+    | '/safety'
+    | '/wellness'
   id:
     | '__root__'
     | '/'
@@ -97,6 +125,8 @@ export interface FileRouteTypes {
     | '/_authenticated/community'
     | '/_authenticated/dashboard'
     | '/_authenticated/health'
+    | '/_authenticated/mentorship'
+    | '/_authenticated/safety'
     | '/_authenticated/wellness'
   fileRoutesById: FileRoutesById
 }
@@ -136,6 +166,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWellnessRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/safety': {
+      id: '/_authenticated/safety'
+      path: '/safety'
+      fullPath: '/safety'
+      preLoaderRoute: typeof AuthenticatedSafetyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mentorship': {
+      id: '/_authenticated/mentorship'
+      path: '/mentorship'
+      fullPath: '/mentorship'
+      preLoaderRoute: typeof AuthenticatedMentorshipRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/health': {
       id: '/_authenticated/health'
       path: '/health'
@@ -164,6 +208,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCommunityRoute: typeof AuthenticatedCommunityRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHealthRoute: typeof AuthenticatedHealthRoute
+  AuthenticatedMentorshipRoute: typeof AuthenticatedMentorshipRoute
+  AuthenticatedSafetyRoute: typeof AuthenticatedSafetyRoute
   AuthenticatedWellnessRoute: typeof AuthenticatedWellnessRoute
 }
 
@@ -171,6 +217,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCommunityRoute: AuthenticatedCommunityRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHealthRoute: AuthenticatedHealthRoute,
+  AuthenticatedMentorshipRoute: AuthenticatedMentorshipRoute,
+  AuthenticatedSafetyRoute: AuthenticatedSafetyRoute,
   AuthenticatedWellnessRoute: AuthenticatedWellnessRoute,
 }
 
