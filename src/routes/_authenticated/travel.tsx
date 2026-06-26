@@ -12,6 +12,9 @@ import { useMutation, useQueryClient, useInfiniteQuery, useSuspenseQuery, queryO
 import { toast } from "sonner";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { reverseGeocode } from "@/lib/geocode.functions";
 
 const travelSearchSchema = z.object({
   city: fallback(z.string().max(100), "").default(""),
