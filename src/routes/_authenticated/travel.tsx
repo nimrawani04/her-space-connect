@@ -1,27 +1,74 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plane, MapPin } from "lucide-react";
+import { Plane, MapPin, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+
+const travelSearchSchema = z.object({
+  city: fallback(z.string().max(100), "").default(""),
+  country: fallback(z.string().max(100), "").default(""),
+  need: fallback(z.string().max(200), "").default(""),
+});
+
+const travelRequestsQueryOptions = (filters: { city: string; country: string; need: string }) =>
+  queryOptions({
+    queryKey: ["travel_requests", filters],
+    queryFn: async () => {
+      let q = supabase
+        .from("travel_requests")
+        .select("id,city,country,need,contact,created_at,user_id")
+        .order("created_at", { ascending: false });
+      if (filters.city.trim()) q = q.ilike("city", `%${filters.city.trim()}%`);
+      if (filters.country.trim()) q = q.ilike("country", `%${filters.country.trim()}%`);
+      if (filters.need.trim()) q = q.ilike("need", `%${filters.need.trim()}%`);
+      const { data, error } = await q.limit(100);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
 
 export const Route = createFileRoute("/_authenticated/travel")({
   head: () => ({ meta: [{ title: "Travel Sisterhood · HerSpace" }] }),
+  validateSearch: zodValidator(travelSearchSchema),
+  loaderDeps: ({ search: { city, country, need } }) => ({ city, country, need }),
+  loader: ({ context, deps }) => context.queryClient.ensureQueryData(travelRequestsQueryOptions(deps)),
   component: Travel,
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    return (
+      <div className="p-6 text-center space-y-3">
+        <p className="text-destructive">Could not load travel requests: {error.message}</p>
+        <Button onClick={() => { reset(); router.invalidate(); }}>Try again</Button>
+      </div>
+    );
+  },
+  notFoundComponent: () => <div className="p-6 text-center">No travel requests found.</div>,
 });
 
 const PAGE_SIZE = 60;
 
 function Travel() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const search = Route.useSearch();
   const [form, setForm] = useState({ city: "", country: "", note: "" });
   const [req, setReq] = useState({ city: "", country: "", need: "", contact: "" });
+  const [draft, setDraft] = useState(search);
+
+  useEffect(() => {
+    setDraft(search);
+  }, [search.city, search.country, search.need]);
+
+  const { data: requests } = useSuspenseQuery(travelRequestsQueryOptions(search));
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["travel_hosts"],
@@ -66,19 +113,6 @@ function Travel() {
       toast.success("You're listed as a local sister");
     },
     onError: (e: any) => toast.error(e.message),
-  });
-
-  const { data: requests = [], isLoading: reqLoading } = useQuery({
-    queryKey: ["travel_requests"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("travel_requests")
-        .select("id,city,country,need,contact,created_at,user_id")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
-    },
   });
 
   const postRequest = useMutation({
@@ -174,34 +208,87 @@ function Travel() {
         </CardContent>
       </Card>
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         <h2 className="font-serif italic text-2xl">Sisters reaching out now</h2>
-        {reqLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-        {!reqLoading && requests.length === 0 && (
-          <p className="text-sm text-muted-foreground">No active requests. Be the first to share where you are.</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif italic text-lg flex items-center gap-2">
+              <Search className="h-4 w-4" /> Find sisters near you
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                navigate({ search: (prev) => ({ ...prev, ...draft }) });
+              }}
+              className="grid sm:grid-cols-4 gap-2"
+            >
+              <Input
+                placeholder="City"
+                value={draft.city}
+                onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+              />
+              <Input
+                placeholder="Country"
+                value={draft.country}
+                onChange={(e) => setDraft({ ...draft, country: e.target.value })}
+              />
+              <Input
+                placeholder="Search need (e.g. stay, ride, walk)"
+                value={draft.need}
+                onChange={(e) => setDraft({ ...draft, need: e.target.value })}
+              />
+              <div className="flex gap-2">
+                <Button type="submit" className="rounded-full flex-1">
+                  <Search className="h-4 w-4 mr-2" /> Search
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="rounded-full px-3"
+                  onClick={() => {
+                    const empty = { city: "", country: "", need: "" };
+                    setDraft(empty);
+                    navigate({ search: (prev) => ({ ...prev, ...empty }) });
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {requests.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No matching requests. Try widening your filters or be the first to share.</p>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">{requests.length} sister{requests.length === 1 ? "" : "s"} found</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {requests.map((r: any) => (
+                <Card key={r.id}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="font-serif italic text-lg flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-earth" /> {r.city}, {r.country}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <p className="whitespace-pre-wrap">{r.need}</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
+                    <p className="font-medium break-words">{r.contact}</p>
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
+                      {meId === r.user_id && (
+                        <Button size="sm" variant="ghost" onClick={() => removeRequest.mutate(r.id)}>Remove</Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
-        <div className="grid sm:grid-cols-2 gap-4">
-          {requests.map((r: any) => (
-            <Card key={r.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="font-serif italic text-lg flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-earth" /> {r.city}, {r.country}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p className="whitespace-pre-wrap">{r.need}</p>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
-                <p className="font-medium break-words">{r.contact}</p>
-                <div className="flex justify-between items-center pt-1">
-                  <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
-                  {meId === r.user_id && (
-                    <Button size="sm" variant="ghost" onClick={() => removeRequest.mutate(r.id)}>Remove</Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       </section>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
