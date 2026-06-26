@@ -215,6 +215,7 @@ function Travel() {
     },
     onSuccess: () => {
       setReq({ city: "", country: "", need: "", contact: "", latitude: null, longitude: null });
+      setAutoLoc(false);
       qc.invalidateQueries({ queryKey: ["travel_requests"] });
       toast.success("Shared — sisters nearby can reach you");
     },
