@@ -83,7 +83,7 @@ function AuthedShell() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-dvh flex w-full bg-background text-foreground">
+      <div className="min-h-dvh flex w-full text-foreground">
         <Sidebar collapsible="icon">
           <SidebarHeader className="px-4 py-5">
             <Link to="/dashboard" className="font-serif italic text-2xl tracking-tight">HerSpace</Link>
