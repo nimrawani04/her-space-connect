@@ -17,6 +17,7 @@ const travelSearchSchema = z.object({
   city: fallback(z.string().max(100), "").default(""),
   country: fallback(z.string().max(100), "").default(""),
   need: fallback(z.string().max(200), "").default(""),
+  radius: fallback(z.union([z.literal(0), z.literal(5), z.literal(10), z.literal(25), z.literal(50), z.literal(100)]), 0).default(0),
 });
 
 const travelRequestsQueryOptions = (filters: { city: string; country: string; need: string }) =>
@@ -69,7 +70,7 @@ function Travel() {
 
   useEffect(() => {
     setDraft(search);
-  }, [search.city, search.country, search.need]);
+  }, [search.city, search.country, search.need, search.radius]);
 
   const { data: requests } = useSuspenseQuery(travelRequestsQueryOptions(search));
 
@@ -89,6 +90,13 @@ function Travel() {
         return da - db;
       })
     : requests;
+
+  const visibleRequests = myCoords && search.radius > 0
+    ? sortedRequests.filter((r: any) => {
+        if (r.latitude == null || r.longitude == null) return false;
+        return haversine(myCoords, { lat: r.latitude, lng: r.longitude }) <= search.radius;
+      })
+    : sortedRequests;
 
   function useMyLocation() {
     if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); return; }
