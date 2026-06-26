@@ -220,7 +220,7 @@ function Travel() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                navigate({ search: (prev) => ({ ...prev, ...draft }) });
+                navigate({ search: { ...search, ...draft } });
               }}
               className="grid sm:grid-cols-4 gap-2"
             >
@@ -250,7 +250,7 @@ function Travel() {
                   onClick={() => {
                     const empty = { city: "", country: "", need: "" };
                     setDraft(empty);
-                    navigate({ search: (prev) => ({ ...prev, ...empty }) });
+                    navigate({ search: { ...search, ...empty } });
                   }}
                 >
                   <X className="h-4 w-4" />
