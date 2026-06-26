@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plane, MapPin, Search, X } from "lucide-react";
+import { Plane, MapPin, Search, X, LocateFixed } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
@@ -25,7 +25,7 @@ const travelRequestsQueryOptions = (filters: { city: string; country: string; ne
     queryFn: async () => {
       let q = supabase
         .from("travel_requests")
-        .select("id,city,country,need,contact,created_at,user_id")
+        .select("id,city,country,need,contact,created_at,user_id,latitude,longitude")
         .order("created_at", { ascending: false });
       if (filters.city.trim()) q = q.ilike("city", `%${filters.city.trim()}%`);
       if (filters.country.trim()) q = q.ilike("country", `%${filters.country.trim()}%`);
@@ -61,14 +61,62 @@ function Travel() {
   const navigate = useNavigate({ from: "/travel" });
   const search = Route.useSearch();
   const [form, setForm] = useState({ city: "", country: "", note: "" });
-  const [req, setReq] = useState({ city: "", country: "", need: "", contact: "" });
+  const [req, setReq] = useState<{ city: string; country: string; need: string; contact: string; latitude: number | null; longitude: number | null }>({ city: "", country: "", need: "", contact: "", latitude: null, longitude: null });
   const [draft, setDraft] = useState(search);
+  const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [postLocating, setPostLocating] = useState(false);
 
   useEffect(() => {
     setDraft(search);
   }, [search.city, search.country, search.need]);
 
   const { data: requests } = useSuspenseQuery(travelRequestsQueryOptions(search));
+
+  function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+    const R = 6371;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
+  const sortedRequests = myCoords
+    ? [...requests].sort((a: any, b: any) => {
+        const da = a.latitude != null && a.longitude != null ? haversine(myCoords, { lat: a.latitude, lng: a.longitude }) : Infinity;
+        const db = b.latitude != null && b.longitude != null ? haversine(myCoords, { lat: b.latitude, lng: b.longitude }) : Infinity;
+        return da - db;
+      })
+    : requests;
+
+  function useMyLocation() {
+    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); return; }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setMyCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+        toast.success("Sorted by distance from you");
+      },
+      (err) => { setLocating(false); toast.error(err.message || "Could not get location"); },
+      { enableHighAccuracy: false, timeout: 8000 },
+    );
+  }
+
+  function attachPostLocation() {
+    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); return; }
+    setPostLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setReq((r) => ({ ...r, latitude: pos.coords.latitude, longitude: pos.coords.longitude }));
+        setPostLocating(false);
+        toast.success("Location attached to your post");
+      },
+      (err) => { setPostLocating(false); toast.error(err.message || "Could not get location"); },
+      { enableHighAccuracy: false, timeout: 8000 },
+    );
+  }
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["travel_hosts"],
@@ -129,11 +177,13 @@ function Travel() {
         country: req.country.trim(),
         need: req.need.trim(),
         contact: req.contact.trim(),
+        latitude: req.latitude,
+        longitude: req.longitude,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      setReq({ city: "", country: "", need: "", contact: "" });
+      setReq({ city: "", country: "", need: "", contact: "", latitude: null, longitude: null });
       qc.invalidateQueries({ queryKey: ["travel_requests"] });
       toast.success("Shared — sisters nearby can reach you");
     },
@@ -199,6 +249,14 @@ function Travel() {
             maxLength={200}
             onChange={(e) => setReq({ ...req, contact: e.target.value })}
           />
+          <div className="sm:col-span-2 flex items-center gap-2 flex-wrap">
+            <Button type="button" variant="outline" className="rounded-full" onClick={attachPostLocation} disabled={postLocating}>
+              <LocateFixed className="h-4 w-4 mr-2" /> {postLocating ? "Locating…" : req.latitude != null ? "Update my location" : "Attach my location"}
+            </Button>
+            {req.latitude != null && req.longitude != null && (
+              <span className="text-xs text-muted-foreground">Pinned: {req.latitude.toFixed(3)}, {req.longitude.toFixed(3)}</span>
+            )}
+          </div>
           <Button onClick={() => postRequest.mutate()} disabled={postRequest.isPending} className="rounded-full sm:col-span-2">
             Post to the network
           </Button>
@@ -209,7 +267,22 @@ function Travel() {
       </Card>
 
       <section className="space-y-4">
-        <h2 className="font-serif italic text-2xl">Sisters reaching out now</h2>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="font-serif italic text-2xl">Sisters reaching out now</h2>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={useMyLocation} disabled={locating}>
+              <LocateFixed className="h-4 w-4 mr-2" /> {locating ? "Locating…" : myCoords ? "Update location" : "Use my location"}
+            </Button>
+            {myCoords && (
+              <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setMyCoords(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+        {myCoords && (
+          <p className="text-xs text-muted-foreground">Sorted by distance from your current location. Posts without coordinates appear last.</p>
+        )}
         <Card>
           <CardHeader>
             <CardTitle className="font-serif italic text-lg flex items-center gap-2">
@@ -260,17 +333,26 @@ function Travel() {
           </CardContent>
         </Card>
 
-        {requests.length === 0 ? (
+        {sortedRequests.length === 0 ? (
           <p className="text-sm text-muted-foreground">No matching requests. Try widening your filters or be the first to share.</p>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground">{requests.length} sister{requests.length === 1 ? "" : "s"} found</p>
+            <p className="text-sm text-muted-foreground">{sortedRequests.length} sister{sortedRequests.length === 1 ? "" : "s"} found</p>
             <div className="grid sm:grid-cols-2 gap-4">
-              {requests.map((r: any) => (
+              {sortedRequests.map((r: any) => {
+                const dist = myCoords && r.latitude != null && r.longitude != null
+                  ? haversine(myCoords, { lat: r.latitude, lng: r.longitude })
+                  : null;
+                return (
                 <Card key={r.id}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="font-serif italic text-lg flex items-center gap-2">
+                    <CardTitle className="font-serif italic text-lg flex items-center gap-2 flex-wrap">
                       <MapPin className="h-4 w-4 text-earth" /> {r.city}, {r.country}
+                      {dist != null && (
+                        <Badge variant="outline" className="ml-auto text-xs font-sans not-italic">
+                          {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist < 10 ? dist.toFixed(1) : Math.round(dist)} km`} away
+                        </Badge>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
@@ -285,7 +367,8 @@ function Travel() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
