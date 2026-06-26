@@ -161,6 +161,7 @@ function SymptomAssistant() {
           <div className="space-y-2">
             <Label htmlFor="sym">Symptoms</Label>
             <Textarea id="sym" rows={6} value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="e.g. irregular periods for 3 months, acne on jaw, hair thinning…" maxLength={2000} />
+            <SymptomQuickAdd symptoms={symptoms} onChange={setSymptoms} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="age">Age (optional)</Label>
