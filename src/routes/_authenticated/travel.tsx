@@ -116,16 +116,33 @@ function Travel() {
     );
   }
 
-  function attachPostLocation() {
-    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); return; }
+  function detectLocation() {
+    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); setAutoLoc(false); return; }
     setPostLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setReq((r) => ({ ...r, latitude: pos.coords.latitude, longitude: pos.coords.longitude }));
-        setPostLocating(false);
-        toast.success("Location attached to your post");
+      async (pos) => {
+        try {
+          const { city, country } = await reverseGeocode({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setReq((r) => ({
+            ...r,
+            city: city || r.city,
+            country: country || r.country,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }));
+          toast.success(city ? `Location set to ${city}, ${country}` : "Coordinates attached");
+        } catch (e: any) {
+          setReq((r) => ({
+            ...r,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }));
+          toast.error(e.message || "Could not resolve city/country");
+        } finally {
+          setPostLocating(false);
+        }
       },
-      (err) => { setPostLocating(false); toast.error(err.message || "Could not get location"); },
+      (err) => { setPostLocating(false); setAutoLoc(false); toast.error(err.message || "Could not get location"); },
       { enableHighAccuracy: false, timeout: 8000 },
     );
   }
