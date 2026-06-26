@@ -39,13 +39,11 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
     : symptomExamples.find((c) => c.category === activeCategory)?.examples ?? [];
 
   function add(example: string) {
-    onChange((prev) => {
-      const trimmed = prev.trim();
-      if (!trimmed) return example;
-      if (trimmed.toLowerCase().includes(example.toLowerCase())) return trimmed;
-      const sep = /[,\.]$/.test(trimmed) ? " " : ", ";
-      return `${trimmed}${sep}${example}`;
-    });
+    const trimmed = symptoms.trim();
+    if (!trimmed) { onChange(example); return; }
+    if (trimmed.toLowerCase().includes(example.toLowerCase())) return;
+    const sep = /[,\.]$/.test(trimmed) ? " " : ", ";
+    onChange(`${trimmed}${sep}${example}`);
   }
 
   return (
