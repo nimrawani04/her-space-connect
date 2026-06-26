@@ -22,6 +22,67 @@ export const Route = createFileRoute("/_authenticated/health")({
 type SymptomResult = Awaited<ReturnType<typeof analyzeSymptoms>>;
 type ResearchResult = Awaited<ReturnType<typeof simplifyResearch>>;
 
+const symptomExamples = [
+  { category: "Period & cycle", examples: ["irregular periods", "heavy bleeding", "period cramps", "spotting between periods", "missed period"] },
+  { category: "Skin & hair", examples: ["acne on jaw", "hair thinning", "excess facial hair", "dry skin", "oily scalp"] },
+  { category: "Mood & sleep", examples: ["anxiety", "low mood", "trouble sleeping", "mood swings", "brain fog"] },
+  { category: "Pain & body", examples: ["pelvic pain", "lower back pain", "bloating", "breast tenderness", "headaches"] },
+  { category: "Sexual & urinary", examples: ["painful intercourse", "vaginal dryness", "UTI symptoms", "itching", "unusual discharge"] },
+  { category: "Hormonal", examples: ["hot flashes", "night sweats", "weight gain", "fatigue", "decreased libido"] },
+];
+
+function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (v: string) => void }) {
+  const [activeCategory, setActiveCategory] = useState("All");
+  const categories = ["All", ...symptomExamples.map((c) => c.category)];
+  const visible = activeCategory === "All"
+    ? symptomExamples.flatMap((c) => c.examples)
+    : symptomExamples.find((c) => c.category === activeCategory)?.examples ?? [];
+
+  function add(example: string) {
+    const trimmed = symptoms.trim();
+    if (!trimmed) { onChange(example); return; }
+    if (trimmed.toLowerCase().includes(example.toLowerCase())) return;
+    const sep = /[,\.]$/.test(trimmed) ? " " : ", ";
+    onChange(`${trimmed}${sep}${example}`);
+  }
+
+  return (
+    <div className="space-y-3 pt-1">
+      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Start faster</p>
+      <div className="flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setActiveCategory(cat)}
+            className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+              activeCategory === cat
+                ? "bg-earth text-earth-foreground border-earth"
+                : "bg-background text-foreground border-border hover:border-earth/40"
+            }`}
+            aria-pressed={activeCategory === cat}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {visible.map((ex) => (
+          <button
+            key={ex}
+            type="button"
+            onClick={() => add(ex)}
+            className="px-2.5 py-1 rounded-full text-xs bg-sand/50 text-earth border border-transparent hover:border-earth/30 hover:bg-sand transition-colors"
+            aria-label={`Add ${ex}`}
+          >
+            + {ex}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HealthHub() {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -161,6 +222,7 @@ function SymptomAssistant() {
           <div className="space-y-2">
             <Label htmlFor="sym">Symptoms</Label>
             <Textarea id="sym" rows={6} value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="e.g. irregular periods for 3 months, acne on jaw, hair thinning…" maxLength={2000} />
+            <SymptomQuickAdd symptoms={symptoms} onChange={setSymptoms} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="age">Age (optional)</Label>
