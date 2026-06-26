@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 type Mode = "light" | "dark" | "system";
 type ThemeCtx = {
@@ -66,6 +67,7 @@ function clearAccent() {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<Mode>("light");
   const [accent, setAccentState] = useState<string>(DEFAULT_ACCENT);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const m = (localStorage.getItem("hs-theme-mode") as Mode | null) ?? "light";
@@ -75,6 +77,54 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyMode(m);
     if (a !== DEFAULT_ACCENT) applyAccent(a);
   }, []);
+
+  // Sync with the signed-in user's profile so theme follows across devices.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFromProfile(uid: string) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("theme_mode, accent_color")
+        .eq("id", uid)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const remoteMode = (data.theme_mode as Mode | null) ?? null;
+      const remoteAccent = data.accent_color ?? null;
+      if (remoteMode) {
+        setModeState(remoteMode);
+        localStorage.setItem("hs-theme-mode", remoteMode);
+        applyMode(remoteMode);
+      }
+      if (remoteAccent) {
+        setAccentState(remoteAccent);
+        localStorage.setItem("hs-theme-accent", remoteAccent);
+        applyAccent(remoteAccent);
+      } else {
+        clearAccent();
+      }
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id ?? null;
+      if (cancelled) return;
+      setUserId(uid);
+      if (uid) loadFromProfile(uid);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      const uid = session?.user?.id ?? null;
+      setUserId(uid);
+      if (event === "SIGNED_IN" && uid) loadFromProfile(uid);
+    });
+
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, []);
+
+  async function persist(patch: { theme_mode?: Mode; accent_color?: string | null }) {
+    if (!userId) return;
+    await supabase.from("profiles").update(patch).eq("id", userId);
+  }
 
   useEffect(() => {
     if (mode !== "system") return;
@@ -88,16 +138,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setModeState(m);
     localStorage.setItem("hs-theme-mode", m);
     applyMode(m);
+    void persist({ theme_mode: m });
   };
   const setAccent = (hex: string) => {
     setAccentState(hex);
     localStorage.setItem("hs-theme-accent", hex);
     applyAccent(hex);
+    void persist({ accent_color: hex });
   };
   const resetAccent = () => {
     setAccentState(DEFAULT_ACCENT);
     localStorage.setItem("hs-theme-accent", DEFAULT_ACCENT);
     clearAccent();
+    void persist({ accent_color: null });
   };
 
   return (
