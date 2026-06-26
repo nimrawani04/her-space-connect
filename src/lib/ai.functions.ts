@@ -1,7 +1,44 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+
+function extractJson(raw: string): unknown {
+  let s = raw.trim().replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const start = s.search(/[\{\[]/);
+  if (start === -1) throw new Error("AI returned no JSON");
+  const openChar = s[start];
+  const closeChar = openChar === "[" ? "]" : "}";
+  const end = s.lastIndexOf(closeChar);
+  if (end === -1) throw new Error("AI returned malformed JSON");
+  s = s.substring(start, end + 1);
+  try {
+    return JSON.parse(s);
+  } catch {
+    const cleaned = s
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]")
+      .replace(/[\x00-\x1F\x7F]/g, " ");
+    return JSON.parse(cleaned);
+  }
+}
+
+async function generateJson<T>(args: {
+  key: string;
+  system: string;
+  prompt: string;
+  schema: z.ZodType<T>;
+  schemaHint: string;
+}): Promise<T> {
+  const gateway = createLovableAiGatewayProvider(args.key);
+  const { text } = await generateText({
+    model: gateway("google/gemini-3-flash-preview"),
+    system: `${args.system}\n\nYou MUST respond with valid JSON only, matching this shape exactly. No markdown, no commentary.\n${args.schemaHint}`,
+    prompt: args.prompt,
+  });
+  const parsed = extractJson(text);
+  return args.schema.parse(parsed);
+}
 
 const symptomInput = z.object({
   symptoms: z.string().trim().min(3).max(2000),
@@ -34,14 +71,21 @@ export const analyzeSymptoms = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("AI is not configured");
-    const gateway = createLovableAiGatewayProvider(key);
-    const { output } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+    return await generateJson({
+      key,
       system: SYMPTOM_SYSTEM,
       prompt: `Symptoms reported: ${data.symptoms}${data.age ? `\nAge: ${data.age}` : ""}${data.contextNotes ? `\nContext: ${data.contextNotes}` : ""}\n\nReturn structured analysis.`,
-      output: Output.object({ schema: symptomSchema }),
+      schema: symptomSchema,
+      schemaHint: `{
+  "plainEnglishSummary": string,
+  "urgency": "self-care" | "see-a-doctor-soon" | "urgent" | "emergency",
+  "possibleConditions": [{ "name": string, "confidence": "low" | "moderate" | "high", "why": string }] (max 6),
+  "questionsForYourDoctor": string[] (max 8),
+  "selfCareSuggestions": string[] (max 6),
+  "redFlags": string[] (max 6),
+  "disclaimer": string
+}`,
     });
-    return output;
   });
 
 const journalInput = z.object({
@@ -69,14 +113,19 @@ export const analyzeJournal = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("AI is not configured");
-    const gateway = createLovableAiGatewayProvider(key);
-    const { output } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+    return await generateJson({
+      key,
       system: JOURNAL_SYSTEM,
       prompt: `Mood: ${data.mood ?? "unspecified"}\n\nEntry:\n${data.content}`,
-      output: Output.object({ schema: journalSchema }),
+      schema: journalSchema,
+      schemaHint: `{
+  "reflection": string,
+  "emotionalThemes": string[] (max 5),
+  "gentlePrompt": string,
+  "copingSuggestions": string[] (max 4),
+  "escalation": { "suggested": boolean, "reason": string (optional) }
+}`,
     });
-    return output;
   });
 
 const researchInput = z.object({
@@ -101,12 +150,18 @@ export const simplifyResearch = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("AI is not configured");
-    const gateway = createLovableAiGatewayProvider(key);
-    const { output } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+    return await generateJson({
+      key,
       system: RESEARCH_SYSTEM,
       prompt: `Topic: ${data.topic}. Produce a beginner-friendly research brief.`,
-      output: Output.object({ schema: researchSchema }),
+      schema: researchSchema,
+      schemaHint: `{
+  "beginnerExplanation": string,
+  "keyFindings": string[] (max 6),
+  "practicalTakeaways": string[] (max 6),
+  "mythVsFact": [{ "myth": string, "fact": string }] (max 5),
+  "faqs": [{ "q": string, "a": string }] (max 6),
+  "suggestedSearches": string[] (max 4)
+}`,
     });
-    return output;
   });
