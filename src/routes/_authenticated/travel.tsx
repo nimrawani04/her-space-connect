@@ -124,7 +124,7 @@ function Travel() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const { city, country } = await reverseGeocode({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          const { city, country } = await geocode({ data: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
           setReq((r) => ({
             ...r,
             city: city || r.city,
