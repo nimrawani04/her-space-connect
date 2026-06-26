@@ -58,7 +58,7 @@ const PAGE_SIZE = 60;
 
 function Travel() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/travel" });
   const search = Route.useSearch();
   const [form, setForm] = useState({ city: "", country: "", note: "" });
   const [req, setReq] = useState({ city: "", country: "", need: "", contact: "" });
