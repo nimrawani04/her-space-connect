@@ -3,8 +3,13 @@ import { z } from "zod";
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse";
 
+const geocodeInput = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
 export const reverseGeocode = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ lat: z.number(), lng: z.number() }).parse(data))
+  .inputValidator((d: unknown) => geocodeInput.parse(d))
   .handler(async ({ data }) => {
     const { lat, lng } = data;
     const url = `${NOMINATIM_URL}?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`;
