@@ -14,16 +14,338 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      community_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          author_id: string
+          body: string
+          category: string
+          comment_count: number
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          like_count: number
+          title: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          category: string
+          comment_count?: number
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          like_count?: number
+          title: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          category?: string
+          comment_count?: number
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          like_count?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      cycle_entries: {
+        Row: {
+          created_at: string
+          energy: number | null
+          entry_date: string
+          flow: string | null
+          id: string
+          mood: string | null
+          notes: string | null
+          symptoms: string[] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          energy?: number | null
+          entry_date: string
+          flow?: string | null
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          symptoms?: string[] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          energy?: number | null
+          entry_date?: string
+          flow?: string | null
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          symptoms?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      journal_entries: {
+        Row: {
+          ai_insight: string | null
+          content: string
+          created_at: string
+          id: string
+          mood: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_insight?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          mood?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_insight?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          mood?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mentors: {
+        Row: {
+          bio: string | null
+          created_at: string
+          expertise: string[]
+          headline: string
+          hourly_rate: number | null
+          id: string
+          is_available: boolean
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          expertise?: string[]
+          headline: string
+          hourly_rate?: number | null
+          id?: string
+          is_available?: boolean
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          expertise?: string[]
+          headline?: string
+          hourly_rate?: number | null
+          id?: string
+          is_available?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_verified: boolean
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          is_verified?: boolean
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_verified?: boolean
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      safe_places: {
+        Row: {
+          address: string | null
+          city: string
+          cleanliness_score: number | null
+          country: string
+          created_at: string
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          notes: string | null
+          place_type: string
+          review_count: number
+          safety_score: number | null
+          submitted_by: string
+          women_friendly_score: number | null
+        }
+        Insert: {
+          address?: string | null
+          city: string
+          cleanliness_score?: number | null
+          country: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          notes?: string | null
+          place_type: string
+          review_count?: number
+          safety_score?: number | null
+          submitted_by: string
+          women_friendly_score?: number | null
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          cleanliness_score?: number | null
+          country?: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          notes?: string | null
+          place_type?: string
+          review_count?: number
+          safety_score?: number | null
+          submitted_by?: string
+          women_friendly_score?: number | null
+        }
+        Relationships: []
+      }
+      safety_alerts: {
+        Row: {
+          alert_type: string
+          city: string
+          country: string
+          created_at: string
+          description: string
+          id: string
+          is_verified: boolean
+          location: string | null
+          reporter_id: string
+          severity: string
+        }
+        Insert: {
+          alert_type: string
+          city: string
+          country: string
+          created_at?: string
+          description: string
+          id?: string
+          is_verified?: boolean
+          location?: string | null
+          reporter_id: string
+          severity?: string
+        }
+        Update: {
+          alert_type?: string
+          city?: string
+          country?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_verified?: boolean
+          location?: string | null
+          reporter_id?: string
+          severity?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "mentor" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +472,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "mentor", "member"],
+    },
   },
 } as const
