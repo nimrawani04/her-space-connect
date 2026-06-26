@@ -17,11 +17,13 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Activity, Users, Sparkles, GraduationCap, Briefcase, ShoppingBag,
-  ShieldCheck, Plane, HeartPulse, BookOpen, LayoutDashboard, LogOut,
+  ShieldCheck, Plane, HeartPulse, BookOpen, LayoutDashboard, LogOut, Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarSignedUrl, initials } from "@/lib/avatar";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -52,12 +54,24 @@ function AuthedShell() {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [name, setName] = useState<string>("Sister");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const n = data.user?.user_metadata?.full_name ?? data.user?.email?.split("@")[0] ?? "Sister";
+    let cancelled = false;
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", u.user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const n = p?.display_name ?? u.user.user_metadata?.full_name ?? u.user.email?.split("@")[0] ?? "Sister";
       setName(String(n));
-    });
+      setAvatarUrl(await getAvatarSignedUrl(p?.avatar_url));
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   async function signOut() {
@@ -104,7 +118,18 @@ function AuthedShell() {
           <header className="h-14 flex items-center gap-3 border-b border-border px-4 sticky top-0 bg-background/80 backdrop-blur z-30">
             <SidebarTrigger />
             <div className="flex-1" />
-            <span className="text-xs text-muted-foreground">Welcome, <span className="font-medium text-foreground">{name}</span></span>
+            <Link to="/settings/appearance" className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+              <Palette className="h-3.5 w-3.5" /> Appearance
+            </Link>
+            <Link to="/settings/appearance" className="flex items-center gap-2 group">
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                Welcome, <span className="font-medium text-foreground">{name}</span>
+              </span>
+              <Avatar className="h-8 w-8 ring-1 ring-border group-hover:ring-primary transition-all">
+                {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
+                <AvatarFallback className="bg-sand text-earth text-xs">{initials(name)}</AvatarFallback>
+              </Avatar>
+            </Link>
             <ThemeSwitcher />
           </header>
           <main className="flex-1 p-6 md:p-10">

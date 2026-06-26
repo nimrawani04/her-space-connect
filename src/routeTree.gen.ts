@@ -24,6 +24,7 @@ import { Route as AuthenticatedExperienceRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCommunityRouteImport } from './routes/_authenticated/community'
 import { Route as AuthenticatedCareersRouteImport } from './routes/_authenticated/careers'
+import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -100,6 +101,12 @@ const AuthenticatedCareersRoute = AuthenticatedCareersRouteImport.update({
   path: '/careers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSettingsAppearanceRoute =
+  AuthenticatedSettingsAppearanceRouteImport.update({
+    id: '/settings/appearance',
+    path: '/settings/appearance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/safety': typeof AuthenticatedSafetyRoute
   '/travel': typeof AuthenticatedTravelRoute
   '/wellness': typeof AuthenticatedWellnessRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
   '/safety': typeof AuthenticatedSafetyRoute
   '/travel': typeof AuthenticatedTravelRoute
   '/wellness': typeof AuthenticatedWellnessRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated/safety': typeof AuthenticatedSafetyRoute
   '/_authenticated/travel': typeof AuthenticatedTravelRoute
   '/_authenticated/wellness': typeof AuthenticatedWellnessRoute
+  '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/travel'
     | '/wellness'
+    | '/settings/appearance'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/travel'
     | '/wellness'
+    | '/settings/appearance'
   id:
     | '__root__'
     | '/'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authenticated/safety'
     | '/_authenticated/travel'
     | '/_authenticated/wellness'
+    | '/_authenticated/settings/appearance'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCareersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/appearance': {
+      id: '/_authenticated/settings/appearance'
+      path: '/settings/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -332,6 +352,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSafetyRoute: typeof AuthenticatedSafetyRoute
   AuthenticatedTravelRoute: typeof AuthenticatedTravelRoute
   AuthenticatedWellnessRoute: typeof AuthenticatedWellnessRoute
+  AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -346,6 +367,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSafetyRoute: AuthenticatedSafetyRoute,
   AuthenticatedTravelRoute: AuthenticatedTravelRoute,
   AuthenticatedWellnessRoute: AuthenticatedWellnessRoute,
+  AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

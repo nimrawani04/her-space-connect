@@ -2,15 +2,19 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { supabase } from "@/integrations/supabase/client";
 
 type Mode = "light" | "dark" | "system";
+export type Background = "plain" | "warm" | "sage" | "dusk" | "grain" | "gradient";
 type ThemeCtx = {
   mode: Mode;
   setMode: (m: Mode) => void;
   accent: string; // hex
   setAccent: (hex: string) => void;
   resetAccent: () => void;
+  background: Background;
+  setBackground: (b: Background) => void;
 };
 
 const DEFAULT_ACCENT = "#c2410c"; // earth / burnt orange
+const DEFAULT_BG: Background = "plain";
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
 function applyMode(mode: Mode) {
@@ -64,18 +68,30 @@ function clearAccent() {
   );
 }
 
+const BG_CLASSES = ["bg-plain", "bg-warm", "bg-sage", "bg-dusk", "bg-grain", "bg-gradient"];
+function applyBackground(bg: Background) {
+  if (typeof document === "undefined") return;
+  const el = document.documentElement;
+  BG_CLASSES.forEach((c) => el.classList.remove(c));
+  el.classList.add(`bg-${bg}`);
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<Mode>("light");
   const [accent, setAccentState] = useState<string>(DEFAULT_ACCENT);
+  const [background, setBackgroundState] = useState<Background>(DEFAULT_BG);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const m = (localStorage.getItem("hs-theme-mode") as Mode | null) ?? "light";
     const a = localStorage.getItem("hs-theme-accent") ?? DEFAULT_ACCENT;
+    const b = (localStorage.getItem("hs-theme-bg") as Background | null) ?? DEFAULT_BG;
     setModeState(m);
     setAccentState(a);
+    setBackgroundState(b);
     applyMode(m);
     if (a !== DEFAULT_ACCENT) applyAccent(a);
+    applyBackground(b);
   }, []);
 
   // Sync with the signed-in user's profile so theme follows across devices.
@@ -85,12 +101,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     async function loadFromProfile(uid: string) {
       const { data } = await supabase
         .from("profiles")
-        .select("theme_mode, accent_color")
+        .select("theme_mode, accent_color, background_style")
         .eq("id", uid)
         .maybeSingle();
       if (cancelled || !data) return;
       const remoteMode = (data.theme_mode as Mode | null) ?? null;
       const remoteAccent = data.accent_color ?? null;
+      const remoteBg = (data.background_style as Background | null) ?? null;
       if (remoteMode) {
         setModeState(remoteMode);
         localStorage.setItem("hs-theme-mode", remoteMode);
@@ -102,6 +119,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         applyAccent(remoteAccent);
       } else {
         clearAccent();
+      }
+      if (remoteBg) {
+        setBackgroundState(remoteBg);
+        localStorage.setItem("hs-theme-bg", remoteBg);
+        applyBackground(remoteBg);
       }
     }
 
@@ -121,7 +143,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
-  async function persist(patch: { theme_mode?: Mode; accent_color?: string | null }) {
+  async function persist(patch: { theme_mode?: Mode; accent_color?: string | null; background_style?: Background }) {
     if (!userId) return;
     await supabase.from("profiles").update(patch).eq("id", userId);
   }
@@ -152,9 +174,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     clearAccent();
     void persist({ accent_color: null });
   };
+  const setBackground = (b: Background) => {
+    setBackgroundState(b);
+    localStorage.setItem("hs-theme-bg", b);
+    applyBackground(b);
+    void persist({ background_style: b });
+  };
 
   return (
-    <ThemeContext.Provider value={{ mode, setMode, accent, setAccent, resetAccent }}>
+    <ThemeContext.Provider value={{ mode, setMode, accent, setAccent, resetAccent, background, setBackground }}>
       {children}
     </ThemeContext.Provider>
   );
