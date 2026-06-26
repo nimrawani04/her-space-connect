@@ -289,7 +289,25 @@ function Travel() {
           </div>
         </div>
         {myCoords && (
-          <p className="text-xs text-muted-foreground">Sorted by distance from your current location. Posts without coordinates appear last.</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">Within</span>
+            {[0, 5, 10, 25, 50, 100].map((km) => (
+              <Button
+                key={km}
+                type="button"
+                size="sm"
+                variant={search.radius === km ? "default" : "outline"}
+                className="rounded-full h-7 px-3 text-xs"
+                onClick={() => navigate({ search: { ...search, radius: km } as any })}
+              >
+                {km === 0 ? "Any" : `${km} km`}
+              </Button>
+            ))}
+            <span className="text-xs text-muted-foreground ml-1">Sorted by distance. Posts without coordinates appear {search.radius > 0 ? "are hidden" : "last"}.</span>
+          </div>
+        )}
+        {!myCoords && (
+          <p className="text-xs text-muted-foreground">Tap "Use my location" to filter posts by distance.</p>
         )}
         <Card>
           <CardHeader>
@@ -341,13 +359,20 @@ function Travel() {
           </CardContent>
         </Card>
 
-        {sortedRequests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No matching requests. Try widening your filters or be the first to share.</p>
+        {visibleRequests.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {myCoords && search.radius > 0
+              ? `No sisters within ${search.radius} km. Try a wider radius.`
+              : "No matching requests. Try widening your filters or be the first to share."}
+          </p>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground">{sortedRequests.length} sister{sortedRequests.length === 1 ? "" : "s"} found</p>
+            <p className="text-sm text-muted-foreground">
+              {visibleRequests.length} sister{visibleRequests.length === 1 ? "" : "s"} found
+              {myCoords && search.radius > 0 ? ` within ${search.radius} km` : ""}
+            </p>
             <div className="grid sm:grid-cols-2 gap-4">
-              {sortedRequests.map((r: any) => {
+              {visibleRequests.map((r: any) => {
                 const dist = myCoords && r.latitude != null && r.longitude != null
                   ? haversine(myCoords, { lat: r.latitude, lng: r.longitude })
                   : null;
