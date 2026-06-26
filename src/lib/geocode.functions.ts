@@ -8,7 +8,7 @@ const geocodeInput = z.object({
   lng: z.number(),
 });
 
-export const reverseGeocode = createServerFn({ method: "GET" })
+export const reverseGeocode = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => geocodeInput.parse(d))
   .handler(async ({ data }) => {
     const { lat, lng } = data;
