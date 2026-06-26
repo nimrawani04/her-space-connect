@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { AlertTriangle, FileDown, Printer } from "lucide-react";
+import { AlertTriangle, FileDown, Printer, Sparkles, ShieldCheck, Stethoscope } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/health")({
   head: () => ({ meta: [{ title: "Health Hub · HerSpace" }] }),
@@ -25,13 +25,39 @@ type ResearchResult = Awaited<ReturnType<typeof simplifyResearch>>;
 function HealthHub() {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">01 · Intelligence</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Health Hub</h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl">An educational space for women's health. Information here is not medical advice and does not replace professional care.</p>
-      </header>
+      <section className="rounded-3xl bg-sand/40 border border-border p-8 md:p-12">
+        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-3">01 · Intelligence</p>
+        <h1 className="text-4xl md:text-5xl font-serif italic leading-tight max-w-2xl">
+          Understand your body, before you see the doctor.
+        </h1>
+        <p className="text-muted-foreground mt-4 max-w-2xl leading-relaxed">
+          The HerSpace AI Symptom Assistant listens carefully, suggests possibilities to discuss with a clinician,
+          and prepares a doctor-ready report — designed by and for women.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild className="rounded-full bg-earth text-earth-foreground hover:brightness-110 gap-2">
+            <a href="#symptom-assistant"><Sparkles className="h-4 w-4" /> Start with your symptoms</a>
+          </Button>
+          <Button asChild variant="outline" className="rounded-full">
+            <a href="#symptom-assistant">How it works</a>
+          </Button>
+        </div>
+        <div className="mt-8 grid sm:grid-cols-3 gap-4 text-sm">
+          {[
+            { icon: Sparkles, title: "Plain-English answers", body: "No jargon. Just a calm summary you can act on." },
+            { icon: Stethoscope, title: "Doctor-ready report", body: "Export a printable PDF to bring to your appointment." },
+            { icon: ShieldCheck, title: "Private by design", body: "Your entries stay yours. Educational, never diagnostic." },
+          ].map((f) => (
+            <div key={f.title} className="rounded-2xl bg-background/60 border border-border p-4">
+              <f.icon className="h-4 w-4 text-earth mb-2" />
+              <p className="font-medium">{f.title}</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed">{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <Tabs defaultValue="symptoms" className="space-y-6">
+      <Tabs defaultValue="symptoms" className="space-y-6 scroll-mt-8" id="symptom-assistant">
         <TabsList className="bg-muted">
           <TabsTrigger value="symptoms">AI Symptom Assistant</TabsTrigger>
           <TabsTrigger value="research">Research Simplifier</TabsTrigger>
