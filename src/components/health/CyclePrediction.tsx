@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, AlertCircle, History, Trash2 } from "lucide-react";
+import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge } from "lucide-react";
 import { periodStarts, summarizeCycles } from "@/lib/cycle-stats";
 
 type PredictResult = Awaited<ReturnType<typeof predictCycle>>;
@@ -109,9 +109,12 @@ export function CyclePrediction() {
 
   return (
     <div className="space-y-4">
-    <Card>
+    <Card className="overflow-hidden border-earth/20 bg-gradient-to-br from-background to-earth/[0.03]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="font-serif italic text-2xl">AI cycle prediction</CardTitle>
+        <div>
+          <CardTitle className="font-serif italic text-2xl">AI cycle prediction</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">Personalized estimates from your logged history</p>
+        </div>
         <Button onClick={run} disabled={loading} size="sm" className="rounded-full bg-earth text-earth-foreground hover:brightness-110 gap-2">
           <Sparkles className="h-3.5 w-3.5" /> {loading ? "Predicting…" : result ? "Refresh" : "Predict"}
         </Button>
@@ -129,13 +132,13 @@ export function CyclePrediction() {
                 Your period is past the expected window. Track for a few more days; if it's longer than 7 days late, consider checking in with a clinician.
               </div>
             )}
-            <div className="grid sm:grid-cols-2 gap-3 text-sm">
-              <Row label="Next period" value={`${result.nextPeriodLow} → ${result.nextPeriodHigh}`} />
-              <Row label="Expected end" value={result.nextPeriodEnd} />
-              <Row label="Fertile window" value={`${result.fertileWindowLow} → ${result.fertileWindowHigh}`} />
-              <Row label="Ovulation day" value={result.ovulationDay} />
-              <Row label="PMS phase starts" value={result.pmsStart} />
-              <Row label="Confidence" value={`${Math.round(result.confidence)}%`} />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              <Row icon={<Droplets className="h-3 w-3" />} tone="rose" label="Next period" value={`${fmtDate(result.nextPeriodLow)} → ${fmtDate(result.nextPeriodHigh)}`} />
+              <Row icon={<CalendarDays className="h-3 w-3" />} tone="rose" label="Expected end" value={fmtDate(result.nextPeriodEnd)} />
+              <Row icon={<Flower2 className="h-3 w-3" />} tone="emerald" label="Fertile window" value={`${fmtDate(result.fertileWindowLow)} → ${fmtDate(result.fertileWindowHigh)}`} />
+              <Row icon={<Activity className="h-3 w-3" />} tone="emerald" label="Ovulation day" value={fmtDate(result.ovulationDay)} />
+              <Row icon={<Moon className="h-3 w-3" />} tone="violet" label="PMS phase starts" value={fmtDate(result.pmsStart)} />
+              <Row icon={<Gauge className="h-3 w-3" />} tone="earth" label="Confidence" value={`${Math.round(result.confidence)}%`} />
             </div>
             <div className="flex flex-wrap gap-2 pt-1">
               <Badge variant="outline">Improves with more cycles logged</Badge>
@@ -150,11 +153,20 @@ export function CyclePrediction() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+const TONE: Record<string, string> = {
+  rose: "border-rose-200/70 bg-rose-50/40 text-rose-700",
+  emerald: "border-emerald-200/70 bg-emerald-50/40 text-emerald-700",
+  violet: "border-violet-200/70 bg-violet-50/40 text-violet-700",
+  earth: "border-earth/30 bg-earth/5 text-earth",
+};
+function Row({ label, value, icon, tone = "earth" }: { label: string; value: string; icon?: React.ReactNode; tone?: string }) {
   return (
-    <div className="rounded-lg border border-border p-3">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="font-medium mt-1">{value}</p>
+    <div className="rounded-lg border border-border p-3 hover:border-earth/40 transition-colors">
+      <div className="flex items-center gap-1.5">
+        {icon && <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full border ${TONE[tone] ?? TONE.earth}`}>{icon}</span>}
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      </div>
+      <p className="font-medium mt-1.5 text-foreground">{value}</p>
     </div>
   );
 }
