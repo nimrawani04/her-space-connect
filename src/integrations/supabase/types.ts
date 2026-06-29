@@ -94,6 +94,7 @@ export type Database = {
           id: string
           mood: string | null
           notes: string | null
+          symptom_severities: Json | null
           symptoms: string[] | null
           user_id: string
         }
@@ -105,6 +106,7 @@ export type Database = {
           id?: string
           mood?: string | null
           notes?: string | null
+          symptom_severities?: Json | null
           symptoms?: string[] | null
           user_id: string
         }
@@ -116,6 +118,7 @@ export type Database = {
           id?: string
           mood?: string | null
           notes?: string | null
+          symptom_severities?: Json | null
           symptoms?: string[] | null
           user_id?: string
         }

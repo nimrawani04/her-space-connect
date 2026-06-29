@@ -1,0 +1,1 @@
+ALTER TABLE public.cycle_entries ADD COLUMN IF NOT EXISTS symptom_severities jsonb;
