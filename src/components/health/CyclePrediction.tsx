@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge } from "lucide-react";
+import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight } from "lucide-react";
 import { periodStarts, summarizeCycles } from "@/lib/cycle-stats";
 
 type PredictResult = Awaited<ReturnType<typeof predictCycle>>;
@@ -204,22 +204,55 @@ function PredictionTimeline({
 }) {
   const visible = showAll ? history : history.slice(0, 5);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+  function toggleCompare(id: string) {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  }
+  const [aId, bId] = compareIds;
+  const a = history.find((r) => r.id === aId) ?? null;
+  const b = history.find((r) => r.id === bId) ?? null;
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="font-serif italic text-2xl flex items-center gap-2">
           <History className="h-5 w-5" /> Prediction history
         </CardTitle>
-        {history.length > 5 && (
-          <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)} className="rounded-full">
-            {showAll ? "Show recent" : `Show all (${history.length})`}
+        <div className="flex items-center gap-2">
+          {compareIds.length > 0 && (
+            <Badge variant="outline" className="text-xs gap-1">
+              {compareIds.length}/2 selected
+              <button onClick={() => { setCompareIds([]); setCompareOpen(false); }} aria-label="Clear selection"><X className="h-3 w-3" /></button>
+            </Badge>
+          )}
+          <Button
+            variant={compareIds.length === 2 ? "default" : "outline"}
+            size="sm"
+            disabled={compareIds.length !== 2}
+            onClick={() => setCompareOpen(true)}
+            className="rounded-full gap-1.5"
+          >
+            <GitCompare className="h-3.5 w-3.5" /> Compare
           </Button>
-        )}
+          {history.length > 5 && (
+            <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)} className="rounded-full">
+              {showAll ? "Show recent" : `Show all (${history.length})`}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {history.length === 0 ? (
           <p className="text-sm text-muted-foreground">No predictions yet. Run one above and a timeline will appear here showing when each forecast was recalculated and which months of data fed it.</p>
         ) : (
+          <>
+          {compareIds.length > 0 && !compareOpen && (
+            <p className="text-xs text-muted-foreground mb-3">Select {compareIds.length === 1 ? "one more run" : "two runs"} and tap <strong>Compare</strong> to see what changed.</p>
+          )}
           <ol className="relative border-l border-border ml-2 space-y-5">
             {visible.map((run, i) => {
               const prev = history[i + 1];
@@ -229,11 +262,23 @@ function PredictionTimeline({
               const newStarts = prev
                 ? run.recent_starts.filter((d) => !prev.recent_starts.includes(d))
                 : run.recent_starts.slice(0, 3);
+              const selected = compareIds.includes(run.id);
               return (
-                <li key={run.id} className="ml-4">
+                <li key={run.id} className={`ml-4 rounded-lg transition-colors ${selected ? "bg-earth/5 ring-1 ring-earth/30 p-2 -ml-2 pl-4" : ""}`}>
                   <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-earth border-2 border-background" />
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-sm font-medium">{fmtDateTime(run.predicted_at)}</p>
+                    <div className="flex items-center gap-2">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleCompare(run.id)}
+                          className="h-3.5 w-3.5 rounded border-border accent-[oklch(var(--earth))]"
+                          aria-label="Select for compare"
+                        />
+                        <p className="text-sm font-medium">{fmtDateTime(run.predicted_at)}</p>
+                      </label>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">{Math.round(run.confidence ?? 0)}% confidence</Badge>
                       <button onClick={() => onDelete(run.id)} className="text-muted-foreground hover:text-foreground" aria-label="Remove entry">
@@ -290,8 +335,12 @@ function PredictionTimeline({
               );
             })}
           </ol>
+          </>
         )}
       </CardContent>
+      {compareOpen && a && b && (
+        <CompareDialog a={a} b={b} onClose={() => setCompareOpen(false)} />
+      )}
     </Card>
   );
 }
