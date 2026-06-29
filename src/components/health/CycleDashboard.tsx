@@ -188,6 +188,35 @@ function cycleLengthSeries(starts: string[]) {
   }
   return out;
 }
+
+function buildFertileMap(starts: string[], avgCycleLen: number): Map<string, "fertile" | "ovulation"> {
+  const map = new Map<string, "fertile" | "ovulation">();
+  const cycleLen = Math.max(20, Math.min(45, Math.round(avgCycleLen)));
+  const today = new Date();
+  const horizon = new Date(today); horizon.setMonth(horizon.getMonth() + 2);
+  const sorted = [...starts].sort();
+  const anchors: Date[] = sorted.map((s) => new Date(s));
+  // project forward from last known start to cover current/next month
+  if (anchors.length) {
+    let last = new Date(anchors[anchors.length - 1]);
+    while (last < horizon) {
+      const next = new Date(last); next.setDate(next.getDate() + cycleLen);
+      anchors.push(next);
+      last = next;
+    }
+  }
+  for (const a of anchors) {
+    const ov = new Date(a); ov.setDate(ov.getDate() + (cycleLen - 14));
+    // fertile window: ovulation -5 .. +1
+    for (let off = -5; off <= 1; off++) {
+      const d = new Date(ov); d.setDate(d.getDate() + off);
+      const key = d.toISOString().slice(0, 10);
+      if (!map.has(key)) map.set(key, "fertile");
+    }
+    map.set(ov.toISOString().slice(0, 10), "ovulation");
+  }
+  return map;
+}
 function energySeries(w: any[]) {
   return w.filter((x) => x.energy_level).map((x) => ({ label: x.log_date.slice(5), value: x.energy_level }));
 }
