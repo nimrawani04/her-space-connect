@@ -373,7 +373,15 @@ function ResearchSimplifier() {
   );
 }
 
-type CycleRow = { id: string; entry_date: string; flow: string | null; mood: string | null; energy: number | null; symptoms: string[] | null; notes: string | null };
+type Severity = 1 | 2 | 3;
+type SeverityMap = Record<string, Severity>;
+type CycleRow = { id: string; entry_date: string; flow: string | null; mood: string | null; energy: number | null; symptoms: string[] | null; symptom_severities: SeverityMap | null; notes: string | null };
+
+const SEVERITY_META: Record<Severity, { label: string; tone: string; dot: string }> = {
+  1: { label: "mild",     tone: "bg-sage/20 text-sage border-sage/40",           dot: "bg-sage" },
+  2: { label: "moderate", tone: "bg-amber-100 text-amber-900 border-amber-300",  dot: "bg-amber-500" },
+  3: { label: "severe",   tone: "bg-rose-100 text-rose-900 border-rose-300",     dot: "bg-rose-500" },
+};
 
 const SYMPTOM_OPTIONS = [
   "cramps", "acne", "mood swings", "fatigue", "bloating", "headache",
@@ -388,7 +396,7 @@ function CycleTracker() {
   const [mood, setMood] = useState("");
   const [energy, setEnergy] = useState("");
   const [notes, setNotes] = useState("");
-  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [severities, setSeverities] = useState<SeverityMap>({});
   const [loading, setLoading] = useState(false);
 
   async function load() {
@@ -397,28 +405,47 @@ function CycleTracker() {
   }
   useEffect(() => { load(); }, []);
 
-  function toggleSymptom(s: string) {
-    setSymptoms((cur) => cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]);
+  // Cycle: off → mild (1) → moderate (2) → severe (3) → off
+  function cycleSymptom(s: string) {
+    setSeverities((cur) => {
+      const next = { ...cur };
+      const v = cur[s];
+      if (!v) next[s] = 1;
+      else if (v === 1) next[s] = 2;
+      else if (v === 2) next[s] = 3;
+      else delete next[s];
+      return next;
+    });
+  }
+  function clearSymptom(s: string) {
+    setSeverities((cur) => {
+      if (!cur[s]) return cur;
+      const next = { ...cur };
+      delete next[s];
+      return next;
+    });
   }
 
   async function save() {
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { toast.error("Sign in required"); setLoading(false); return; }
+    const symptomKeys = Object.keys(severities);
     const { error } = await supabase.from("cycle_entries").upsert({
       user_id: u.user.id,
       entry_date: entryDate,
       flow: flow || null,
       mood: mood || null,
       energy: energy ? Number(energy) : null,
-      symptoms: symptoms.length ? symptoms : null,
+      symptoms: symptomKeys.length ? symptomKeys : null,
+      symptom_severities: symptomKeys.length ? severities : null,
       notes: notes || null,
     }, { onConflict: "user_id,entry_date" });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Logged.");
     setNotes("");
-    setSymptoms([]);
+    setSeverities({});
     load();
   }
 
@@ -437,24 +464,32 @@ function CycleTracker() {
             <Label>Symptoms today</Label>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {SYMPTOM_OPTIONS.map((s) => {
-                const on = symptoms.includes(s);
+                const sev = severities[s];
+                const meta = sev ? SEVERITY_META[sev] : null;
                 return (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => toggleSymptom(s)}
-                    aria-pressed={on}
-                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                      on ? "bg-earth text-earth-foreground border-earth"
-                         : "bg-sand/40 text-earth border-transparent hover:border-earth/30"
+                    onClick={() => cycleSymptom(s)}
+                    onContextMenu={(e) => { e.preventDefault(); clearSymptom(s); }}
+                    aria-pressed={!!sev}
+                    title={sev ? `${meta!.label} — tap to change, right-click to clear` : "Tap to add"}
+                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors flex items-center gap-1.5 ${
+                      sev ? meta!.tone : "bg-sand/40 text-earth border-transparent hover:border-earth/30"
                     }`}
                   >
-                    {on ? "✓ " : "+ "}{s}
+                    {sev
+                      ? <span className={`inline-block w-1.5 h-1.5 rounded-full ${meta!.dot}`} />
+                      : <span aria-hidden>+</span>}
+                    <span>{s}</span>
+                    {sev && <span className="text-[10px] opacity-70">· {meta!.label}</span>}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-2">Tap to add. These power the cycle-phase correlations in the Cycle & Hormones tab.</p>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Tap once for <span className="text-sage">mild</span>, again for <span className="text-amber-700">moderate</span>, again for <span className="text-rose-700">severe</span>, again to clear. Right-click to remove. Severity weights the cycle-phase correlations.
+            </p>
           </div>
           <div><Label>Notes</Label><Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
           <Button onClick={save} disabled={loading} className="rounded-full bg-earth text-earth-foreground hover:brightness-110">Save entry</Button>
@@ -473,9 +508,19 @@ function CycleTracker() {
               <p className="text-muted-foreground text-xs">Mood: {r.mood ?? "—"} · Energy: {r.energy ?? "—"}</p>
               {r.symptoms && r.symptoms.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {r.symptoms.map((s) => (
-                    <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
-                  ))}
+                  {r.symptoms.map((s) => {
+                    const sev = (r.symptom_severities ?? {})[s] as Severity | undefined;
+                    const meta = sev ? SEVERITY_META[sev] : null;
+                    return (
+                      <Badge
+                        key={s}
+                        variant="outline"
+                        className={`text-[10px] ${meta ? meta.tone : ""}`}
+                      >
+                        {s}{meta ? ` · ${meta.label}` : ""}
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
               {r.notes && <p className="text-xs mt-1">{r.notes}</p>}
