@@ -180,6 +180,9 @@ function buildCalendarCells(cycles: any[], wellness: any[], starts: string[]) {
 }
 
 function cycleLengthSeries(starts: string[]) {
+  return _cycleLengthSeries(starts);
+}
+function _cycleLengthSeries(starts: string[]) {
   const sorted = [...starts].sort();
   const out: { label: string; value: number }[] = [];
   for (let i = 1; i < sorted.length; i++) {
