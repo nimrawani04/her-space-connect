@@ -88,7 +88,6 @@ export function CycleDashboard() {
             {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
               <div key={i} className="text-center text-muted-foreground">{d}</div>
             ))}
-            {calendar.cells.map((c, i) => (
             {calendar.cells.map((c, i) => {
               const f = c.tooltip ? fertileMap.get(c.tooltip) : undefined;
               const isOv = f === "ovulation";
