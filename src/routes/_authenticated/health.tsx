@@ -809,6 +809,8 @@ function HormoneCycle() {
           </div>
         ))}
       </div>
+
+      <SymptomCorrelations periodStarts={periodStarts} cycleLength={cycleLength} />
     </div>
   );
 }
