@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
@@ -526,7 +527,30 @@ const HORMONES: Array<{
 function HormoneCycle() {
   const [lastPeriod, setLastPeriod] = useState<string>("");
   const [cycleLength, setCycleLength] = useState<number>(28);
+  const [irregularity, setIrregularity] = useState<"regular" | "somewhat" | "very">("regular");
+  const [detectedAvg, setDetectedAvg] = useState<{ avg: number; spread: number; cycles: number } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Hydrate saved preferences
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("herspace.cyclePrefs");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p.cycleLength === "number") setCycleLength(p.cycleLength);
+        if (p.irregularity === "regular" || p.irregularity === "somewhat" || p.irregularity === "very") {
+          setIrregularity(p.irregularity);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Persist preferences
+  useEffect(() => {
+    try {
+      localStorage.setItem("herspace.cyclePrefs", JSON.stringify({ cycleLength, irregularity }));
+    } catch { /* ignore */ }
+  }, [cycleLength, irregularity]);
 
   useEffect(() => {
     (async () => {
@@ -553,10 +577,27 @@ function HormoneCycle() {
           else { group = [flowDays[i]]; groups.push(group); }
         }
         setLastPeriod(groups[groups.length - 1][0]);
+        // Compute cycle length stats from gaps between period starts
+        if (groups.length >= 2) {
+          const starts = groups.map((g) => new Date(g[0]).getTime()).sort((a, b) => a - b);
+          const gaps: number[] = [];
+          for (let i = 1; i < starts.length; i++) {
+            const d = Math.round((starts[i] - starts[i - 1]) / 86400000);
+            if (d >= 18 && d <= 60) gaps.push(d);
+          }
+          if (gaps.length > 0) {
+            const avg = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
+            const spread = Math.round(Math.max(...gaps) - Math.min(...gaps));
+            setDetectedAvg({ avg, spread, cycles: gaps.length });
+          }
+        }
       }
       setLoading(false);
     })();
   }, []);
+
+  const IRREG_DAYS: Record<typeof irregularity, number> = { regular: 2, somewhat: 5, very: 8 };
+  const tolerance = IRREG_DAYS[irregularity];
 
   const today = new Date();
   const cycleDay = lastPeriod
@@ -569,6 +610,8 @@ function HormoneCycle() {
   const ovulationDate = lastPeriod
     ? new Date(new Date(lastPeriod).getTime() + (cycleLength - 14) * 86400000).toISOString().slice(0, 10)
     : null;
+  const fmt = (iso: string, deltaDays: number) =>
+    new Date(new Date(iso).getTime() + deltaDays * 86400000).toISOString().slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -577,13 +620,13 @@ function HormoneCycle() {
           <CardTitle className="font-serif italic text-2xl">Where you are in your cycle</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <Label>Last period started</Label>
               <Input type="date" value={lastPeriod} onChange={(e) => setLastPeriod(e.target.value)} />
             </div>
             <div>
-              <Label>Average cycle length (days)</Label>
+              <Label>Typical cycle length (days)</Label>
               <Input
                 type="number"
                 min={20}
@@ -592,8 +635,21 @@ function HormoneCycle() {
                 onChange={(e) => setCycleLength(Math.max(20, Math.min(45, Number(e.target.value) || 28)))}
               />
             </div>
+            <div>
+              <Label>How regular?</Label>
+              <Select value={irregularity} onValueChange={(v) => setIrregularity(v as typeof irregularity)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="regular">Regular (±2 days)</SelectItem>
+                  <SelectItem value="somewhat">Somewhat irregular (±5 days)</SelectItem>
+                  <SelectItem value="very">Very irregular (±8+ days)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="text-xs text-muted-foreground self-end leading-relaxed">
-              We auto-detect this from your logged flow entries in <strong>Cycle Tracker</strong>. Edit if needed.
+              {detectedAvg
+                ? <>From your logs: avg <strong className="text-foreground">{detectedAvg.avg}d</strong>, varies ±{Math.ceil(detectedAvg.spread / 2)}d across {detectedAvg.cycles} cycle{detectedAvg.cycles > 1 ? "s" : ""}. <button type="button" className="underline text-earth" onClick={() => { setCycleLength(detectedAvg.avg); setIrregularity(detectedAvg.spread >= 14 ? "very" : detectedAvg.spread >= 6 ? "somewhat" : "regular"); }}>Use this</button></>
+                : <>Auto-detected from your <strong>Cycle Tracker</strong> entries. Edit if needed.</>}
             </div>
           </div>
 
@@ -615,16 +671,36 @@ function HormoneCycle() {
                 <span className="text-sm text-muted-foreground">
                   Day <strong className="text-foreground">{cycleDay}</strong> of {cycleLength} · {PHASE_INFO[currentPhase].days}
                 </span>
+                {irregularity !== "regular" && (
+                  <Badge variant="outline" className="text-[10px]">±{tolerance}d window</Badge>
+                )}
               </div>
               <p className="text-sm leading-relaxed">{PHASE_INFO[currentPhase].body}</p>
+              {irregularity === "very" && (
+                <p className="text-xs text-muted-foreground italic">
+                  Because your cycles vary widely, treat the day count as a rough estimate. Phase is most reliable when confirmed with body signs (cervical fluid, basal temperature, an LH test).
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {PHASE_INFO[currentPhase].dominant.map((d) => (
                   <Badge key={d} variant="outline">{d}</Badge>
                 ))}
               </div>
               <div className="grid sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
-                <div>Estimated ovulation: <strong className="text-foreground">{ovulationDate}</strong></div>
-                <div>Next period (est.): <strong className="text-foreground">{nextPeriod}</strong></div>
+                <div>
+                  Estimated ovulation:{" "}
+                  <strong className="text-foreground">{ovulationDate}</strong>
+                  {ovulationDate && tolerance > 0 && (
+                    <span className="text-muted-foreground"> (window {fmt(ovulationDate, -tolerance)} → {fmt(ovulationDate, tolerance)})</span>
+                  )}
+                </div>
+                <div>
+                  Next period (est.):{" "}
+                  <strong className="text-foreground">{nextPeriod}</strong>
+                  {nextPeriod && tolerance > 0 && (
+                    <span className="text-muted-foreground"> (window {fmt(nextPeriod, -tolerance)} → {fmt(nextPeriod, tolerance)})</span>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -636,7 +712,7 @@ function HormoneCycle() {
           <CardTitle className="font-serif italic text-2xl">Hormones across your cycle</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <HormoneChart cycleLength={cycleLength} cycleDay={cycleDay} />
+          <HormoneChart cycleLength={cycleLength} cycleDay={cycleDay} tolerance={tolerance} />
           <div className="grid sm:grid-cols-2 gap-3">
             {HORMONES.map((h) => (
               <div key={h.key} className="rounded-xl border border-border p-3 text-sm">
@@ -667,7 +743,7 @@ function HormoneCycle() {
   );
 }
 
-function HormoneChart({ cycleLength, cycleDay }: { cycleLength: number; cycleDay: number | null }) {
+function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: number; cycleDay: number | null; tolerance?: number }) {
   const W = 720;
   const H = 240;
   const PAD_L = 36;
@@ -713,9 +789,21 @@ function HormoneChart({ cycleLength, cycleDay }: { cycleLength: number; cycleDay
         {/* today marker */}
         {cycleDay && (
           <g>
+            {tolerance > 0 && (
+              <rect
+                x={x(Math.max(1, cycleDay - tolerance))}
+                y={PAD_T}
+                width={x(Math.min(cycleLength, cycleDay + tolerance)) - x(Math.max(1, cycleDay - tolerance))}
+                height={innerH}
+                fill="#1f2937"
+                opacity={0.08}
+              />
+            )}
             <line x1={x(cycleDay)} y1={PAD_T} x2={x(cycleDay)} y2={PAD_T + innerH} stroke="#1f2937" strokeDasharray="4 4" opacity={0.6} />
             <circle cx={x(cycleDay)} cy={PAD_T + 6} r={4} fill="#1f2937" />
-            <text x={x(cycleDay)} y={PAD_T - 4} fontSize="10" textAnchor="middle" fill="#1f2937">Today · Day {cycleDay}</text>
+            <text x={x(cycleDay)} y={PAD_T - 4} fontSize="10" textAnchor="middle" fill="#1f2937">
+              Today · Day {cycleDay}{tolerance > 0 ? ` (±${tolerance}d)` : ""}
+            </text>
           </g>
         )}
 
