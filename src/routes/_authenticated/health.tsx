@@ -529,6 +529,7 @@ function HormoneCycle() {
   const [cycleLength, setCycleLength] = useState<number>(28);
   const [irregularity, setIrregularity] = useState<"regular" | "somewhat" | "very">("regular");
   const [detectedAvg, setDetectedAvg] = useState<{ avg: number; spread: number; cycles: number } | null>(null);
+  const [periodStarts, setPeriodStarts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Hydrate saved preferences
@@ -576,13 +577,15 @@ function HormoneCycle() {
           if (diff <= 2) group.push(flowDays[i]);
           else { group = [flowDays[i]]; groups.push(group); }
         }
-        setLastPeriod(groups[groups.length - 1][0]);
+        const starts = groups.map((g) => g[0]).sort((a, b) => (a < b ? 1 : -1)); // newest first
+        setPeriodStarts(starts);
+        setLastPeriod(starts[0]);
         // Compute cycle length stats from gaps between period starts
         if (groups.length >= 2) {
-          const starts = groups.map((g) => new Date(g[0]).getTime()).sort((a, b) => a - b);
+          const startTimes = groups.map((g) => new Date(g[0]).getTime()).sort((a, b) => a - b);
           const gaps: number[] = [];
-          for (let i = 1; i < starts.length; i++) {
-            const d = Math.round((starts[i] - starts[i - 1]) / 86400000);
+          for (let i = 1; i < startTimes.length; i++) {
+            const d = Math.round((startTimes[i] - startTimes[i - 1]) / 86400000);
             if (d >= 18 && d <= 60) gaps.push(d);
           }
           if (gaps.length > 0) {
@@ -624,6 +627,30 @@ function HormoneCycle() {
             <div>
               <Label>Last period started</Label>
               <Input type="date" value={lastPeriod} onChange={(e) => setLastPeriod(e.target.value)} />
+            </div>
+            <div>
+              <Label>Anchor from your logs</Label>
+              <Select
+                value={periodStarts.includes(lastPeriod) ? lastPeriod : "__custom"}
+                onValueChange={(v) => { if (v !== "__custom") setLastPeriod(v); }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={periodStarts.length ? "Pick a period start" : "No logged periods"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodStarts.length === 0 && (
+                    <SelectItem value="__none" disabled>No period entries yet</SelectItem>
+                  )}
+                  {periodStarts.map((d, i) => (
+                    <SelectItem key={d} value={d}>
+                      {d}{i === 0 ? " · most recent" : i === 1 ? " · previous" : ` · ${i + 1} cycles ago`}
+                    </SelectItem>
+                  ))}
+                  {!periodStarts.includes(lastPeriod) && lastPeriod && (
+                    <SelectItem value="__custom" disabled>Custom date above</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Typical cycle length (days)</Label>
