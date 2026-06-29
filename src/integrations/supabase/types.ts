@@ -366,6 +366,7 @@ export type Database = {
           avatar_url: string | null
           background_style: string | null
           bio: string | null
+          calendar_overlay: Json | null
           city: string | null
           country: string | null
           created_at: string
@@ -381,6 +382,7 @@ export type Database = {
           avatar_url?: string | null
           background_style?: string | null
           bio?: string | null
+          calendar_overlay?: Json | null
           city?: string | null
           country?: string | null
           created_at?: string
@@ -396,6 +398,7 @@ export type Database = {
           avatar_url?: string | null
           background_style?: string | null
           bio?: string | null
+          calendar_overlay?: Json | null
           city?: string | null
           country?: string | null
           created_at?: string
