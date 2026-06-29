@@ -375,6 +375,12 @@ function ResearchSimplifier() {
 
 type CycleRow = { id: string; entry_date: string; flow: string | null; mood: string | null; energy: number | null; symptoms: string[] | null; notes: string | null };
 
+const SYMPTOM_OPTIONS = [
+  "cramps", "acne", "mood swings", "fatigue", "bloating", "headache",
+  "breast tenderness", "cravings", "low energy", "anxiety", "insomnia",
+  "high libido", "low libido", "back pain", "nausea", "clear skin", "focused",
+];
+
 function CycleTracker() {
   const [rows, setRows] = useState<CycleRow[]>([]);
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
@@ -382,6 +388,7 @@ function CycleTracker() {
   const [mood, setMood] = useState("");
   const [energy, setEnergy] = useState("");
   const [notes, setNotes] = useState("");
+  const [symptoms, setSymptoms] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function load() {
@@ -389,6 +396,10 @@ function CycleTracker() {
     setRows((data as CycleRow[]) ?? []);
   }
   useEffect(() => { load(); }, []);
+
+  function toggleSymptom(s: string) {
+    setSymptoms((cur) => cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]);
+  }
 
   async function save() {
     setLoading(true);
@@ -400,12 +411,14 @@ function CycleTracker() {
       flow: flow || null,
       mood: mood || null,
       energy: energy ? Number(energy) : null,
+      symptoms: symptoms.length ? symptoms : null,
       notes: notes || null,
     }, { onConflict: "user_id,entry_date" });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Logged.");
     setNotes("");
+    setSymptoms([]);
     load();
   }
 
@@ -419,6 +432,29 @@ function CycleTracker() {
             <div><Label>Flow</Label><Input value={flow} onChange={(e) => setFlow(e.target.value)} placeholder="none / light / heavy" /></div>
             <div><Label>Mood</Label><Input value={mood} onChange={(e) => setMood(e.target.value)} placeholder="calm / anxious…" /></div>
             <div><Label>Energy 1–10</Label><Input type="number" min={1} max={10} value={energy} onChange={(e) => setEnergy(e.target.value)} /></div>
+          </div>
+          <div>
+            <Label>Symptoms today</Label>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {SYMPTOM_OPTIONS.map((s) => {
+                const on = symptoms.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleSymptom(s)}
+                    aria-pressed={on}
+                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                      on ? "bg-earth text-earth-foreground border-earth"
+                         : "bg-sand/40 text-earth border-transparent hover:border-earth/30"
+                    }`}
+                  >
+                    {on ? "✓ " : "+ "}{s}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">Tap to add. These power the cycle-phase correlations in the Cycle & Hormones tab.</p>
           </div>
           <div><Label>Notes</Label><Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
           <Button onClick={save} disabled={loading} className="rounded-full bg-earth text-earth-foreground hover:brightness-110">Save entry</Button>
@@ -435,6 +471,13 @@ function CycleTracker() {
                 {r.flow && <Badge variant="outline">{r.flow}</Badge>}
               </div>
               <p className="text-muted-foreground text-xs">Mood: {r.mood ?? "—"} · Energy: {r.energy ?? "—"}</p>
+              {r.symptoms && r.symptoms.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {r.symptoms.map((s) => (
+                    <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
+                  ))}
+                </div>
+              )}
               {r.notes && <p className="text-xs mt-1">{r.notes}</p>}
             </div>
           ))}
