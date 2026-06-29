@@ -123,11 +123,13 @@ function HealthHub() {
           <TabsTrigger value="symptoms">AI Symptom Assistant</TabsTrigger>
           <TabsTrigger value="research">Research Simplifier</TabsTrigger>
           <TabsTrigger value="tracker">Cycle Tracker</TabsTrigger>
+          <TabsTrigger value="hormones">Cycle & Hormones</TabsTrigger>
         </TabsList>
 
         <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
         <TabsContent value="research"><ResearchSimplifier /></TabsContent>
         <TabsContent value="tracker"><CycleTracker /></TabsContent>
+        <TabsContent value="hormones"><HormoneCycle /></TabsContent>
       </Tabs>
     </div>
   );
