@@ -123,11 +123,13 @@ function HealthHub() {
           <TabsTrigger value="symptoms">AI Symptom Assistant</TabsTrigger>
           <TabsTrigger value="research">Research Simplifier</TabsTrigger>
           <TabsTrigger value="tracker">Cycle Tracker</TabsTrigger>
+          <TabsTrigger value="hormones">Cycle & Hormones</TabsTrigger>
         </TabsList>
 
         <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
         <TabsContent value="research"><ResearchSimplifier /></TabsContent>
         <TabsContent value="tracker"><CycleTracker /></TabsContent>
+        <TabsContent value="hormones"><HormoneCycle /></TabsContent>
       </Tabs>
     </div>
   );
@@ -437,6 +439,296 @@ function CycleTracker() {
           ))}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cycle phase + hormone visualization
+// ─────────────────────────────────────────────────────────────────────────────
+
+type Phase = "menstrual" | "follicular" | "ovulation" | "luteal";
+
+const PHASE_INFO: Record<Phase, { label: string; days: string; tone: string; body: string; dominant: string[] }> = {
+  menstrual: {
+    label: "Menstrual phase",
+    days: "Day 1 – 5",
+    tone: "bg-rose-100 text-rose-900 border-rose-300",
+    body: "The uterine lining sheds. Estrogen and progesterone are at their lowest. Energy is often lower — rest is biologically appropriate.",
+    dominant: ["Estrogen ↓", "Progesterone ↓"],
+  },
+  follicular: {
+    label: "Follicular phase",
+    days: "Day 6 – 13",
+    tone: "bg-amber-100 text-amber-900 border-amber-300",
+    body: "FSH rises, ovarian follicles mature, estrogen climbs. Skin clears, mood and focus lift, strength training feels easier.",
+    dominant: ["FSH ↑", "Estrogen ↑"],
+  },
+  ovulation: {
+    label: "Ovulation",
+    days: "≈ Day 14",
+    tone: "bg-emerald-100 text-emerald-900 border-emerald-300",
+    body: "A surge of LH releases an egg. Estrogen peaks, then drops. Libido and communication often peak here too.",
+    dominant: ["LH ↑↑", "Estrogen peak"],
+  },
+  luteal: {
+    label: "Luteal phase",
+    days: "Day 15 – 28",
+    tone: "bg-violet-100 text-violet-900 border-violet-300",
+    body: "The corpus luteum produces progesterone, which calms but can bring PMS, bloating, lower energy, and cravings in the late luteal phase.",
+    dominant: ["Progesterone ↑", "Estrogen mild ↑"],
+  },
+};
+
+function phaseForDay(day: number, cycleLength: number): Phase {
+  if (day <= 5) return "menstrual";
+  const ovDay = cycleLength - 14; // luteal ≈ 14 days
+  if (day < ovDay) return "follicular";
+  if (day <= ovDay + 1) return "ovulation";
+  return "luteal";
+}
+
+// Approximate normalized hormone levels (0–100) across a 28-day cycle.
+// Educational only — real levels vary widely.
+function hormoneLevel(hormone: "estrogen" | "progesterone" | "lh" | "fsh", day: number, cycleLength: number) {
+  const ov = cycleLength - 14;
+  const t = day;
+  const bump = (center: number, width: number, height: number) =>
+    height * Math.exp(-((t - center) ** 2) / (2 * width ** 2));
+  switch (hormone) {
+    case "estrogen":
+      // small follicular rise, peak just before ovulation, secondary luteal hump
+      return Math.min(100, 15 + bump(ov - 1, 3, 75) + bump(ov + 7, 5, 40));
+    case "progesterone":
+      // low until ovulation, big luteal hump
+      return Math.min(100, 5 + bump(ov + 7, 4.5, 85));
+    case "lh":
+      // tight spike at ovulation
+      return Math.min(100, 8 + bump(ov, 1.1, 90));
+    case "fsh":
+      // small early-follicular bump + smaller ovulatory bump
+      return Math.min(100, 12 + bump(2, 2.5, 35) + bump(ov, 1.6, 30));
+  }
+}
+
+const HORMONES: Array<{
+  key: "estrogen" | "progesterone" | "lh" | "fsh";
+  label: string;
+  color: string;
+  what: string;
+}> = [
+  { key: "estrogen", label: "Estrogen", color: "#d946ef", what: "Builds uterine lining, lifts mood and skin, peaks just before ovulation." },
+  { key: "progesterone", label: "Progesterone", color: "#8b5cf6", what: "Calming hormone of the luteal phase. Stabilises mood, raises body temperature." },
+  { key: "lh", label: "LH (Luteinizing)", color: "#10b981", what: "Surges to trigger ovulation. Detected by ovulation predictor kits." },
+  { key: "fsh", label: "FSH (Follicle-stim.)", color: "#f59e0b", what: "Recruits and matures ovarian follicles early in the cycle." },
+];
+
+function HormoneCycle() {
+  const [lastPeriod, setLastPeriod] = useState<string>("");
+  const [cycleLength, setCycleLength] = useState<number>(28);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("cycle_entries")
+        .select("entry_date, flow")
+        .order("entry_date", { ascending: false })
+        .limit(60);
+      const rows = (data ?? []) as Array<{ entry_date: string; flow: string | null }>;
+      // Detect last period start = earliest day of the most recent contiguous run of "flow" entries
+      const flowDays = rows
+        .filter((r) => r.flow && !["none", "spotting"].includes(r.flow.toLowerCase()))
+        .map((r) => r.entry_date)
+        .sort();
+      if (flowDays.length > 0) {
+        // group contiguous, take last group's first day
+        let group: string[] = [flowDays[0]];
+        const groups: string[][] = [group];
+        for (let i = 1; i < flowDays.length; i++) {
+          const prev = new Date(flowDays[i - 1]);
+          const cur = new Date(flowDays[i]);
+          const diff = (cur.getTime() - prev.getTime()) / 86400000;
+          if (diff <= 2) group.push(flowDays[i]);
+          else { group = [flowDays[i]]; groups.push(group); }
+        }
+        setLastPeriod(groups[groups.length - 1][0]);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const today = new Date();
+  const cycleDay = lastPeriod
+    ? Math.max(1, Math.min(cycleLength, Math.floor((today.getTime() - new Date(lastPeriod).getTime()) / 86400000) % cycleLength + 1))
+    : null;
+  const currentPhase = cycleDay ? phaseForDay(cycleDay, cycleLength) : null;
+  const nextPeriod = lastPeriod
+    ? new Date(new Date(lastPeriod).getTime() + cycleLength * 86400000).toISOString().slice(0, 10)
+    : null;
+  const ovulationDate = lastPeriod
+    ? new Date(new Date(lastPeriod).getTime() + (cycleLength - 14) * 86400000).toISOString().slice(0, 10)
+    : null;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif italic text-2xl">Where you are in your cycle</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div>
+              <Label>Last period started</Label>
+              <Input type="date" value={lastPeriod} onChange={(e) => setLastPeriod(e.target.value)} />
+            </div>
+            <div>
+              <Label>Average cycle length (days)</Label>
+              <Input
+                type="number"
+                min={20}
+                max={45}
+                value={cycleLength}
+                onChange={(e) => setCycleLength(Math.max(20, Math.min(45, Number(e.target.value) || 28)))}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground self-end leading-relaxed">
+              We auto-detect this from your logged flow entries in <strong>Cycle Tracker</strong>. Edit if needed.
+            </div>
+          </div>
+
+          {loading && <p className="text-sm text-muted-foreground">Reading your entries…</p>}
+
+          {!loading && !cycleDay && (
+            <Alert>
+              <AlertTitle>No period date yet</AlertTitle>
+              <AlertDescription>
+                Pick when your last period started, or log a "light/medium/heavy" flow day in <strong>Cycle Tracker</strong> so we can estimate your phase automatically.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {cycleDay && currentPhase && (
+            <div className="rounded-2xl border border-border p-5 bg-sand/30 space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge className={PHASE_INFO[currentPhase].tone}>{PHASE_INFO[currentPhase].label}</Badge>
+                <span className="text-sm text-muted-foreground">
+                  Day <strong className="text-foreground">{cycleDay}</strong> of {cycleLength} · {PHASE_INFO[currentPhase].days}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed">{PHASE_INFO[currentPhase].body}</p>
+              <div className="flex flex-wrap gap-2">
+                {PHASE_INFO[currentPhase].dominant.map((d) => (
+                  <Badge key={d} variant="outline">{d}</Badge>
+                ))}
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
+                <div>Estimated ovulation: <strong className="text-foreground">{ovulationDate}</strong></div>
+                <div>Next period (est.): <strong className="text-foreground">{nextPeriod}</strong></div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif italic text-2xl">Hormones across your cycle</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <HormoneChart cycleLength={cycleLength} cycleDay={cycleDay} />
+          <div className="grid sm:grid-cols-2 gap-3">
+            {HORMONES.map((h) => (
+              <div key={h.key} className="rounded-xl border border-border p-3 text-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-block w-3 h-3 rounded-full" style={{ background: h.color }} />
+                  <span className="font-medium">{h.label}</span>
+                </div>
+                <p className="text-muted-foreground text-xs leading-relaxed">{h.what}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground italic">
+            Curves are educational approximations of a textbook 28-day cycle, scaled to your cycle length. Real hormone levels vary widely between bodies and cycles — use this to understand the pattern, not to diagnose.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-4 gap-3">
+        {(["menstrual", "follicular", "ovulation", "luteal"] as Phase[]).map((p) => (
+          <div key={p} className={`rounded-2xl border p-4 ${currentPhase === p ? "ring-2 ring-earth/50" : ""}`}>
+            <Badge className={PHASE_INFO[p].tone}>{PHASE_INFO[p].label}</Badge>
+            <p className="text-xs text-muted-foreground mt-2">{PHASE_INFO[p].days}</p>
+            <p className="text-sm mt-2 leading-relaxed">{PHASE_INFO[p].body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HormoneChart({ cycleLength, cycleDay }: { cycleLength: number; cycleDay: number | null }) {
+  const W = 720;
+  const H = 240;
+  const PAD_L = 36;
+  const PAD_R = 12;
+  const PAD_T = 16;
+  const PAD_B = 28;
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+  const days = Array.from({ length: cycleLength }, (_, i) => i + 1);
+  const x = (d: number) => PAD_L + ((d - 1) / (cycleLength - 1)) * innerW;
+  const y = (v: number) => PAD_T + (1 - v / 100) * innerH;
+
+  const ovDay = cycleLength - 14;
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[560px] h-auto">
+        {/* phase bands */}
+        <rect x={x(1)} y={PAD_T} width={x(5) - x(1)} height={innerH} fill="#fecdd3" opacity={0.35} />
+        <rect x={x(6)} y={PAD_T} width={x(ovDay - 1) - x(6)} height={innerH} fill="#fde68a" opacity={0.3} />
+        <rect x={x(ovDay)} y={PAD_T} width={x(ovDay + 1) - x(ovDay)} height={innerH} fill="#a7f3d0" opacity={0.5} />
+        <rect x={x(ovDay + 2)} y={PAD_T} width={x(cycleLength) - x(ovDay + 2)} height={innerH} fill="#ddd6fe" opacity={0.35} />
+
+        {/* axes */}
+        <line x1={PAD_L} y1={PAD_T + innerH} x2={PAD_L + innerW} y2={PAD_T + innerH} stroke="currentColor" opacity={0.2} />
+        {[1, 7, 14, 21, 28].filter((d) => d <= cycleLength).map((d) => (
+          <g key={d}>
+            <line x1={x(d)} y1={PAD_T + innerH} x2={x(d)} y2={PAD_T + innerH + 4} stroke="currentColor" opacity={0.4} />
+            <text x={x(d)} y={PAD_T + innerH + 18} fontSize="10" textAnchor="middle" fill="currentColor" opacity={0.6}>
+              Day {d}
+            </text>
+          </g>
+        ))}
+
+        {/* hormone curves */}
+        {HORMONES.map((h) => {
+          const path = days
+            .map((d, i) => `${i === 0 ? "M" : "L"} ${x(d).toFixed(1)} ${y(hormoneLevel(h.key, d, cycleLength)).toFixed(1)}`)
+            .join(" ");
+          return <path key={h.key} d={path} fill="none" stroke={h.color} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />;
+        })}
+
+        {/* today marker */}
+        {cycleDay && (
+          <g>
+            <line x1={x(cycleDay)} y1={PAD_T} x2={x(cycleDay)} y2={PAD_T + innerH} stroke="#1f2937" strokeDasharray="4 4" opacity={0.6} />
+            <circle cx={x(cycleDay)} cy={PAD_T + 6} r={4} fill="#1f2937" />
+            <text x={x(cycleDay)} y={PAD_T - 4} fontSize="10" textAnchor="middle" fill="#1f2937">Today · Day {cycleDay}</text>
+          </g>
+        )}
+
+        {/* legend */}
+        <g transform={`translate(${PAD_L}, ${H - 6})`}>
+          {HORMONES.map((h, i) => (
+            <g key={h.key} transform={`translate(${i * 130}, 0)`}>
+              <rect x={0} y={-8} width={10} height={3} fill={h.color} />
+              <text x={14} y={-4} fontSize="10" fill="currentColor" opacity={0.75}>{h.label}</text>
+            </g>
+          ))}
+        </g>
+      </svg>
     </div>
   );
 }
