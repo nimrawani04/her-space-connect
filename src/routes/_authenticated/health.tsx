@@ -373,7 +373,15 @@ function ResearchSimplifier() {
   );
 }
 
-type CycleRow = { id: string; entry_date: string; flow: string | null; mood: string | null; energy: number | null; symptoms: string[] | null; notes: string | null };
+type Severity = 1 | 2 | 3;
+type SeverityMap = Record<string, Severity>;
+type CycleRow = { id: string; entry_date: string; flow: string | null; mood: string | null; energy: number | null; symptoms: string[] | null; symptom_severities: SeverityMap | null; notes: string | null };
+
+const SEVERITY_META: Record<Severity, { label: string; tone: string; dot: string }> = {
+  1: { label: "mild",     tone: "bg-sage/20 text-sage border-sage/40",           dot: "bg-sage" },
+  2: { label: "moderate", tone: "bg-amber-100 text-amber-900 border-amber-300",  dot: "bg-amber-500" },
+  3: { label: "severe",   tone: "bg-rose-100 text-rose-900 border-rose-300",     dot: "bg-rose-500" },
+};
 
 const SYMPTOM_OPTIONS = [
   "cramps", "acne", "mood swings", "fatigue", "bloating", "headache",
@@ -388,7 +396,7 @@ function CycleTracker() {
   const [mood, setMood] = useState("");
   const [energy, setEnergy] = useState("");
   const [notes, setNotes] = useState("");
-  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [severities, setSeverities] = useState<SeverityMap>({});
   const [loading, setLoading] = useState(false);
 
   async function load() {
@@ -397,28 +405,47 @@ function CycleTracker() {
   }
   useEffect(() => { load(); }, []);
 
-  function toggleSymptom(s: string) {
-    setSymptoms((cur) => cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]);
+  // Cycle: off → mild (1) → moderate (2) → severe (3) → off
+  function cycleSymptom(s: string) {
+    setSeverities((cur) => {
+      const next = { ...cur };
+      const v = cur[s];
+      if (!v) next[s] = 1;
+      else if (v === 1) next[s] = 2;
+      else if (v === 2) next[s] = 3;
+      else delete next[s];
+      return next;
+    });
+  }
+  function clearSymptom(s: string) {
+    setSeverities((cur) => {
+      if (!cur[s]) return cur;
+      const next = { ...cur };
+      delete next[s];
+      return next;
+    });
   }
 
   async function save() {
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { toast.error("Sign in required"); setLoading(false); return; }
+    const symptomKeys = Object.keys(severities);
     const { error } = await supabase.from("cycle_entries").upsert({
       user_id: u.user.id,
       entry_date: entryDate,
       flow: flow || null,
       mood: mood || null,
       energy: energy ? Number(energy) : null,
-      symptoms: symptoms.length ? symptoms : null,
+      symptoms: symptomKeys.length ? symptomKeys : null,
+      symptom_severities: symptomKeys.length ? severities : null,
       notes: notes || null,
     }, { onConflict: "user_id,entry_date" });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Logged.");
     setNotes("");
-    setSymptoms([]);
+    setSeverities({});
     load();
   }
 
@@ -437,24 +464,32 @@ function CycleTracker() {
             <Label>Symptoms today</Label>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {SYMPTOM_OPTIONS.map((s) => {
-                const on = symptoms.includes(s);
+                const sev = severities[s];
+                const meta = sev ? SEVERITY_META[sev] : null;
                 return (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => toggleSymptom(s)}
-                    aria-pressed={on}
-                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                      on ? "bg-earth text-earth-foreground border-earth"
-                         : "bg-sand/40 text-earth border-transparent hover:border-earth/30"
+                    onClick={() => cycleSymptom(s)}
+                    onContextMenu={(e) => { e.preventDefault(); clearSymptom(s); }}
+                    aria-pressed={!!sev}
+                    title={sev ? `${meta!.label} — tap to change, right-click to clear` : "Tap to add"}
+                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors flex items-center gap-1.5 ${
+                      sev ? meta!.tone : "bg-sand/40 text-earth border-transparent hover:border-earth/30"
                     }`}
                   >
-                    {on ? "✓ " : "+ "}{s}
+                    {sev
+                      ? <span className={`inline-block w-1.5 h-1.5 rounded-full ${meta!.dot}`} />
+                      : <span aria-hidden>+</span>}
+                    <span>{s}</span>
+                    {sev && <span className="text-[10px] opacity-70">· {meta!.label}</span>}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-2">Tap to add. These power the cycle-phase correlations in the Cycle & Hormones tab.</p>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Tap once for <span className="text-sage">mild</span>, again for <span className="text-amber-700">moderate</span>, again for <span className="text-rose-700">severe</span>, again to clear. Right-click to remove. Severity weights the cycle-phase correlations.
+            </p>
           </div>
           <div><Label>Notes</Label><Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
           <Button onClick={save} disabled={loading} className="rounded-full bg-earth text-earth-foreground hover:brightness-110">Save entry</Button>
@@ -473,9 +508,19 @@ function CycleTracker() {
               <p className="text-muted-foreground text-xs">Mood: {r.mood ?? "—"} · Energy: {r.energy ?? "—"}</p>
               {r.symptoms && r.symptoms.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {r.symptoms.map((s) => (
-                    <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
-                  ))}
+                  {r.symptoms.map((s) => {
+                    const sev = (r.symptom_severities ?? {})[s] as Severity | undefined;
+                    const meta = sev ? SEVERITY_META[sev] : null;
+                    return (
+                      <Badge
+                        key={s}
+                        variant="outline"
+                        className={`text-[10px] ${meta ? meta.tone : ""}`}
+                      >
+                        {s}{meta ? ` · ${meta.label}` : ""}
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
               {r.notes && <p className="text-xs mt-1">{r.notes}</p>}
@@ -898,7 +943,7 @@ function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: n
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: string[]; cycleLength: number }) {
-  const [entries, setEntries] = useState<Array<{ entry_date: string; symptoms: string[] | null; mood: string | null; energy: number | null }>>([]);
+  const [entries, setEntries] = useState<Array<{ entry_date: string; symptoms: string[] | null; symptom_severities: SeverityMap | null; mood: string | null; energy: number | null }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -906,7 +951,7 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
       setLoading(true);
       const { data } = await supabase
         .from("cycle_entries")
-        .select("entry_date, symptoms, mood, energy")
+        .select("entry_date, symptoms, symptom_severities, mood, energy")
         .order("entry_date", { ascending: false })
         .limit(180);
       setEntries((data ?? []) as typeof entries);
@@ -931,9 +976,10 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
   }
 
   const phases: Phase[] = ["menstrual", "follicular", "ovulation", "luteal"];
-  // phaseCounts[symptom][phase] = number of logged days
   const phaseDayCounts: Record<Phase, number> = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
-  const matrix: Record<string, Record<Phase, number>> = {};
+  // count = number of days logged with that symptom in that phase
+  // severity = sum of severity scores (1/2/3) for that symptom in that phase
+  const matrix: Record<string, Record<Phase, { count: number; severity: number }>> = {};
   let totalDays = 0;
 
   for (const e of entries) {
@@ -943,31 +989,39 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
     phaseDayCounts[phase] += 1;
     totalDays += 1;
     const syms = e.symptoms ?? [];
+    const sevs = e.symptom_severities ?? {};
     for (const s of syms) {
-      if (!matrix[s]) matrix[s] = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
-      matrix[s][phase] += 1;
+      if (!matrix[s]) matrix[s] = { menstrual: { count: 0, severity: 0 }, follicular: { count: 0, severity: 0 }, ovulation: { count: 0, severity: 0 }, luteal: { count: 0, severity: 0 } };
+      const sev = (sevs[s] as Severity | undefined) ?? 2; // default to moderate for legacy entries
+      matrix[s][phase].count += 1;
+      matrix[s][phase].severity += sev;
     }
   }
 
   const symptomList = Object.keys(matrix).sort((a, b) => {
-    const totA = phases.reduce((s, p) => s + matrix[a][p], 0);
-    const totB = phases.reduce((s, p) => s + matrix[b][p], 0);
+    const totA = phases.reduce((s, p) => s + matrix[a][p].severity, 0);
+    const totB = phases.reduce((s, p) => s + matrix[b][p].severity, 0);
     return totB - totA;
   });
 
-  // Build "insights": for each symptom, find the phase with the highest rate (count / phaseDayCount).
-  const insights: Array<{ symptom: string; phase: Phase; rate: number; count: number }> = [];
+  // Build "insights": for each symptom, find the phase with the highest severity-weighted rate
+  // (sum of severities / phaseDayCount). avgSev shown alongside.
+  const insights: Array<{ symptom: string; phase: Phase; weighted: number; count: number; avgSev: number }> = [];
   for (const s of symptomList) {
-    let best: { phase: Phase; rate: number; count: number } | null = null;
+    let best: { phase: Phase; weighted: number; count: number; avgSev: number } | null = null;
     for (const p of phases) {
       const denom = phaseDayCounts[p];
       if (denom < 2) continue; // need at least 2 logged days in that phase
-      const rate = matrix[s][p] / denom;
-      if (rate > 0 && (!best || rate > best.rate)) best = { phase: p, rate, count: matrix[s][p] };
+      const cell = matrix[s][p];
+      const weighted = cell.severity / denom; // 0..3
+      const avgSev = cell.count > 0 ? cell.severity / cell.count : 0;
+      if (weighted > 0 && (!best || weighted > best.weighted)) best = { phase: p, weighted, count: cell.count, avgSev };
     }
     if (best && best.count >= 2) insights.push({ symptom: s, ...best });
   }
-  insights.sort((a, b) => b.rate - a.rate);
+  insights.sort((a, b) => b.weighted - a.weighted);
+
+  const sevLabel = (avg: number) => avg >= 2.5 ? "mostly severe" : avg >= 1.75 ? "mostly moderate" : avg >= 1.25 ? "mild–moderate" : "mostly mild";
 
   return (
     <Card>
@@ -1001,7 +1055,7 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
                     <li key={i.symptom}>
                       Your <strong>{i.symptom}</strong> shows up most in the{" "}
                       <Badge className={PHASE_INFO[i.phase].tone + " align-middle"}>{PHASE_INFO[i.phase].label.replace(" phase", "")}</Badge>{" "}
-                      <span className="text-muted-foreground">— {i.count} day{i.count === 1 ? "" : "s"}, {Math.round(i.rate * 100)}% of logged days in that phase.</span>
+                      <span className="text-muted-foreground">— {i.count} day{i.count === 1 ? "" : "s"}, {sevLabel(i.avgSev)} (avg {i.avgSev.toFixed(1)}/3).</span>
                     </li>
                   ))}
                 </ul>
@@ -1025,27 +1079,31 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
                 </thead>
                 <tbody>
                   {symptomList.map((s) => {
-                    const maxRow = Math.max(...phases.map((p) => matrix[s][p]));
+                    const maxRow = Math.max(...phases.map((p) => matrix[s][p].severity));
                     return (
                       <tr key={s} className="border-t border-border">
                         <td className="py-2 pr-3 font-medium capitalize">{s}</td>
                         {phases.map((p) => {
-                          const count = matrix[s][p];
-                          const intensity = maxRow > 0 ? count / maxRow : 0;
+                          const cell = matrix[s][p];
+                          const count = cell.count;
+                          const intensity = maxRow > 0 ? cell.severity / maxRow : 0;
+                          const avgSev = count > 0 ? cell.severity / count : 0;
                           return (
                             <td key={p} className="py-1.5 px-2 text-center">
                               <div
                                 className="mx-auto rounded-md text-xs font-medium flex items-center justify-center"
                                 style={{
-                                  width: 44,
+                                  width: 52,
                                   height: 28,
                                   background: count === 0 ? "transparent" : `color-mix(in oklab, var(--color-earth) ${15 + intensity * 65}%, transparent)`,
                                   color: intensity > 0.55 ? "white" : "inherit",
                                   border: count === 0 ? "1px dashed color-mix(in oklab, currentColor 20%, transparent)" : "none",
                                 }}
-                                title={`${count} day${count === 1 ? "" : "s"} in ${PHASE_INFO[p].label}`}
+                                title={count === 0
+                                  ? `No ${s} logged in ${PHASE_INFO[p].label}`
+                                  : `${count} day${count === 1 ? "" : "s"} in ${PHASE_INFO[p].label} · avg severity ${avgSev.toFixed(1)}/3`}
                               >
-                                {count || "·"}
+                                {count === 0 ? "·" : <span>{count}<span className="opacity-70 text-[10px]"> · {avgSev.toFixed(1)}</span></span>}
                               </div>
                             </td>
                           );
@@ -1058,7 +1116,7 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
             </div>
 
             <p className="text-[11px] text-muted-foreground italic">
-              Counts are days you tagged that symptom, grouped by the cycle phase that day fell in. Stronger shading = more frequent. Patterns get more reliable after 2–3 logged cycles.
+              Each cell shows <strong>days logged</strong> · <strong>avg severity</strong> (1 mild → 3 severe). Shading reflects severity-weighted frequency, so a few severe days outweigh many mild ones. Patterns get more reliable after 2–3 logged cycles.
             </p>
           </>
         )}
