@@ -87,37 +87,58 @@ export type Database = {
       }
       cycle_entries: {
         Row: {
+          blood_color: string | null
+          clotting: string | null
           created_at: string
+          end_date: string | null
           energy: number | null
           entry_date: string
           flow: string | null
+          flow_intensity: string | null
           id: string
+          is_period_start: boolean | null
           mood: string | null
           notes: string | null
+          pain_level: number | null
+          period_symptoms: Json | null
           symptom_severities: Json | null
           symptoms: string[] | null
           user_id: string
         }
         Insert: {
+          blood_color?: string | null
+          clotting?: string | null
           created_at?: string
+          end_date?: string | null
           energy?: number | null
           entry_date: string
           flow?: string | null
+          flow_intensity?: string | null
           id?: string
+          is_period_start?: boolean | null
           mood?: string | null
           notes?: string | null
+          pain_level?: number | null
+          period_symptoms?: Json | null
           symptom_severities?: Json | null
           symptoms?: string[] | null
           user_id: string
         }
         Update: {
+          blood_color?: string | null
+          clotting?: string | null
           created_at?: string
+          end_date?: string | null
           energy?: number | null
           entry_date?: string
           flow?: string | null
+          flow_intensity?: string | null
           id?: string
+          is_period_start?: boolean | null
           mood?: string | null
           notes?: string | null
+          pain_level?: number | null
+          period_symptoms?: Json | null
           symptom_severities?: Json | null
           symptoms?: string[] | null
           user_id?: string
@@ -257,6 +278,51 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           is_available?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_prefs: {
+        Row: {
+          ai_analysis_enabled: boolean | null
+          created_at: string
+          notify_doctor: boolean | null
+          notify_hydration: boolean | null
+          notify_logging: boolean | null
+          notify_medication: boolean | null
+          notify_ovulation: boolean | null
+          notify_period: boolean | null
+          notify_sleep: boolean | null
+          period_lead_days: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis_enabled?: boolean | null
+          created_at?: string
+          notify_doctor?: boolean | null
+          notify_hydration?: boolean | null
+          notify_logging?: boolean | null
+          notify_medication?: boolean | null
+          notify_ovulation?: boolean | null
+          notify_period?: boolean | null
+          notify_sleep?: boolean | null
+          period_lead_days?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis_enabled?: boolean | null
+          created_at?: string
+          notify_doctor?: boolean | null
+          notify_hydration?: boolean | null
+          notify_logging?: boolean | null
+          notify_medication?: boolean | null
+          notify_ovulation?: boolean | null
+          notify_period?: boolean | null
+          notify_sleep?: boolean | null
+          period_lead_days?: number | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -546,6 +612,60 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      wellness_logs: {
+        Row: {
+          created_at: string
+          custom_symptoms: string[] | null
+          energy_level: number | null
+          exercise: string[] | null
+          id: string
+          log_date: string
+          mood: string[] | null
+          notes: string | null
+          nutrition: Json | null
+          sleep_hours: number | null
+          sleep_quality: number | null
+          symptoms: Json | null
+          updated_at: string
+          user_id: string
+          water_glasses: number | null
+        }
+        Insert: {
+          created_at?: string
+          custom_symptoms?: string[] | null
+          energy_level?: number | null
+          exercise?: string[] | null
+          id?: string
+          log_date: string
+          mood?: string[] | null
+          notes?: string | null
+          nutrition?: Json | null
+          sleep_hours?: number | null
+          sleep_quality?: number | null
+          symptoms?: Json | null
+          updated_at?: string
+          user_id: string
+          water_glasses?: number | null
+        }
+        Update: {
+          created_at?: string
+          custom_symptoms?: string[] | null
+          energy_level?: number | null
+          exercise?: string[] | null
+          id?: string
+          log_date?: string
+          mood?: string[] | null
+          notes?: string | null
+          nutrition?: Json | null
+          sleep_hours?: number | null
+          sleep_quality?: number | null
+          symptoms?: Json | null
+          updated_at?: string
+          user_id?: string
+          water_glasses?: number | null
         }
         Relationships: []
       }
