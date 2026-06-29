@@ -857,6 +857,7 @@ function HormoneCycle() {
 
       <SymptomCorrelations periodStarts={periodStarts} cycleLength={cycleLength} />
       <SymptomTrend periodStarts={periodStarts} cycleLength={cycleLength} />
+      <SymptomPrediction periodStarts={periodStarts} cycleLength={cycleLength} />
     </div>
   );
 }
@@ -1369,6 +1370,275 @@ function SymptomTrend({ periodStarts, cycleLength }: { periodStarts: string[]; c
 
             <p className="text-[11px] text-muted-foreground italic">
               Each point is one cycle. Dot size reflects how many days you tagged. Missing dots mean nothing was logged in that phase for that cycle. Switch <strong>Frequency</strong> to see what share of phase days carried the symptom, or <strong>Avg severity</strong> to see how intense it felt.
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Next-cycle prediction: recency-weighted forecast of frequency + avg severity
+// per phase, derived from past cycles. Uses a simple weighted mean with a
+// linear-trend nudge so a clearly rising/falling pattern bends the forecast.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SymptomPrediction({ periodStarts, cycleLength }: { periodStarts: string[]; cycleLength: number }) {
+  const [entries, setEntries] = useState<Array<{ entry_date: string; symptoms: string[] | null; symptom_severities: SeverityMap | null }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("cycle_entries")
+        .select("entry_date, symptoms, symptom_severities")
+        .order("entry_date", { ascending: true })
+        .limit(365);
+      setEntries((data ?? []) as typeof entries);
+      setLoading(false);
+    })();
+  }, []);
+
+  const phases: Phase[] = ["menstrual", "follicular", "ovulation", "luteal"];
+  const sortedStarts = [...periodStarts].sort();
+  const todayPlus = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const cycles = sortedStarts.map((s, i) => ({
+    index: i + 1,
+    start: s,
+    end: sortedStarts[i + 1] ?? todayPlus,
+  }));
+
+  // Build per-cycle, per-phase, per-symptom tally
+  type Cell = { count: number; severity: number; phaseDays: number };
+  const empty = (): Cell => ({ count: 0, severity: 0, phaseDays: 0 });
+  // [cycleIdx][phaseIdx][symptom] → Cell
+  const tally: Array<Array<Record<string, Cell>>> = cycles.map(() => phases.map(() => ({})));
+  // [cycleIdx][phaseIdx] → phaseDays denominator
+  const phaseDaysMx: number[][] = cycles.map(() => phases.map(() => 0));
+
+  for (let ci = 0; ci < cycles.length; ci++) {
+    const c = cycles[ci];
+    const span = Math.min(cycleLength, Math.ceil((new Date(c.end).getTime() - new Date(c.start).getTime()) / 86400000));
+    for (let d = 1; d <= span; d++) {
+      phaseDaysMx[ci][phases.indexOf(phaseForDay(d, cycleLength))] += 1;
+    }
+  }
+
+  for (const e of entries) {
+    const ci = cycles.findIndex((c) => e.entry_date >= c.start && e.entry_date < c.end);
+    if (ci < 0) continue;
+    const day = Math.floor((new Date(e.entry_date).getTime() - new Date(cycles[ci].start).getTime()) / 86400000) + 1;
+    if (day < 1 || day > cycleLength) continue;
+    const pi = phases.indexOf(phaseForDay(day, cycleLength));
+    const syms = e.symptoms ?? [];
+    const sevs = e.symptom_severities ?? {};
+    for (const s of syms) {
+      const slot = tally[ci][pi][s] ?? (tally[ci][pi][s] = { count: 0, severity: 0, phaseDays: 0 });
+      slot.count += 1;
+      slot.severity += (sevs[s] as Severity | undefined) ?? 2;
+    }
+  }
+
+  const allSymptoms = Array.from(new Set(entries.flatMap((e) => e.symptoms ?? []))).sort();
+
+  // Recency weights: most recent cycle weighted highest. Use 1, 2, 3… up to N
+  // so the latest cycle counts ~N× the oldest, but every cycle still contributes.
+  function predict(symptom: string) {
+    // For each past cycle, compute (frequency, avgSeverity, weight, denomDays).
+    // Skip cycles where the phase had zero days observed.
+    return phases.map((_, pi) => {
+      const series: Array<{ freq: number; sev: number | null; w: number; days: number; tagged: number }> = [];
+      for (let ci = 0; ci < cycles.length; ci++) {
+        const denom = phaseDaysMx[ci][pi];
+        if (denom <= 0) continue;
+        const cell = tally[ci][pi][symptom];
+        const count = cell?.count ?? 0;
+        const sevSum = cell?.severity ?? 0;
+        series.push({
+          freq: count / denom,
+          sev: count > 0 ? sevSum / count : null,
+          w: ci + 1, // 1..N, newest highest
+          days: denom,
+          tagged: count,
+        });
+      }
+      if (series.length === 0) return { freq: 0, sev: 0, confidence: 0, observedCycles: 0, totalTagged: 0 };
+
+      const wSum = series.reduce((a, s) => a + s.w, 0);
+      const freqMean = series.reduce((a, s) => a + s.freq * s.w, 0) / wSum;
+      const sevSeries = series.filter((s) => s.sev != null);
+      const sevWSum = sevSeries.reduce((a, s) => a + s.w, 0);
+      const sevMean = sevWSum > 0 ? sevSeries.reduce((a, s) => a + (s.sev as number) * s.w, 0) / sevWSum : 0;
+
+      // Linear-trend nudge: slope of freq across cycle index, projected one step.
+      let trendNudge = 0;
+      if (series.length >= 3) {
+        const n = series.length;
+        const xs = series.map((_, i) => i);
+        const ys = series.map((s) => s.freq);
+        const xm = xs.reduce((a, b) => a + b, 0) / n;
+        const ym = ys.reduce((a, b) => a + b, 0) / n;
+        const num = xs.reduce((a, x, i) => a + (x - xm) * (ys[i] - ym), 0);
+        const den = xs.reduce((a, x) => a + (x - xm) ** 2, 0);
+        const slope = den > 0 ? num / den : 0;
+        // Dampen the trend so it doesn't dominate the prediction.
+        trendNudge = Math.max(-0.15, Math.min(0.15, slope * 0.5));
+      }
+
+      const totalTagged = series.reduce((a, s) => a + s.tagged, 0);
+      // Confidence scales with observed cycles and how many days were tagged.
+      const confidence = Math.min(1, (series.length / 4) * 0.6 + Math.min(1, totalTagged / 8) * 0.4);
+
+      return {
+        freq: Math.max(0, Math.min(1, freqMean + trendNudge)),
+        sev: Math.max(0, Math.min(3, sevMean)),
+        confidence,
+        observedCycles: series.length,
+        totalTagged,
+      };
+    });
+  }
+
+  // Build the ranked symptom list for the forecast (by predicted weighted load).
+  const rows = allSymptoms
+    .map((s) => {
+      const byPhase = predict(s);
+      const load = byPhase.reduce((a, p) => a + p.freq * (p.sev || 0), 0);
+      const maxCycles = Math.max(...byPhase.map((p) => p.observedCycles));
+      return { symptom: s, byPhase, load, maxCycles };
+    })
+    .filter((r) => r.maxCycles > 0 && r.load > 0)
+    .sort((a, b) => b.load - a.load);
+
+  const nextCycleStart = sortedStarts.length > 0
+    ? new Date(new Date(sortedStarts[sortedStarts.length - 1]).getTime() + cycleLength * 86400000)
+        .toISOString().slice(0, 10)
+    : null;
+
+  const sevLabel = (avg: number) =>
+    avg >= 2.5 ? "severe" : avg >= 1.75 ? "moderate" : avg >= 1.25 ? "mild–moderate" : avg > 0 ? "mild" : "—";
+
+  // Top "watch-out" insights: highest predicted load cells.
+  const watchouts: Array<{ symptom: string; phase: Phase; freq: number; sev: number; confidence: number }> = [];
+  for (const r of rows) {
+    for (let pi = 0; pi < phases.length; pi++) {
+      const cell = r.byPhase[pi];
+      if (cell.freq < 0.2 || cell.sev <= 0) continue;
+      watchouts.push({ symptom: r.symptom, phase: phases[pi], freq: cell.freq, sev: cell.sev, confidence: cell.confidence });
+    }
+  }
+  watchouts.sort((a, b) => b.freq * b.sev - a.freq * a.sev);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif italic text-2xl">Next-cycle forecast</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {loading && <p className="text-sm text-muted-foreground">Modelling your patterns…</p>}
+
+        {!loading && (cycles.length < 2 || rows.length === 0) && (
+          <Alert>
+            <AlertTitle>Not enough history yet</AlertTitle>
+            <AlertDescription>
+              Forecasts unlock after you've logged symptoms across at least <strong>two cycles</strong>. The more cycles you log, the more accurate this becomes.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!loading && cycles.length >= 2 && rows.length > 0 && (
+          <>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Predicted for your next cycle</p>
+                {nextCycleStart && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Starting around <strong className="text-foreground">{new Date(nextCycleStart).toLocaleDateString(undefined, { month: "long", day: "numeric" })}</strong>, based on {cycles.length} logged cycles.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {watchouts.length > 0 && (
+              <div className="rounded-2xl border border-border bg-sand/30 p-4 space-y-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Likely to watch for</p>
+                <ul className="text-sm space-y-1.5">
+                  {watchouts.slice(0, 4).map((w, idx) => (
+                    <li key={idx}>
+                      Expect <strong className="capitalize">{w.symptom}</strong> in the{" "}
+                      <Badge className={PHASE_INFO[w.phase].tone + " align-middle"}>{PHASE_INFO[w.phase].label.replace(" phase", "")}</Badge>{" "}
+                      <span className="text-muted-foreground">
+                        — ~{Math.round(w.freq * 100)}% of days, {sevLabel(w.sev)} (avg {w.sev.toFixed(1)}/3)
+                        {w.confidence < 0.5 ? <em> · low confidence</em> : null}.
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse min-w-[520px]">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    <th className="py-2 pr-3 font-normal">Symptom</th>
+                    {phases.map((p) => (
+                      <th key={p} className="py-2 px-2 font-normal text-center">
+                        {PHASE_INFO[p].label.replace(" phase", "")}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.slice(0, 10).map((r) => {
+                    const maxLoad = Math.max(...r.byPhase.map((p) => p.freq * (p.sev || 0)));
+                    return (
+                      <tr key={r.symptom} className="border-t border-border align-top">
+                        <td className="py-2 pr-3 font-medium capitalize">{r.symptom}</td>
+                        {r.byPhase.map((cell, pi) => {
+                          const load = cell.freq * (cell.sev || 0);
+                          const intensity = maxLoad > 0 ? load / maxLoad : 0;
+                          const blank = cell.freq <= 0 || cell.sev <= 0;
+                          return (
+                            <td key={pi} className="py-1.5 px-2 text-center">
+                              <div
+                                className="mx-auto rounded-md text-[11px] leading-tight flex flex-col items-center justify-center px-1.5 py-1"
+                                style={{
+                                  minWidth: 76,
+                                  background: blank ? "transparent" : `color-mix(in oklab, var(--color-earth) ${15 + intensity * 65}%, transparent)`,
+                                  color: intensity > 0.55 && !blank ? "white" : "inherit",
+                                  border: blank ? "1px dashed color-mix(in oklab, currentColor 20%, transparent)" : "none",
+                                  opacity: cell.confidence < 0.35 && !blank ? 0.65 : 1,
+                                }}
+                                title={
+                                  blank
+                                    ? `No ${r.symptom} expected in ${PHASE_INFO[phases[pi]].label}`
+                                    : `${Math.round(cell.freq * 100)}% of days · avg severity ${cell.sev.toFixed(1)}/3 · ${Math.round(cell.confidence * 100)}% confidence (${cell.observedCycles} cycle${cell.observedCycles === 1 ? "" : "s"})`
+                                }
+                              >
+                                {blank ? (
+                                  <span className="opacity-50">·</span>
+                                ) : (
+                                  <>
+                                    <span className="font-semibold">{Math.round(cell.freq * 100)}%</span>
+                                    <span className="opacity-80">{cell.sev.toFixed(1)}/3</span>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground italic">
+              Each cell shows the predicted <strong>chance per day</strong> and <strong>average severity</strong> for that phase next cycle. We weight recent cycles more heavily and nudge the forecast along clear upward or downward trends. Faded cells mean fewer cycles backed the estimate — keep logging to tighten it.
             </p>
           </>
         )}
