@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight } from "lucide-react";
+import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight, FileDown } from "lucide-react";
 import { periodStarts, summarizeCycles } from "@/lib/cycle-stats";
+import { buildPredictionRunPdf } from "@/lib/prediction-pdf";
 
 type PredictResult = Awaited<ReturnType<typeof predictCycle>>;
 
@@ -281,6 +282,14 @@ function PredictionTimeline({
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">{Math.round(run.confidence ?? 0)}% confidence</Badge>
+                      <button
+                        onClick={() => exportRunPdf(run)}
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label="Download PDF report"
+                        title="Download PDF report"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                      </button>
                       <button onClick={() => onDelete(run.id)} className="text-muted-foreground hover:text-foreground" aria-label="Remove entry">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -346,6 +355,30 @@ function PredictionTimeline({
 }
 
 function RunDetails({ run }: { run: PredictionRun }) {
+  return <RunDetailsInner run={run} />;
+}
+
+async function exportRunPdf(run: PredictionRun) {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const name = (auth.user?.user_metadata as any)?.full_name || auth.user?.email || "you";
+    const blob = buildPredictionRunPdf(run as any, name);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const stamp = new Date(run.predicted_at).toISOString().slice(0, 10);
+    a.download = `herspace-prediction-${stamp}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success("PDF report downloaded.");
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : "Couldn't generate the PDF.");
+  }
+}
+
+function RunDetailsInner({ run }: { run: PredictionRun }) {
   const starts = [...(run.recent_starts ?? [])].sort();
   // group starts by month
   const groups = new Map<string, string[]>();
