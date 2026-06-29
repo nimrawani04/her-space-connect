@@ -33,6 +33,8 @@ export function CycleDashboard() {
 
   // Calendar (month view) — based on selected range, draw current visible month
   const calendar = useMemo(() => buildCalendarCells(cycles, wellness, starts), [cycles, wellness, starts]);
+  const avgCycleLen = stats.avgCycle && stats.avgCycle > 0 ? stats.avgCycle : 28;
+  const fertileMap = useMemo(() => buildFertileMap(starts, avgCycleLen), [starts, avgCycleLen]);
 
   async function exportPdf() {
     const wAvgs = wellnessAverages(wellness);
@@ -86,15 +88,32 @@ export function CycleDashboard() {
             {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
               <div key={i} className="text-center text-muted-foreground">{d}</div>
             ))}
-            {calendar.cells.map((c, i) => (
-              <div key={i} title={c.tooltip} className={`aspect-square rounded-md flex items-center justify-center text-[11px] border ${c.period ? "bg-rose-200 text-rose-900 border-rose-300" : c.ovulation ? "bg-emerald-100 text-emerald-900 border-emerald-200" : c.wellness ? "bg-sand/60 border-border" : "bg-background border-border/50 text-muted-foreground"}`}>
-                {c.day || ""}
-              </div>
-            ))}
+            {calendar.cells.map((c, i) => {
+              const f = c.tooltip ? fertileMap.get(c.tooltip) : undefined;
+              const isOv = f === "ovulation";
+              const isFert = f === "fertile";
+              const cls = c.period
+                ? "bg-rose-200 text-rose-900 border-rose-300"
+                : isOv
+                ? "bg-emerald-200 text-emerald-900 border-emerald-400 ring-1 ring-emerald-400"
+                : isFert
+                ? "bg-emerald-50 text-emerald-900 border-emerald-200"
+                : c.wellness
+                ? "bg-sand/60 border-border"
+                : "bg-background border-border/50 text-muted-foreground";
+              const tip = [c.tooltip, c.period && "period", isOv && "est. ovulation", isFert && "fertile window", c.wellness && "wellness logged"].filter(Boolean).join(" • ");
+              return (
+                <div key={i} title={tip} className={`relative aspect-square rounded-md flex items-center justify-center text-[11px] border ${cls}`}>
+                  {c.day || ""}
+                  {isOv && <span className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-600" />}
+                </div>
+              );
+            })}
           </div>
-          <div className="flex gap-3 text-[11px] mt-3 text-muted-foreground">
+          <div className="flex flex-wrap gap-3 text-[11px] mt-3 text-muted-foreground">
             <Legend dot="bg-rose-300" label="Period" />
-            <Legend dot="bg-emerald-300" label="Est. ovulation" />
+            <Legend dot="bg-emerald-100 border border-emerald-200" label="Fertile window" />
+            <Legend dot="bg-emerald-500" label="Est. ovulation" />
             <Legend dot="bg-sand" label="Wellness logged" />
           </div>
         </CardContent>
@@ -168,6 +187,35 @@ function cycleLengthSeries(starts: string[]) {
     if (d > 10 && d < 90) out.push({ label: sorted[i].slice(5), value: d });
   }
   return out;
+}
+
+function buildFertileMap(starts: string[], avgCycleLen: number): Map<string, "fertile" | "ovulation"> {
+  const map = new Map<string, "fertile" | "ovulation">();
+  const cycleLen = Math.max(20, Math.min(45, Math.round(avgCycleLen)));
+  const today = new Date();
+  const horizon = new Date(today); horizon.setMonth(horizon.getMonth() + 2);
+  const sorted = [...starts].sort();
+  const anchors: Date[] = sorted.map((s) => new Date(s));
+  // project forward from last known start to cover current/next month
+  if (anchors.length) {
+    let last = new Date(anchors[anchors.length - 1]);
+    while (last < horizon) {
+      const next = new Date(last); next.setDate(next.getDate() + cycleLen);
+      anchors.push(next);
+      last = next;
+    }
+  }
+  for (const a of anchors) {
+    const ov = new Date(a); ov.setDate(ov.getDate() + (cycleLen - 14));
+    // fertile window: ovulation -5 .. +1
+    for (let off = -5; off <= 1; off++) {
+      const d = new Date(ov); d.setDate(d.getDate() + off);
+      const key = d.toISOString().slice(0, 10);
+      if (!map.has(key)) map.set(key, "fertile");
+    }
+    map.set(ov.toISOString().slice(0, 10), "ovulation");
+  }
+  return map;
 }
 function energySeries(w: any[]) {
   return w.filter((x) => x.energy_level).map((x) => ({ label: x.log_date.slice(5), value: x.energy_level }));
