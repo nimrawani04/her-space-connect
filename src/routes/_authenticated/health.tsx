@@ -623,7 +623,7 @@ function HormoneCycle() {
           <CardTitle className="font-serif italic text-2xl">Where you are in your cycle</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <div>
               <Label>Last period started</Label>
               <Input type="date" value={lastPeriod} onChange={(e) => setLastPeriod(e.target.value)} />
