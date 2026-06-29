@@ -355,6 +355,30 @@ function PredictionTimeline({
 }
 
 function RunDetails({ run }: { run: PredictionRun }) {
+  return <RunDetailsInner run={run} />;
+}
+
+async function exportRunPdf(run: PredictionRun) {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const name = (auth.user?.user_metadata as any)?.full_name || auth.user?.email || "you";
+    const blob = buildPredictionRunPdf(run as any, name);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const stamp = new Date(run.predicted_at).toISOString().slice(0, 10);
+    a.download = `herspace-prediction-${stamp}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success("PDF report downloaded.");
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : "Couldn't generate the PDF.");
+  }
+}
+
+function RunDetailsInner({ run }: { run: PredictionRun }) {
   const starts = [...(run.recent_starts ?? [])].sort();
   // group starts by month
   const groups = new Map<string, string[]>();
