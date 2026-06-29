@@ -37,10 +37,36 @@ export function CycleDashboard() {
   const [cycles, setCycles] = useState<any[]>([]);
   const [wellness, setWellness] = useState<any[]>([]);
   const [overlay, setOverlay] = useState<OverlaySettings>(DEFAULT_OVERLAY);
-  useEffect(() => { setOverlay(loadOverlay()); }, []);
+  const [overlayLoaded, setOverlayLoaded] = useState(false);
+  // Hydrate: localStorage first (instant), then profile (authoritative across devices)
   useEffect(() => {
+    setOverlay(loadOverlay());
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) { setOverlayLoaded(true); return; }
+      const { data } = await supabase.from("profiles").select("calendar_overlay").eq("id", u.user.id).maybeSingle();
+      const remote = (data as any)?.calendar_overlay;
+      if (remote && typeof remote === "object") {
+        const merged: OverlaySettings = {
+          mode: ["both", "fertile", "ovulation"].includes(remote.mode) ? remote.mode : DEFAULT_OVERLAY.mode,
+          windowDays: Math.max(3, Math.min(10, Number(remote.windowDays) || DEFAULT_OVERLAY.windowDays)),
+        };
+        setOverlay(merged);
+        try { window.localStorage.setItem(OVERLAY_KEY, JSON.stringify(merged)); } catch {}
+      }
+      setOverlayLoaded(true);
+    })();
+  }, []);
+  // Persist: cache locally for offline, then sync to profile
+  useEffect(() => {
+    if (!overlayLoaded) return;
     try { window.localStorage.setItem(OVERLAY_KEY, JSON.stringify(overlay)); } catch {}
-  }, [overlay]);
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      await supabase.from("profiles").update({ calendar_overlay: overlay as any }).eq("id", u.user.id);
+    })();
+  }, [overlay, overlayLoaded]);
 
   async function load() {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - DAYS[range]);
