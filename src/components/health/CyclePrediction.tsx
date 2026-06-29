@@ -203,6 +203,7 @@ function PredictionTimeline({
   onDelete: (id: string) => void;
 }) {
   const visible = showAll ? history : history.slice(0, 5);
+  const [openId, setOpenId] = useState<string | null>(null);
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -276,6 +277,15 @@ function PredictionTimeline({
                       <><span>·</span><span>first prediction</span></>
                     )}
                   </div>
+                  <button
+                    onClick={() => setOpenId(openId === run.id ? null : run.id)}
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-earth hover:underline"
+                    aria-expanded={openId === run.id}
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${openId === run.id ? "rotate-180" : ""}`} />
+                    {openId === run.id ? "Hide details" : "View calculation details"}
+                  </button>
+                  {openId === run.id && <RunDetails run={run} />}
                 </li>
               );
             })}
@@ -283,5 +293,102 @@ function PredictionTimeline({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function RunDetails({ run }: { run: PredictionRun }) {
+  const starts = [...(run.recent_starts ?? [])].sort();
+  // group starts by month
+  const groups = new Map<string, string[]>();
+  for (const d of starts) {
+    const key = new Date(d).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(d);
+  }
+  // gaps between consecutive starts
+  const gaps: number[] = [];
+  for (let i = 1; i < starts.length; i++) {
+    const a = new Date(starts[i - 1]).getTime();
+    const b = new Date(starts[i]).getTime();
+    gaps.push(Math.round((b - a) / 86400000));
+  }
+  const fwLow = run.fertile_window_low ? new Date(run.fertile_window_low) : null;
+  const fwHigh = run.fertile_window_high ? new Date(run.fertile_window_high) : null;
+  const ov = run.ovulation_day ? new Date(run.ovulation_day) : null;
+  const fwLen = fwLow && fwHigh ? Math.round((fwHigh.getTime() - fwLow.getTime()) / 86400000) + 1 : null;
+  const ovOffset = ov && fwLow && fwHigh ? Math.round((ov.getTime() - fwLow.getTime()) / 86400000) : null;
+  const periodToOv = ov && run.next_period_low
+    ? Math.round((new Date(run.next_period_low).getTime() - ov.getTime()) / 86400000)
+    : null;
+  const pmsLead = run.pms_start && run.next_period_low
+    ? Math.round((new Date(run.next_period_low).getTime() - new Date(run.pms_start).getTime()) / 86400000)
+    : null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-earth/20 bg-muted/30 p-3 space-y-3 text-xs">
+      <section>
+        <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground mb-1.5">Months used in this calculation</p>
+        {groups.size === 0 ? (
+          <p className="text-muted-foreground">No period starts recorded.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {Array.from(groups.entries()).map(([month, dates]) => (
+              <div key={month} className="flex flex-wrap items-center gap-1.5">
+                <span className="font-medium min-w-[110px] text-foreground">{month}</span>
+                {dates.map((d) => (
+                  <Badge key={d} variant="outline" className="text-[10px] font-normal bg-background">{new Date(d).getDate()}</Badge>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground mb-1.5">Average cycle calculations</p>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <Stat label="Avg cycle length" value={run.avg_cycle_length ? `${Math.round(Number(run.avg_cycle_length))} days` : "—"} />
+          <Stat label="Avg period length" value={run.avg_period_length ? `${Math.round(Number(run.avg_period_length))} days` : "—"} />
+          <Stat label="Cycles measured" value={`${Math.max(starts.length - 1, 0)} gap${starts.length - 1 === 1 ? "" : "s"}`} />
+          <Stat label="Regularity" value={run.regularity_label ?? "—"} />
+          {gaps.length > 0 && (
+            <Stat
+              label="Gap range"
+              value={`${Math.min(...gaps)}–${Math.max(...gaps)} days`}
+              hint={gaps.slice(-6).join(" · ") + " d"}
+            />
+          )}
+        </div>
+      </section>
+
+      <section>
+        <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground mb-1.5">Fertility-window parameters</p>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <Stat label="Window" value={`${fmtDate(run.fertile_window_low)} → ${fmtDate(run.fertile_window_high)}`} />
+          <Stat label="Window length" value={fwLen ? `${fwLen} days` : "—"} />
+          <Stat label="Ovulation day" value={fmtDate(run.ovulation_day)} />
+          <Stat label="Ovulation offset" value={ovOffset !== null ? `Day ${ovOffset + 1} of window` : "—"} />
+          <Stat label="Ovulation → next period" value={periodToOv !== null ? `${periodToOv} days (luteal)` : "—"} />
+          <Stat label="PMS lead time" value={pmsLead !== null ? `${pmsLead} days before period` : "—"} />
+        </div>
+      </section>
+
+      {run.summary && (
+        <section>
+          <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground mb-1">Model summary</p>
+          <p className="text-foreground/80 leading-relaxed">{run.summary}</p>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-md border border-border bg-background p-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="font-medium text-foreground mt-0.5">{value}</p>
+      {hint && <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{hint}</p>}
+    </div>
   );
 }
