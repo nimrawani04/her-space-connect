@@ -1125,3 +1125,254 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
     </Card>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cycle-by-cycle trend: how each phase's symptom load changes over time
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PHASE_COLOR: Record<Phase, string> = {
+  menstrual:  "#e11d48", // rose-600
+  follicular: "#d97706", // amber-600
+  ovulation:  "#059669", // emerald-600
+  luteal:     "#7c3aed", // violet-600
+};
+
+function SymptomTrend({ periodStarts, cycleLength }: { periodStarts: string[]; cycleLength: number }) {
+  const [entries, setEntries] = useState<Array<{ entry_date: string; symptoms: string[] | null; symptom_severities: SeverityMap | null }>>([]);
+  const [selected, setSelected] = useState<string>("__all");
+  const [metric, setMetric] = useState<"frequency" | "severity">("severity");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("cycle_entries")
+        .select("entry_date, symptoms, symptom_severities")
+        .order("entry_date", { ascending: true })
+        .limit(365);
+      setEntries((data ?? []) as typeof entries);
+      setLoading(false);
+    })();
+  }, []);
+
+  const sortedStarts = [...periodStarts].sort();
+  const phases: Phase[] = ["menstrual", "follicular", "ovulation", "luteal"];
+
+  // Build cycles: each spans [start, nextStart) — current cycle ends at today+1.
+  const todayPlus = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const cycles = sortedStarts.map((s, i) => ({
+    index: i + 1,
+    start: s,
+    end: sortedStarts[i + 1] ?? todayPlus,
+    label: s,
+  }));
+
+  const allSymptoms = Array.from(new Set(entries.flatMap((e) => e.symptoms ?? []))).sort();
+
+  type Cell = { count: number; severity: number; phaseDays: number };
+  const empty = (): Cell => ({ count: 0, severity: 0, phaseDays: 0 });
+  const data: Cell[][] = cycles.map(() => phases.map(empty));
+
+  // Tally actual phase days per cycle (denominator for frequency) using the cycle's day-1 anchor.
+  for (let ci = 0; ci < cycles.length; ci++) {
+    const c = cycles[ci];
+    const span = Math.min(cycleLength, Math.ceil((new Date(c.end).getTime() - new Date(c.start).getTime()) / 86400000));
+    for (let d = 1; d <= span; d++) {
+      const phase = phaseForDay(d, cycleLength);
+      data[ci][phases.indexOf(phase)].phaseDays += 1;
+    }
+  }
+
+  for (const e of entries) {
+    const ci = cycles.findIndex((c) => e.entry_date >= c.start && e.entry_date < c.end);
+    if (ci < 0) continue;
+    const day = Math.floor((new Date(e.entry_date).getTime() - new Date(cycles[ci].start).getTime()) / 86400000) + 1;
+    if (day < 1 || day > cycleLength) continue;
+    const pi = phases.indexOf(phaseForDay(day, cycleLength));
+    const syms = e.symptoms ?? [];
+    const sevs = e.symptom_severities ?? {};
+    for (const s of syms) {
+      if (selected !== "__all" && s !== selected) continue;
+      const sev = (sevs[s] as Severity | undefined) ?? 2;
+      data[ci][pi].count += 1;
+      data[ci][pi].severity += sev;
+    }
+  }
+
+  // Build per-phase series. y = avg severity (sum/count) for "severity" view, or
+  // frequency (count/phaseDays) for "frequency" view. Skip missing points (no breaks → null).
+  const series = phases.map((p, pi) => ({
+    phase: p,
+    points: cycles.map((c, ci) => {
+      const cell = data[ci][pi];
+      if (metric === "severity") {
+        return cell.count > 0 ? { y: cell.severity / cell.count, count: cell.count } : null;
+      }
+      return cell.phaseDays > 0 ? { y: cell.count / cell.phaseDays, count: cell.count } : null;
+    }),
+  }));
+
+  const yMax = metric === "severity" ? 3 : 1;
+  const yLabel = metric === "severity" ? "Avg severity (1–3)" : "Symptom-days ÷ phase days";
+
+  const W = 720, H = 240, PAD_L = 44, PAD_R = 14, PAD_T = 16, PAD_B = 42;
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+  const xFor = (i: number) => cycles.length <= 1 ? PAD_L + innerW / 2 : PAD_L + (i / (cycles.length - 1)) * innerW;
+  const yFor = (v: number) => PAD_T + (1 - Math.min(v, yMax) / yMax) * innerH;
+
+  const totalLogged = entries.filter((e) => (e.symptoms ?? []).length > 0).length;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif italic text-2xl">Cycle-by-cycle trends</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {loading && <p className="text-sm text-muted-foreground">Reading your logs…</p>}
+
+        {!loading && cycles.length < 2 && (
+          <Alert>
+            <AlertTitle>Need at least 2 cycles</AlertTitle>
+            <AlertDescription>
+              Log the start of two periods (and tag symptoms in between) and a trend across cycles will appear here.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!loading && cycles.length >= 2 && (
+          <>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="min-w-[200px]">
+                <Label className="text-xs">Symptom</Label>
+                <Select value={selected} onValueChange={setSelected}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all">All symptoms combined</SelectItem>
+                    {allSymptoms.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">View</Label>
+                <div className="flex gap-1 rounded-full border border-border p-0.5 bg-background">
+                  {(["severity", "frequency"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setMetric(m)}
+                      className={`px-3 py-1 rounded-full text-xs capitalize transition-colors ${
+                        metric === m ? "bg-earth text-earth-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {m === "severity" ? "Avg severity" : "Frequency"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground ml-auto">
+                {cycles.length} cycle{cycles.length === 1 ? "" : "s"} · {totalLogged} tagged day{totalLogged === 1 ? "" : "s"}
+              </div>
+            </div>
+
+            <div className="w-full overflow-x-auto">
+              <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[560px] h-auto">
+                {/* gridlines + y axis */}
+                {[0, 0.25, 0.5, 0.75, 1].map((t) => {
+                  const v = t * yMax;
+                  const y = yFor(v);
+                  return (
+                    <g key={t}>
+                      <line x1={PAD_L} y1={y} x2={PAD_L + innerW} y2={y} stroke="currentColor" opacity={0.08} />
+                      <text x={PAD_L - 6} y={y + 3} fontSize="10" textAnchor="end" fill="currentColor" opacity={0.55}>
+                        {metric === "severity" ? v.toFixed(1) : `${Math.round(v * 100)}%`}
+                      </text>
+                    </g>
+                  );
+                })}
+                <text x={PAD_L - 34} y={PAD_T + innerH / 2} fontSize="10" fill="currentColor" opacity={0.55}
+                      transform={`rotate(-90 ${PAD_L - 34} ${PAD_T + innerH / 2})`} textAnchor="middle">
+                  {yLabel}
+                </text>
+
+                {/* x ticks: cycle index + start date */}
+                {cycles.map((c, i) => (
+                  <g key={c.start}>
+                    <line x1={xFor(i)} y1={PAD_T + innerH} x2={xFor(i)} y2={PAD_T + innerH + 4} stroke="currentColor" opacity={0.3} />
+                    <text x={xFor(i)} y={PAD_T + innerH + 16} fontSize="10" textAnchor="middle" fill="currentColor" opacity={0.7}>
+                      C{i + 1}
+                    </text>
+                    <text x={xFor(i)} y={PAD_T + innerH + 30} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.45}>
+                      {c.start.slice(5)}
+                    </text>
+                  </g>
+                ))}
+
+                {/* one polyline per phase, skipping nulls */}
+                {series.map((s) => {
+                  const color = PHASE_COLOR[s.phase];
+                  // Build segments split at nulls
+                  const segs: Array<Array<{ x: number; y: number; count: number }>> = [];
+                  let cur: Array<{ x: number; y: number; count: number }> = [];
+                  s.points.forEach((pt, i) => {
+                    if (pt == null) { if (cur.length) { segs.push(cur); cur = []; } return; }
+                    cur.push({ x: xFor(i), y: yFor(pt.y), count: pt.count });
+                  });
+                  if (cur.length) segs.push(cur);
+                  return (
+                    <g key={s.phase}>
+                      {segs.map((seg, si) => (
+                        <polyline
+                          key={si}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth={2.25}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          points={seg.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")}
+                        />
+                      ))}
+                      {segs.flat().map((p, i) => (
+                        <circle
+                          key={i}
+                          cx={p.x}
+                          cy={p.y}
+                          r={Math.min(7, 2.5 + Math.sqrt(p.count) * 1.2)}
+                          fill={color}
+                          fillOpacity={0.85}
+                          stroke="white"
+                          strokeWidth={1.5}
+                        >
+                          <title>{`${PHASE_INFO[s.phase].label} · ${p.count} day${p.count === 1 ? "" : "s"}`}</title>
+                        </circle>
+                      ))}
+                    </g>
+                  );
+                })}
+
+                {/* legend */}
+                <g transform={`translate(${PAD_L}, ${H - 4})`}>
+                  {phases.map((p, i) => (
+                    <g key={p} transform={`translate(${i * 130}, 0)`}>
+                      <rect x={0} y={-8} width={10} height={3} fill={PHASE_COLOR[p]} />
+                      <text x={14} y={-4} fontSize="10" fill="currentColor" opacity={0.75}>
+                        {PHASE_INFO[p].label.replace(" phase", "")}
+                      </text>
+                    </g>
+                  ))}
+                </g>
+              </svg>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground italic">
+              Each point is one cycle. Dot size reflects how many days you tagged. Missing dots mean nothing was logged in that phase for that cycle. Switch <strong>Frequency</strong> to see what share of phase days carried the symptom, or <strong>Avg severity</strong> to see how intense it felt.
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
