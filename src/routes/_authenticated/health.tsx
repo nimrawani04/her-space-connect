@@ -743,7 +743,7 @@ function HormoneCycle() {
   );
 }
 
-function HormoneChart({ cycleLength, cycleDay }: { cycleLength: number; cycleDay: number | null }) {
+function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: number; cycleDay: number | null; tolerance?: number }) {
   const W = 720;
   const H = 240;
   const PAD_L = 36;
@@ -789,9 +789,21 @@ function HormoneChart({ cycleLength, cycleDay }: { cycleLength: number; cycleDay
         {/* today marker */}
         {cycleDay && (
           <g>
+            {tolerance > 0 && (
+              <rect
+                x={x(Math.max(1, cycleDay - tolerance))}
+                y={PAD_T}
+                width={x(Math.min(cycleLength, cycleDay + tolerance)) - x(Math.max(1, cycleDay - tolerance))}
+                height={innerH}
+                fill="#1f2937"
+                opacity={0.08}
+              />
+            )}
             <line x1={x(cycleDay)} y1={PAD_T} x2={x(cycleDay)} y2={PAD_T + innerH} stroke="#1f2937" strokeDasharray="4 4" opacity={0.6} />
             <circle cx={x(cycleDay)} cy={PAD_T + 6} r={4} fill="#1f2937" />
-            <text x={x(cycleDay)} y={PAD_T - 4} fontSize="10" textAnchor="middle" fill="#1f2937">Today · Day {cycleDay}</text>
+            <text x={x(cycleDay)} y={PAD_T - 4} fontSize="10" textAnchor="middle" fill="#1f2937">
+              Today · Day {cycleDay}{tolerance > 0 ? ` (±${tolerance}d)` : ""}
+            </text>
           </g>
         )}
 
