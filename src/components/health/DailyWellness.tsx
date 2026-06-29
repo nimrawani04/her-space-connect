@@ -44,8 +44,8 @@ export function DailyWellness() {
       setSleepQuality(todayRow.sleep_quality ?? 3);
       setWater(todayRow.water_glasses ?? 6);
       setExercise(todayRow.exercise ?? []);
-      setNutrition(todayRow.nutrition ?? {});
-      setSymptoms(todayRow.symptoms ?? {});
+      setNutrition((todayRow.nutrition as Record<string, boolean>) ?? {});
+      setSymptoms((todayRow.symptoms as Record<string, Sev>) ?? {});
       setCustom(todayRow.custom_symptoms ?? []);
       setNotes(todayRow.notes ?? "");
     }
