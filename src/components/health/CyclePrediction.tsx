@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight } from "lucide-react";
+import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight, FileDown } from "lucide-react";
 import { periodStarts, summarizeCycles } from "@/lib/cycle-stats";
+import { buildPredictionRunPdf } from "@/lib/prediction-pdf";
 
 type PredictResult = Awaited<ReturnType<typeof predictCycle>>;
 
@@ -281,6 +282,14 @@ function PredictionTimeline({
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">{Math.round(run.confidence ?? 0)}% confidence</Badge>
+                      <button
+                        onClick={() => exportRunPdf(run)}
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label="Download PDF report"
+                        title="Download PDF report"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                      </button>
                       <button onClick={() => onDelete(run.id)} className="text-muted-foreground hover:text-foreground" aria-label="Remove entry">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
