@@ -4,6 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileDown } from "lucide-react";
+import { Settings2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { buildHealthPdf } from "@/lib/pdf-report";
 import { summarizeCycles, periodStarts } from "@/lib/cycle-stats";
 import { toast } from "sonner";
@@ -11,10 +15,32 @@ import { toast } from "sonner";
 type Range = "week" | "month" | "6mo" | "year";
 const DAYS: Record<Range, number> = { week: 7, month: 30, "6mo": 180, year: 365 };
 
+type OverlayMode = "both" | "fertile" | "ovulation";
+type OverlaySettings = { mode: OverlayMode; windowDays: number };
+const OVERLAY_KEY = "herspace.calendar.overlay";
+const DEFAULT_OVERLAY: OverlaySettings = { mode: "both", windowDays: 6 };
+function loadOverlay(): OverlaySettings {
+  if (typeof window === "undefined") return DEFAULT_OVERLAY;
+  try {
+    const raw = window.localStorage.getItem(OVERLAY_KEY);
+    if (!raw) return DEFAULT_OVERLAY;
+    const parsed = JSON.parse(raw);
+    return {
+      mode: ["both", "fertile", "ovulation"].includes(parsed.mode) ? parsed.mode : "both",
+      windowDays: Math.max(3, Math.min(10, Number(parsed.windowDays) || 6)),
+    };
+  } catch { return DEFAULT_OVERLAY; }
+}
+
 export function CycleDashboard() {
   const [range, setRange] = useState<Range>("month");
   const [cycles, setCycles] = useState<any[]>([]);
   const [wellness, setWellness] = useState<any[]>([]);
+  const [overlay, setOverlay] = useState<OverlaySettings>(DEFAULT_OVERLAY);
+  useEffect(() => { setOverlay(loadOverlay()); }, []);
+  useEffect(() => {
+    try { window.localStorage.setItem(OVERLAY_KEY, JSON.stringify(overlay)); } catch {}
+  }, [overlay]);
 
   async function load() {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - DAYS[range]);
@@ -34,7 +60,12 @@ export function CycleDashboard() {
   // Calendar (month view) — based on selected range, draw current visible month
   const calendar = useMemo(() => buildCalendarCells(cycles, wellness, starts), [cycles, wellness, starts]);
   const avgCycleLen = stats.avgCycle && stats.avgCycle > 0 ? stats.avgCycle : 28;
-  const fertileMap = useMemo(() => buildFertileMap(starts, avgCycleLen), [starts, avgCycleLen]);
+  const fertileMap = useMemo(
+    () => buildFertileMap(starts, avgCycleLen, overlay.windowDays),
+    [starts, avgCycleLen, overlay.windowDays]
+  );
+  const showFertile = overlay.mode !== "ovulation";
+  const showOvulation = overlay.mode !== "fertile";
 
   async function exportPdf() {
     const wAvgs = wellnessAverages(wellness);
@@ -82,7 +113,39 @@ export function CycleDashboard() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="font-serif italic">Calendar</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+          <CardTitle className="font-serif italic">Calendar</CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1.5 rounded-full"><Settings2 className="h-3.5 w-3.5" /> Overlay</Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Show</Label>
+                <Tabs value={overlay.mode} onValueChange={(v) => setOverlay({ ...overlay, mode: v as OverlayMode })}>
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="both">Both</TabsTrigger>
+                    <TabsTrigger value="fertile">Fertile</TabsTrigger>
+                    <TabsTrigger value="ovulation">Ovulation</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Fertile window length</Label>
+                  <span className="text-xs text-muted-foreground">{overlay.windowDays} days</span>
+                </div>
+                <Slider
+                  min={3} max={10} step={1}
+                  value={[overlay.windowDays]}
+                  onValueChange={([v]) => setOverlay({ ...overlay, windowDays: v })}
+                  disabled={overlay.mode === "ovulation"}
+                />
+                <p className="text-[11px] text-muted-foreground">Centered slightly before ovulation, ending the day after.</p>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-1.5 text-xs">
             {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
@@ -90,8 +153,8 @@ export function CycleDashboard() {
             ))}
             {calendar.cells.map((c, i) => {
               const f = c.tooltip ? fertileMap.get(c.tooltip) : undefined;
-              const isOv = f === "ovulation";
-              const isFert = f === "fertile";
+              const isOv = f === "ovulation" && showOvulation;
+              const isFert = f === "fertile" && showFertile;
               const cls = c.period
                 ? "bg-rose-200 text-rose-900 border-rose-300"
                 : isOv
@@ -112,8 +175,8 @@ export function CycleDashboard() {
           </div>
           <div className="flex flex-wrap gap-3 text-[11px] mt-3 text-muted-foreground">
             <Legend dot="bg-rose-300" label="Period" />
-            <Legend dot="bg-emerald-100 border border-emerald-200" label="Fertile window" />
-            <Legend dot="bg-emerald-500" label="Est. ovulation" />
+            {showFertile && <Legend dot="bg-emerald-100 border border-emerald-200" label="Fertile window" />}
+            {showOvulation && <Legend dot="bg-emerald-500" label="Est. ovulation" />}
             <Legend dot="bg-sand" label="Wellness logged" />
           </div>
         </CardContent>
@@ -189,7 +252,7 @@ function cycleLengthSeries(starts: string[]) {
   return out;
 }
 
-function buildFertileMap(starts: string[], avgCycleLen: number): Map<string, "fertile" | "ovulation"> {
+function buildFertileMap(starts: string[], avgCycleLen: number, windowDays = 6): Map<string, "fertile" | "ovulation"> {
   const map = new Map<string, "fertile" | "ovulation">();
   const cycleLen = Math.max(20, Math.min(45, Math.round(avgCycleLen)));
   const today = new Date();
@@ -207,8 +270,10 @@ function buildFertileMap(starts: string[], avgCycleLen: number): Map<string, "fe
   }
   for (const a of anchors) {
     const ov = new Date(a); ov.setDate(ov.getDate() + (cycleLen - 14));
-    // fertile window: ovulation -5 .. +1
-    for (let off = -5; off <= 1; off++) {
+    // fertile window: spans windowDays, ending the day after ovulation
+    const w = Math.max(3, Math.min(10, Math.round(windowDays)));
+    const before = w - 1; // days before ovulation (since +1 day after)
+    for (let off = -before; off <= 1; off++) {
       const d = new Date(ov); d.setDate(d.getDate() + off);
       const key = d.toISOString().slice(0, 10);
       if (!map.has(key)) map.set(key, "fertile");
