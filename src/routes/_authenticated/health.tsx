@@ -909,7 +909,13 @@ function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: n
         <rect x={x(ovDay)} y={PAD_T} width={x(ovDay + 1) - x(ovDay)} height={innerH} fill="#a7f3d0" opacity={0.5} />
         <rect x={x(ovDay + 2)} y={PAD_T} width={x(cycleLength) - x(ovDay + 2)} height={innerH} fill="#ddd6fe" opacity={0.35} />
 
-        {/* axes */}
+        {/* gridlines & y-axis */}
+        {[0, 25, 50, 75, 100].map((v) => (
+          <g key={v}>
+            <line x1={PAD_L} y1={y(v)} x2={PAD_L + innerW} y2={y(v)} stroke="currentColor" opacity={0.08} strokeDasharray={v === 0 ? "" : "2 4"} />
+            <text x={PAD_L - 6} y={y(v) + 3} fontSize="9" textAnchor="end" fill="currentColor" opacity={0.45}>{v === 0 ? "low" : v === 100 ? "high" : ""}</text>
+          </g>
+        ))}
         <line x1={PAD_L} y1={PAD_T + innerH} x2={PAD_L + innerW} y2={PAD_T + innerH} stroke="currentColor" opacity={0.2} />
         {[1, 7, 14, 21, 28].filter((d) => d <= cycleLength).map((d) => (
           <g key={d}>
