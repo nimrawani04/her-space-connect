@@ -892,3 +892,177 @@ function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: n
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Symptom × cycle-phase correlations
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: string[]; cycleLength: number }) {
+  const [entries, setEntries] = useState<Array<{ entry_date: string; symptoms: string[] | null; mood: string | null; energy: number | null }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("cycle_entries")
+        .select("entry_date, symptoms, mood, energy")
+        .order("entry_date", { ascending: false })
+        .limit(180);
+      setEntries((data ?? []) as typeof entries);
+      setLoading(false);
+    })();
+  }, []);
+
+  // Map an entry date → cycle day using the most recent period start that is ≤ that date.
+  const anchors = [...periodStarts].sort(); // ascending
+  function cycleDayFor(date: string): number | null {
+    if (anchors.length === 0) return null;
+    const t = new Date(date).getTime();
+    let anchor: string | null = null;
+    for (const a of anchors) {
+      if (new Date(a).getTime() <= t) anchor = a;
+      else break;
+    }
+    if (!anchor) return null;
+    const diff = Math.floor((t - new Date(anchor).getTime()) / 86400000);
+    if (diff < 0 || diff > 60) return null;
+    return (diff % cycleLength) + 1;
+  }
+
+  const phases: Phase[] = ["menstrual", "follicular", "ovulation", "luteal"];
+  // phaseCounts[symptom][phase] = number of logged days
+  const phaseDayCounts: Record<Phase, number> = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
+  const matrix: Record<string, Record<Phase, number>> = {};
+  let totalDays = 0;
+
+  for (const e of entries) {
+    const day = cycleDayFor(e.entry_date);
+    if (!day) continue;
+    const phase = phaseForDay(day, cycleLength);
+    phaseDayCounts[phase] += 1;
+    totalDays += 1;
+    const syms = e.symptoms ?? [];
+    for (const s of syms) {
+      if (!matrix[s]) matrix[s] = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
+      matrix[s][phase] += 1;
+    }
+  }
+
+  const symptomList = Object.keys(matrix).sort((a, b) => {
+    const totA = phases.reduce((s, p) => s + matrix[a][p], 0);
+    const totB = phases.reduce((s, p) => s + matrix[b][p], 0);
+    return totB - totA;
+  });
+
+  // Build "insights": for each symptom, find the phase with the highest rate (count / phaseDayCount).
+  const insights: Array<{ symptom: string; phase: Phase; rate: number; count: number }> = [];
+  for (const s of symptomList) {
+    let best: { phase: Phase; rate: number; count: number } | null = null;
+    for (const p of phases) {
+      const denom = phaseDayCounts[p];
+      if (denom < 2) continue; // need at least 2 logged days in that phase
+      const rate = matrix[s][p] / denom;
+      if (rate > 0 && (!best || rate > best.rate)) best = { phase: p, rate, count: matrix[s][p] };
+    }
+    if (best && best.count >= 2) insights.push({ symptom: s, ...best });
+  }
+  insights.sort((a, b) => b.rate - a.rate);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif italic text-2xl">Your symptom patterns by phase</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {loading && <p className="text-sm text-muted-foreground">Reading your logs…</p>}
+        {!loading && (anchors.length === 0 || totalDays === 0) && (
+          <Alert>
+            <AlertTitle>Not enough data yet</AlertTitle>
+            <AlertDescription>
+              Log a few period days <strong>and</strong> tap symptoms in the <strong>Cycle Tracker</strong> for a couple of weeks. As soon as we can map symptoms to cycle days, your patterns will appear here.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!loading && totalDays > 0 && symptomList.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            We mapped {totalDays} logged day{totalDays === 1 ? "" : "s"} to a cycle phase, but no symptoms are tagged yet. Tap symptom chips when you log a day.
+          </p>
+        )}
+
+        {!loading && symptomList.length > 0 && (
+          <>
+            {insights.length > 0 && (
+              <div className="rounded-2xl border border-border bg-sand/30 p-4 space-y-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">What we noticed</p>
+                <ul className="text-sm space-y-1.5">
+                  {insights.slice(0, 5).map((i) => (
+                    <li key={i.symptom}>
+                      Your <strong>{i.symptom}</strong> shows up most in the{" "}
+                      <Badge className={PHASE_INFO[i.phase].tone + " align-middle"}>{PHASE_INFO[i.phase].label.replace(" phase", "")}</Badge>{" "}
+                      <span className="text-muted-foreground">— {i.count} day{i.count === 1 ? "" : "s"}, {Math.round(i.rate * 100)}% of logged days in that phase.</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse min-w-[480px]">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    <th className="py-2 pr-3 font-normal">Symptom</th>
+                    {phases.map((p) => (
+                      <th key={p} className="py-2 px-2 font-normal text-center">
+                        {PHASE_INFO[p].label.replace(" phase", "")}
+                        <div className="text-[10px] text-muted-foreground/70 normal-case tracking-normal">
+                          {phaseDayCounts[p]} day{phaseDayCounts[p] === 1 ? "" : "s"}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {symptomList.map((s) => {
+                    const maxRow = Math.max(...phases.map((p) => matrix[s][p]));
+                    return (
+                      <tr key={s} className="border-t border-border">
+                        <td className="py-2 pr-3 font-medium capitalize">{s}</td>
+                        {phases.map((p) => {
+                          const count = matrix[s][p];
+                          const intensity = maxRow > 0 ? count / maxRow : 0;
+                          return (
+                            <td key={p} className="py-1.5 px-2 text-center">
+                              <div
+                                className="mx-auto rounded-md text-xs font-medium flex items-center justify-center"
+                                style={{
+                                  width: 44,
+                                  height: 28,
+                                  background: count === 0 ? "transparent" : `color-mix(in oklab, var(--color-earth) ${15 + intensity * 65}%, transparent)`,
+                                  color: intensity > 0.55 ? "white" : "inherit",
+                                  border: count === 0 ? "1px dashed color-mix(in oklab, currentColor 20%, transparent)" : "none",
+                                }}
+                                title={`${count} day${count === 1 ? "" : "s"} in ${PHASE_INFO[p].label}`}
+                              >
+                                {count || "·"}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground italic">
+              Counts are days you tagged that symptom, grouped by the cycle phase that day fell in. Stronger shading = more frequent. Patterns get more reliable after 2–3 logged cycles.
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
