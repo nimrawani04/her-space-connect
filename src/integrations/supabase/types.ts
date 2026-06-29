@@ -360,6 +360,78 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_runs: {
+        Row: {
+          avg_cycle_length: number | null
+          avg_period_length: number | null
+          confidence: number | null
+          created_at: string
+          cycles_used: number
+          data_end: string | null
+          data_start: string | null
+          fertile_window_high: string | null
+          fertile_window_low: string | null
+          id: string
+          is_late: boolean | null
+          next_period_end: string | null
+          next_period_high: string | null
+          next_period_low: string | null
+          ovulation_day: string | null
+          pms_start: string | null
+          predicted_at: string
+          recent_starts: Json
+          regularity_label: string | null
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_cycle_length?: number | null
+          avg_period_length?: number | null
+          confidence?: number | null
+          created_at?: string
+          cycles_used?: number
+          data_end?: string | null
+          data_start?: string | null
+          fertile_window_high?: string | null
+          fertile_window_low?: string | null
+          id?: string
+          is_late?: boolean | null
+          next_period_end?: string | null
+          next_period_high?: string | null
+          next_period_low?: string | null
+          ovulation_day?: string | null
+          pms_start?: string | null
+          predicted_at?: string
+          recent_starts?: Json
+          regularity_label?: string | null
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_cycle_length?: number | null
+          avg_period_length?: number | null
+          confidence?: number | null
+          created_at?: string
+          cycles_used?: number
+          data_end?: string | null
+          data_start?: string | null
+          fertile_window_high?: string | null
+          fertile_window_low?: string | null
+          id?: string
+          is_late?: boolean | null
+          next_period_end?: string | null
+          next_period_high?: string | null
+          next_period_low?: string | null
+          ovulation_day?: string | null
+          pms_start?: string | null
+          predicted_at?: string
+          recent_starts?: Json
+          regularity_label?: string | null
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accent_color: string | null
