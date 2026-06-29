@@ -165,3 +165,100 @@ export const simplifyResearch = createServerFn({ method: "POST" })
 }`,
     });
   });
+
+// ---------------- Cycle prediction ----------------
+
+const predictInput = z.object({
+  recentStarts: z.array(z.string()).max(24),
+  avgCycleLength: z.number().nullable(),
+  avgPeriodLength: z.number().nullable(),
+  regularityLabel: z.string().nullable(),
+  today: z.string(),
+});
+
+const predictSchema = z.object({
+  nextPeriodLow: z.string(),
+  nextPeriodHigh: z.string(),
+  nextPeriodEnd: z.string(),
+  fertileWindowLow: z.string(),
+  fertileWindowHigh: z.string(),
+  ovulationDay: z.string(),
+  pmsStart: z.string(),
+  confidence: z.number().min(0).max(100),
+  isLate: z.boolean(),
+  summary: z.string(),
+});
+
+const PREDICT_SYSTEM = `You are HerSpace Cycle Prediction AI.
+Given a woman's recent period start dates and averages, estimate her next cycle phases.
+Use the median cycle length and variance to compute a date range for the next period (low/high), the fertile window (typically days 11-16 from last period start when cycle is 28d), ovulation (~14 days before next period), PMS phase (~5 days before next period), and an expected end date (start + avg period length).
+If today is past the predicted high date, set isLate=true.
+Confidence: 50% with 2 cycles, +8% per additional cycle up to 95%; subtract 15% if regularity is "Irregular".
+Return ISO date strings (YYYY-MM-DD).
+The summary should be one sentence like: "Based on your previous N cycles, your next period is expected between {low}–{high} with approximately {confidence}% confidence."`;
+
+export const predictCycle = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => predictInput.parse(d))
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("AI is not configured");
+    return await generateJson({
+      key,
+      system: PREDICT_SYSTEM,
+      prompt: `Today: ${data.today}\nRecent period start dates (newest first): ${data.recentStarts.join(", ") || "none"}\nAvg cycle length: ${data.avgCycleLength ?? "unknown"}\nAvg period length: ${data.avgPeriodLength ?? "unknown"}\nRegularity: ${data.regularityLabel ?? "unknown"}\n\nReturn structured prediction.`,
+      schema: predictSchema,
+      schemaHint: `{
+  "nextPeriodLow": "YYYY-MM-DD",
+  "nextPeriodHigh": "YYYY-MM-DD",
+  "nextPeriodEnd": "YYYY-MM-DD",
+  "fertileWindowLow": "YYYY-MM-DD",
+  "fertileWindowHigh": "YYYY-MM-DD",
+  "ovulationDay": "YYYY-MM-DD",
+  "pmsStart": "YYYY-MM-DD",
+  "confidence": number (0-100),
+  "isLate": boolean,
+  "summary": string
+}`,
+    });
+  });
+
+// ---------------- Health insights ----------------
+
+const insightsInput = z.object({
+  cycleHistory: z.string().max(8000),
+  wellnessHistory: z.string().max(8000),
+});
+
+const insightsSchema = z.object({
+  insights: z.array(z.object({
+    title: z.string(),
+    detail: z.string(),
+    category: z.enum(["cycle", "mood", "energy", "sleep", "symptoms", "lifestyle"]),
+    confidence: z.enum(["low", "moderate", "high"]),
+  })).max(8),
+  doctorQuestions: z.array(z.string()).max(6),
+  watchOuts: z.array(z.string()).max(4),
+});
+
+const INSIGHTS_SYSTEM = `You are HerSpace Pattern Detection AI.
+Read a user's recent cycle entries and daily wellness logs, then surface 5–8 plain-language patterns: cycle-symptom links, mood/energy by phase, sleep and lifestyle correlations.
+Examples of the tone we want: "Your acne appears most frequently around ovulation." "You report higher energy during the follicular phase." "Heavy bleeding has been recorded in three consecutive cycles." "Your sleep quality decreases two days before your period."
+Be concrete, evidence-based, never diagnostic. Cite the time range you analyzed. Surface watchOuts only when something looks clinically notable (heavy bleeding cycle-after-cycle, growing irregularity, etc.).`;
+
+export const generateHealthInsights = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => insightsInput.parse(d))
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("AI is not configured");
+    return await generateJson({
+      key,
+      system: INSIGHTS_SYSTEM,
+      prompt: `CYCLE HISTORY (newest first):\n${data.cycleHistory}\n\nWELLNESS LOGS (newest first):\n${data.wellnessHistory}\n\nReturn structured insights.`,
+      schema: insightsSchema,
+      schemaHint: `{
+  "insights": [{ "title": string, "detail": string, "category": "cycle"|"mood"|"energy"|"sleep"|"symptoms"|"lifestyle", "confidence": "low"|"moderate"|"high" }] (max 8),
+  "doctorQuestions": string[] (max 6),
+  "watchOuts": string[] (max 4)
+}`,
+    });
+  });
