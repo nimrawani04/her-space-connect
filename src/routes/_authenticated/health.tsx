@@ -856,6 +856,7 @@ function HormoneCycle() {
       </div>
 
       <SymptomCorrelations periodStarts={periodStarts} cycleLength={cycleLength} />
+      <SymptomTrend periodStarts={periodStarts} cycleLength={cycleLength} />
     </div>
   );
 }
