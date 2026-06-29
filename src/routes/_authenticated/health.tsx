@@ -14,6 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertTriangle, FileDown, Printer, Sparkles, ShieldCheck, Stethoscope } from "lucide-react";
+import { PeriodLogger } from "@/components/health/PeriodLogger";
+import { DailyWellness } from "@/components/health/DailyWellness";
+import { CyclePrediction } from "@/components/health/CyclePrediction";
+import { PhaseTimeline } from "@/components/health/PhaseTimeline";
+import { AIInsights } from "@/components/health/AIInsights";
+import { CycleDashboard } from "@/components/health/CycleDashboard";
+import { HealthSettings } from "@/components/health/HealthSettings";
 
 export const Route = createFileRoute("/_authenticated/health")({
   head: () => ({ meta: [{ title: "Health Hub · HerSpace" }] }),
@@ -120,17 +127,33 @@ function HealthHub() {
       </section>
 
       <Tabs defaultValue="symptoms" className="space-y-6 scroll-mt-8" id="symptom-assistant">
-        <TabsList className="bg-muted">
-          <TabsTrigger value="symptoms">AI Symptom Assistant</TabsTrigger>
-          <TabsTrigger value="research">Research Simplifier</TabsTrigger>
-          <TabsTrigger value="tracker">Cycle Tracker</TabsTrigger>
+        <TabsList className="bg-muted flex-wrap h-auto">
+          <TabsTrigger value="period">Period log</TabsTrigger>
+          <TabsTrigger value="daily">Daily wellness</TabsTrigger>
           <TabsTrigger value="hormones">Cycle & Hormones</TabsTrigger>
+          <TabsTrigger value="insights">AI insights</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="symptoms">Symptom Assistant</TabsTrigger>
+          <TabsTrigger value="research">Research</TabsTrigger>
+          <TabsTrigger value="tracker">Quick log</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="period"><PeriodLogger /></TabsContent>
+        <TabsContent value="daily"><DailyWellness /></TabsContent>
+        <TabsContent value="insights"><AIInsights /></TabsContent>
+        <TabsContent value="dashboard"><CycleDashboard /></TabsContent>
+        <TabsContent value="settings"><HealthSettings /></TabsContent>
         <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
         <TabsContent value="research"><ResearchSimplifier /></TabsContent>
         <TabsContent value="tracker"><CycleTracker /></TabsContent>
-        <TabsContent value="hormones"><HormoneCycle /></TabsContent>
+        <TabsContent value="hormones">
+          <div className="space-y-6">
+            <CyclePrediction />
+            <PhaseTimeline />
+            <HormoneCycle />
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );
