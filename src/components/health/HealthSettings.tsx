@@ -32,7 +32,10 @@ export function HealthSettings() {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
       const { data } = await supabase.from("notification_prefs").select("*").eq("user_id", u.user.id).maybeSingle();
-      if (data) setPrefs({ ...DEFAULTS, ...data });
+      if (data) {
+        const cleaned = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== null));
+        setPrefs({ ...DEFAULTS, ...(cleaned as Partial<Prefs>) });
+      }
     })();
   }, []);
 
