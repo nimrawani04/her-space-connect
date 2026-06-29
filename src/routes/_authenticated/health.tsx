@@ -943,7 +943,7 @@ function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: n
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: string[]; cycleLength: number }) {
-  const [entries, setEntries] = useState<Array<{ entry_date: string; symptoms: string[] | null; mood: string | null; energy: number | null }>>([]);
+  const [entries, setEntries] = useState<Array<{ entry_date: string; symptoms: string[] | null; symptom_severities: SeverityMap | null; mood: string | null; energy: number | null }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -951,7 +951,7 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
       setLoading(true);
       const { data } = await supabase
         .from("cycle_entries")
-        .select("entry_date, symptoms, mood, energy")
+        .select("entry_date, symptoms, symptom_severities, mood, energy")
         .order("entry_date", { ascending: false })
         .limit(180);
       setEntries((data ?? []) as typeof entries);
@@ -976,9 +976,10 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
   }
 
   const phases: Phase[] = ["menstrual", "follicular", "ovulation", "luteal"];
-  // phaseCounts[symptom][phase] = number of logged days
   const phaseDayCounts: Record<Phase, number> = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
-  const matrix: Record<string, Record<Phase, number>> = {};
+  // count = number of days logged with that symptom in that phase
+  // severity = sum of severity scores (1/2/3) for that symptom in that phase
+  const matrix: Record<string, Record<Phase, { count: number; severity: number }>> = {};
   let totalDays = 0;
 
   for (const e of entries) {
@@ -988,31 +989,39 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
     phaseDayCounts[phase] += 1;
     totalDays += 1;
     const syms = e.symptoms ?? [];
+    const sevs = e.symptom_severities ?? {};
     for (const s of syms) {
-      if (!matrix[s]) matrix[s] = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
-      matrix[s][phase] += 1;
+      if (!matrix[s]) matrix[s] = { menstrual: { count: 0, severity: 0 }, follicular: { count: 0, severity: 0 }, ovulation: { count: 0, severity: 0 }, luteal: { count: 0, severity: 0 } };
+      const sev = (sevs[s] as Severity | undefined) ?? 2; // default to moderate for legacy entries
+      matrix[s][phase].count += 1;
+      matrix[s][phase].severity += sev;
     }
   }
 
   const symptomList = Object.keys(matrix).sort((a, b) => {
-    const totA = phases.reduce((s, p) => s + matrix[a][p], 0);
-    const totB = phases.reduce((s, p) => s + matrix[b][p], 0);
+    const totA = phases.reduce((s, p) => s + matrix[a][p].severity, 0);
+    const totB = phases.reduce((s, p) => s + matrix[b][p].severity, 0);
     return totB - totA;
   });
 
-  // Build "insights": for each symptom, find the phase with the highest rate (count / phaseDayCount).
-  const insights: Array<{ symptom: string; phase: Phase; rate: number; count: number }> = [];
+  // Build "insights": for each symptom, find the phase with the highest severity-weighted rate
+  // (sum of severities / phaseDayCount). avgSev shown alongside.
+  const insights: Array<{ symptom: string; phase: Phase; weighted: number; count: number; avgSev: number }> = [];
   for (const s of symptomList) {
-    let best: { phase: Phase; rate: number; count: number } | null = null;
+    let best: { phase: Phase; weighted: number; count: number; avgSev: number } | null = null;
     for (const p of phases) {
       const denom = phaseDayCounts[p];
       if (denom < 2) continue; // need at least 2 logged days in that phase
-      const rate = matrix[s][p] / denom;
-      if (rate > 0 && (!best || rate > best.rate)) best = { phase: p, rate, count: matrix[s][p] };
+      const cell = matrix[s][p];
+      const weighted = cell.severity / denom; // 0..3
+      const avgSev = cell.count > 0 ? cell.severity / cell.count : 0;
+      if (weighted > 0 && (!best || weighted > best.weighted)) best = { phase: p, weighted, count: cell.count, avgSev };
     }
     if (best && best.count >= 2) insights.push({ symptom: s, ...best });
   }
-  insights.sort((a, b) => b.rate - a.rate);
+  insights.sort((a, b) => b.weighted - a.weighted);
+
+  const sevLabel = (avg: number) => avg >= 2.5 ? "mostly severe" : avg >= 1.75 ? "mostly moderate" : avg >= 1.25 ? "mild–moderate" : "mostly mild";
 
   return (
     <Card>
@@ -1046,7 +1055,7 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
                     <li key={i.symptom}>
                       Your <strong>{i.symptom}</strong> shows up most in the{" "}
                       <Badge className={PHASE_INFO[i.phase].tone + " align-middle"}>{PHASE_INFO[i.phase].label.replace(" phase", "")}</Badge>{" "}
-                      <span className="text-muted-foreground">— {i.count} day{i.count === 1 ? "" : "s"}, {Math.round(i.rate * 100)}% of logged days in that phase.</span>
+                      <span className="text-muted-foreground">— {i.count} day{i.count === 1 ? "" : "s"}, {sevLabel(i.avgSev)} (avg {i.avgSev.toFixed(1)}/3).</span>
                     </li>
                   ))}
                 </ul>
@@ -1070,27 +1079,31 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
                 </thead>
                 <tbody>
                   {symptomList.map((s) => {
-                    const maxRow = Math.max(...phases.map((p) => matrix[s][p]));
+                    const maxRow = Math.max(...phases.map((p) => matrix[s][p].severity));
                     return (
                       <tr key={s} className="border-t border-border">
                         <td className="py-2 pr-3 font-medium capitalize">{s}</td>
                         {phases.map((p) => {
-                          const count = matrix[s][p];
-                          const intensity = maxRow > 0 ? count / maxRow : 0;
+                          const cell = matrix[s][p];
+                          const count = cell.count;
+                          const intensity = maxRow > 0 ? cell.severity / maxRow : 0;
+                          const avgSev = count > 0 ? cell.severity / count : 0;
                           return (
                             <td key={p} className="py-1.5 px-2 text-center">
                               <div
                                 className="mx-auto rounded-md text-xs font-medium flex items-center justify-center"
                                 style={{
-                                  width: 44,
+                                  width: 52,
                                   height: 28,
                                   background: count === 0 ? "transparent" : `color-mix(in oklab, var(--color-earth) ${15 + intensity * 65}%, transparent)`,
                                   color: intensity > 0.55 ? "white" : "inherit",
                                   border: count === 0 ? "1px dashed color-mix(in oklab, currentColor 20%, transparent)" : "none",
                                 }}
-                                title={`${count} day${count === 1 ? "" : "s"} in ${PHASE_INFO[p].label}`}
+                                title={count === 0
+                                  ? `No ${s} logged in ${PHASE_INFO[p].label}`
+                                  : `${count} day${count === 1 ? "" : "s"} in ${PHASE_INFO[p].label} · avg severity ${avgSev.toFixed(1)}/3`}
                               >
-                                {count || "·"}
+                                {count === 0 ? "·" : <span>{count}<span className="opacity-70 text-[10px]"> · {avgSev.toFixed(1)}</span></span>}
                               </div>
                             </td>
                           );
@@ -1103,7 +1116,7 @@ function SymptomCorrelations({ periodStarts, cycleLength }: { periodStarts: stri
             </div>
 
             <p className="text-[11px] text-muted-foreground italic">
-              Counts are days you tagged that symptom, grouped by the cycle phase that day fell in. Stronger shading = more frequent. Patterns get more reliable after 2–3 logged cycles.
+              Each cell shows <strong>days logged</strong> · <strong>avg severity</strong> (1 mild → 3 severe). Shading reflects severity-weighted frequency, so a few severe days outweigh many mild ones. Patterns get more reliable after 2–3 logged cycles.
             </p>
           </>
         )}
