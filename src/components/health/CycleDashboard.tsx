@@ -252,7 +252,7 @@ function cycleLengthSeries(starts: string[]) {
   return out;
 }
 
-function buildFertileMap(starts: string[], avgCycleLen: number): Map<string, "fertile" | "ovulation"> {
+function buildFertileMap(starts: string[], avgCycleLen: number, windowDays = 6): Map<string, "fertile" | "ovulation"> {
   const map = new Map<string, "fertile" | "ovulation">();
   const cycleLen = Math.max(20, Math.min(45, Math.round(avgCycleLen)));
   const today = new Date();
@@ -270,8 +270,10 @@ function buildFertileMap(starts: string[], avgCycleLen: number): Map<string, "fe
   }
   for (const a of anchors) {
     const ov = new Date(a); ov.setDate(ov.getDate() + (cycleLen - 14));
-    // fertile window: ovulation -5 .. +1
-    for (let off = -5; off <= 1; off++) {
+    // fertile window: spans windowDays, ending the day after ovulation
+    const w = Math.max(3, Math.min(10, Math.round(windowDays)));
+    const before = w - 1; // days before ovulation (since +1 day after)
+    for (let off = -before; off <= 1; off++) {
       const d = new Date(ov); d.setDate(d.getDate() + off);
       const key = d.toISOString().slice(0, 10);
       if (!map.has(key)) map.set(key, "fertile");
