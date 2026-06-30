@@ -147,11 +147,10 @@ export function PeriodLogger() {
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3 overflow-x-auto">
+          <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3">
             <PeriodRangeCalendar
               visibleMonth={visibleMonth}
               setVisibleMonth={setVisibleMonth}
-              months={months}
               range={range}
               onPick={(day) => setRange((current) => pickPeriodRange(current, day))}
               isLogged={loggedModifier}
