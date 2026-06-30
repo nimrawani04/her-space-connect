@@ -193,7 +193,13 @@ export function PeriodLogger() {
                   <span className="font-medium">{h.entry_date}{h.end_date ? ` → ${h.end_date}` : ""}</span>
                   {h.flow_intensity && <Badge variant="outline" className="capitalize">{(h.flow_intensity as string).replace("_", " ")}</Badge>}
                 </div>
-                {h.pain_level != null && <p className="text-muted-foreground mt-0.5">Pain: {h.pain_level}/10</p>}
+                {(h.pain_level != null || h.cramp_level != null) && (
+                  <p className="text-muted-foreground mt-0.5">
+                    {h.pain_level != null && <>Pain: {h.pain_level}/10</>}
+                    {h.pain_level != null && h.cramp_level != null && " · "}
+                    {h.cramp_level != null && <>Cramps: {h.cramp_level}/10</>}
+                  </p>
+                )}
               </div>
             ))}
             {!history.filter((h) => h.flow_intensity || h.is_period_start).length && (
