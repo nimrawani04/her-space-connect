@@ -1,0 +1,1 @@
+ALTER TABLE public.cycle_entries ADD COLUMN IF NOT EXISTS cramp_level smallint CHECK (cramp_level IS NULL OR (cramp_level >= 0 AND cramp_level <= 10));
