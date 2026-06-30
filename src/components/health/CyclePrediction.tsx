@@ -6,11 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight, FileDown } from "lucide-react";
+import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight, FileDown, Info } from "lucide-react";
 import { periodStarts, summarizeCycles } from "@/lib/cycle-stats";
 import { buildPredictionRunPdf } from "@/lib/prediction-pdf";
 
 type PredictResult = Awaited<ReturnType<typeof predictCycle>>;
+type CrampStats = {
+  avgCramp: number | null;
+  peakCramp: number | null;
+  severeCrampCycles: number;
+  cycleCount: number;
+  regularityLabel: string | null;
+};
 
 type PredictionRun = {
   id: string;
@@ -38,6 +45,7 @@ export function CyclePrediction() {
   const predict = useServerFn(predictCycle);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PredictResult | null>(null);
+  const [crampStats, setCrampStats] = useState<CrampStats | null>(null);
   const [history, setHistory] = useState<PredictionRun[]>([]);
   const [showAll, setShowAll] = useState(false);
 
@@ -74,6 +82,13 @@ export function CyclePrediction() {
         },
       });
       setResult(r);
+      setCrampStats({
+        avgCramp: stats.avgCramp,
+        peakCramp: stats.peakCramp,
+        severeCrampCycles: stats.severeCrampCycles,
+        cycleCount: stats.cycleCount,
+        regularityLabel: stats.regularity?.label ?? null,
+      });
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id;
       if (uid) {
@@ -148,6 +163,13 @@ export function CyclePrediction() {
                   <p className="mt-0.5 leading-relaxed">{result.crampSeverityNote}</p>
                 </div>
               </div>
+            )}
+            {crampStats && (
+              <CrampExplanationPanel
+                stats={crampStats}
+                urgency={result.urgencyLevel ?? "routine"}
+                confidence={result.confidence}
+              />
             )}
             {result.isLate && (
               <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-900 p-3 flex gap-2 text-sm">
