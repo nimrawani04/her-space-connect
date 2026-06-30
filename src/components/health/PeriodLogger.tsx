@@ -308,6 +308,146 @@ export function PeriodLogger() {
   );
 }
 
+function PeriodRangeCalendar({
+  visibleMonth,
+  setVisibleMonth,
+  months,
+  range,
+  onPick,
+  isLogged,
+  isLoggedStart,
+}: {
+  visibleMonth: Date;
+  setVisibleMonth: (date: Date) => void;
+  months: number;
+  range: DateRange | undefined;
+  onPick: (day: Date) => void;
+  isLogged: (day: Date) => boolean;
+  isLoggedStart: (day: Date) => boolean;
+}) {
+  const maxDay = addMonths(new Date(), 2);
+  maxDay.setHours(23, 59, 59, 999);
+  const renderedMonths = Array.from({ length: months }, (_, index) => addMonths(visibleMonth, index));
+
+  return (
+    <div className="min-w-[292px]">
+      <div className="mb-3 flex items-center justify-between gap-2 px-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Previous month"
+          onClick={() => setVisibleMonth(startOfMonth(addMonths(visibleMonth, -1)))}
+          className="h-8 w-8 shrink-0 rounded-full"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="text-sm font-medium text-earth">
+          {format(visibleMonth, "MMMM yyyy")}
+          {months > 1 && ` – ${format(addMonths(visibleMonth, months - 1), "MMMM yyyy")}`}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Next month"
+          onClick={() => setVisibleMonth(startOfMonth(addMonths(visibleMonth, 1)))}
+          className="h-8 w-8 shrink-0 rounded-full"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {renderedMonths.map((month) => (
+          <MonthCalendar
+            key={toISO(month)}
+            month={month}
+            maxDay={maxDay}
+            range={range}
+            onPick={onPick}
+            isLogged={isLogged}
+            isLoggedStart={isLoggedStart}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MonthCalendar({
+  month,
+  maxDay,
+  range,
+  onPick,
+  isLogged,
+  isLoggedStart,
+}: {
+  month: Date;
+  maxDay: Date;
+  range: DateRange | undefined;
+  onPick: (day: Date) => void;
+  isLogged: (day: Date) => boolean;
+  isLoggedStart: (day: Date) => boolean;
+}) {
+  const monthStart = startOfMonth(month);
+  const monthEnd = endOfMonth(month);
+  const leadingBlanks = getDay(monthStart);
+  const daysInMonth = monthEnd.getDate();
+  const cells = [
+    ...Array.from({ length: leadingBlanks }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1)),
+  ];
+  const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
+
+  return (
+    <section aria-label={format(monthStart, "MMMM yyyy")} className="w-full min-w-[268px]">
+      <h3 className="mb-2 text-center text-sm font-medium text-earth lg:hidden">{format(monthStart, "MMMM yyyy")}</h3>
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
+        {weekDays.map((day, index) => <div key={`${day}-${index}`} className="h-6 leading-6">{day}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, index) => {
+          if (!day) return <div key={`blank-${index}`} className="aspect-square" aria-hidden="true" />;
+
+          const disabled = isAfter(day, maxDay);
+          const logged = isLogged(day);
+          const loggedStart = isLoggedStart(day);
+          const selected = Boolean(
+            range?.from && (
+              range.to
+                ? differenceInCalendarDays(day, range.from) >= 0 && differenceInCalendarDays(range.to, day) >= 0
+                : isSameDay(day, range.from)
+            ),
+          );
+          const selectedStart = Boolean(range?.from && isSameDay(day, range.from));
+          const selectedEnd = Boolean(range?.to && isSameDay(day, range.to));
+
+          return (
+            <button
+              key={toISO(day)}
+              type="button"
+              disabled={disabled}
+              aria-pressed={selected || logged}
+              aria-label={format(day, "MMMM d, yyyy")}
+              onClick={() => onPick(day)}
+              className={`aspect-square min-h-9 w-full text-sm transition disabled:pointer-events-none disabled:opacity-35 ${
+                selected
+                  ? "rounded-md bg-rose-200 text-rose-950 ring-1 ring-rose-500"
+                  : logged
+                    ? "rounded-md bg-rose-100 text-rose-900"
+                    : "rounded-md bg-transparent text-foreground hover:bg-sand/40"
+              } ${(selectedStart || selectedEnd || loggedStart) && (selected || logged) ? "font-semibold" : "font-normal"}`}
+            >
+              {format(day, "d")}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between border-b border-border/50 pb-1.5 last:border-0">
