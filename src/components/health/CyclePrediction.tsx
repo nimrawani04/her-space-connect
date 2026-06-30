@@ -68,6 +68,9 @@ export function CyclePrediction() {
           avgPeriodLength: stats.avgPeriod,
           regularityLabel: stats.regularity?.label ?? null,
           today: new Date().toISOString().slice(0, 10),
+          avgCramp: stats.avgCramp,
+          peakCramp: stats.peakCramp,
+          severeCrampCycles: stats.severeCrampCycles,
         },
       });
       setResult(r);
@@ -127,6 +130,25 @@ export function CyclePrediction() {
         {result && (
           <>
             <p className="text-base leading-relaxed">{result.summary}</p>
+            {result.crampSeverityNote && (
+              <div
+                className={`rounded-lg border p-3 text-sm flex gap-2 ${
+                  result.urgencyLevel === "discuss-with-clinician"
+                    ? "border-rose-300 bg-rose-50 text-rose-900"
+                    : result.urgencyLevel === "monitor"
+                      ? "border-amber-300 bg-amber-50 text-amber-900"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                }`}
+              >
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider opacity-70">
+                    Cramp signal · {result.urgencyLevel ?? "routine"}
+                  </p>
+                  <p className="mt-0.5 leading-relaxed">{result.crampSeverityNote}</p>
+                </div>
+              </div>
+            )}
             {result.isLate && (
               <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-900 p-3 flex gap-2 text-sm">
                 <AlertCircle className="h-4 w-4 mt-0.5" />

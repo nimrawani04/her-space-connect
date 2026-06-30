@@ -8,6 +8,7 @@ export type PeriodEntry = {
   flow_intensity?: string | null;
   flow?: string | null;
   pain_level?: number | null;
+  cramp_level?: number | null;
 };
 
 const FLOW_RANK: Record<string, number> = {
@@ -67,6 +68,16 @@ export function summarizeCycles(rows: PeriodEntry[]) {
   const lengths = cycleLengths(starts);
   const durations = periodDurations(rows);
   const reg = regularity(lengths);
+  const crampVals = rows
+    .map((r) => (typeof r.cramp_level === "number" ? r.cramp_level : null))
+    .filter((n): n is number => n !== null && n > 0);
+  const avgCramp = crampVals.length
+    ? +(crampVals.reduce((a, b) => a + b, 0) / crampVals.length).toFixed(1)
+    : null;
+  const peakCramp = crampVals.length ? Math.max(...crampVals) : null;
+  const severeCrampCycles = rows.filter(
+    (r) => (r.is_period_start || r.flow_intensity) && typeof r.cramp_level === "number" && r.cramp_level >= 7,
+  ).length;
   return {
     cycleCount: starts.length,
     avgCycle: lengths.length ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : null,
@@ -77,6 +88,9 @@ export function summarizeCycles(rows: PeriodEntry[]) {
     shortest: lengths.length ? Math.min(...lengths) : null,
     lastStart: starts[0] ?? null,
     daysSinceLast: starts[0] ? daysBetween(starts[0], new Date().toISOString().slice(0, 10)) : null,
+    avgCramp,
+    peakCramp,
+    severeCrampCycles,
   };
 }
 
