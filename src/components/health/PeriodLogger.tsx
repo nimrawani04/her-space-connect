@@ -167,9 +167,9 @@ export function PeriodLogger() {
               modifiersClassNames={{
                 logged: "bg-rose-100 text-rose-900 rounded-md",
                 loggedStart: "bg-rose-200 text-rose-950 ring-1 ring-rose-500",
-                draftStart: "ring-2 ring-earth text-earth rounded-md",
-                draftMiddle: "bg-sand/60 text-earth rounded-none",
-                draftEnd: "ring-2 ring-earth text-earth rounded-md",
+                draftStart: "bg-rose-200 text-rose-950 ring-1 ring-rose-500 rounded-md",
+                draftMiddle: "bg-rose-100 text-rose-900 rounded-none",
+                draftEnd: "bg-rose-200 text-rose-950 ring-1 ring-rose-500 rounded-md",
               }}
               classNames={{
                 today: "text-foreground",
