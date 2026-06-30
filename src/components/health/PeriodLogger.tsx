@@ -49,7 +49,6 @@ export function PeriodLogger() {
   }
 
   async function save() {
-    if (!flowIntensity) { toast.error("Pick a flow level."); return; }
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { toast.error("Sign in required"); setLoading(false); return; }
@@ -58,12 +57,12 @@ export function PeriodLogger() {
       entry_date: startDate,
       end_date: endDate || null,
       is_period_start: true,
-      flow_intensity: flowIntensity,
-      flow: flowIntensity,
+      flow_intensity: flowIntensity || null,
+      flow: flowIntensity || null,
       blood_color: bloodColor || null,
       clotting: clotting || null,
-      pain_level: pain,
-      cramp_level: cramp,
+      pain_level: pain > 0 ? pain : null,
+      cramp_level: cramp > 0 ? cramp : null,
       period_symptoms: Object.keys(symptoms).length ? symptoms : null,
       notes: notes || null,
     }, { onConflict: "user_id,entry_date" });
@@ -94,7 +93,7 @@ export function PeriodLogger() {
           </div>
 
           <div>
-            <Label>Flow intensity</Label>
+            <Label>Flow intensity <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
             <div className="flex flex-wrap gap-2 mt-1.5">
               {FLOW_OPTIONS.map((f) => (
                 <button key={f} type="button" onClick={() => setFlowIntensity(f)}
@@ -107,7 +106,7 @@ export function PeriodLogger() {
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label>Blood color</Label>
+              <Label>Blood color <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {BLOOD_COLORS.map((c) => (
                   <button key={c} type="button" onClick={() => setBloodColor(c)}
@@ -118,7 +117,7 @@ export function PeriodLogger() {
               </div>
             </div>
             <div>
-              <Label>Clotting</Label>
+              <Label>Clotting <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {CLOTTING_OPTIONS.map((c) => (
                   <button key={c} type="button" onClick={() => setClotting(c)}
@@ -131,7 +130,7 @@ export function PeriodLogger() {
           </div>
 
           <div>
-            <Label>Pain level — <span className="text-earth font-medium">{pain}/10</span></Label>
+            <Label>Pain level — <span className="text-earth font-medium">{pain}/10</span> <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
             <Slider value={[pain]} min={0} max={10} step={1} onValueChange={(v) => setPain(v[0])} className="mt-2" />
           </div>
 
@@ -141,13 +140,14 @@ export function PeriodLogger() {
               <span className="ml-2 text-xs text-muted-foreground">
                 {cramp === 0 ? "none" : cramp <= 3 ? "mild" : cramp <= 6 ? "moderate" : cramp <= 8 ? "strong" : "severe"}
               </span>
+              <span className="ml-2 text-xs text-muted-foreground font-normal">(optional)</span>
             </Label>
             <Slider value={[cramp]} min={0} max={10} step={1} onValueChange={(v) => setCramp(v[0])} className="mt-2" />
             <p className="text-[11px] text-muted-foreground mt-1">Rate cramps separately from overall pain — sharper signal for phase correlations.</p>
           </div>
 
           <div>
-            <Label>Symptoms</Label>
+            <Label>Symptoms <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {PERIOD_SYMPTOMS.map((s) => {
                 const sev = symptoms[s];
@@ -162,7 +162,7 @@ export function PeriodLogger() {
             <p className="text-[11px] text-muted-foreground mt-1.5">Tap once for mild, again for moderate, again for severe, again to clear.</p>
           </div>
 
-          <div><Label>Notes</Label><Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+          <div><Label>Notes <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label><Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
           <Button onClick={save} disabled={loading} className="w-full rounded-full bg-earth text-earth-foreground hover:brightness-110">
             {loading ? "Saving…" : "Save period"}
           </Button>
