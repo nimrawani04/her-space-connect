@@ -6,11 +6,8 @@ import {
   format,
   getDay,
   isAfter,
-  isBefore,
-  isSameDay,
   startOfMonth,
 } from "date-fns";
-import type { DateRange } from "react-day-picker";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,18 +30,8 @@ function fromISO(date: string) {
   return new Date(year, month - 1, day);
 }
 
-function pickPeriodRange(current: DateRange | undefined, day: Date): DateRange {
-  const picked = new Date(day);
-  picked.setHours(0, 0, 0, 0);
-
-  if (!current?.from || current.to) return { from: picked, to: undefined };
-  if (isSameDay(picked, current.from)) return { from: picked, to: undefined };
-  if (isBefore(picked, current.from)) return { from: picked, to: current.from };
-  return { from: current.from, to: picked };
-}
-
 export function PeriodLogger() {
-  const [range, setRange] = useState<DateRange | undefined>();
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [flowIntensity, setFlowIntensity] = useState<string>("");
   const [bloodColor, setBloodColor] = useState("");
@@ -78,13 +65,22 @@ export function PeriodLogger() {
     });
   }
 
+  function togglePeriodDay(day: Date) {
+    const iso = toISO(day);
+    setSelectedDays((current) =>
+      current.includes(iso)
+        ? current.filter((date) => date !== iso)
+        : [...current, iso].sort(),
+    );
+  }
+
   async function save() {
-    if (!range?.from) { toast.error("Pick a start date on the calendar"); return; }
+    if (!selectedDays.length) { toast.error("Pick at least one period day on the calendar"); return; }
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { toast.error("Sign in required"); setLoading(false); return; }
-    const startDate = toISO(range.from);
-    const endDate = range.to ? toISO(range.to) : null;
+    const startDate = selectedDays[0];
+    const endDate = selectedDays.length > 1 ? selectedDays[selectedDays.length - 1] : null;
     const { error } = await supabase.from("cycle_entries").upsert({
       user_id: u.user.id,
       entry_date: startDate,
@@ -103,7 +99,7 @@ export function PeriodLogger() {
     if (error) { toast.error(error.message); return; }
     toast.success("Period logged.");
     setSymptoms({}); setNotes(""); setBloodColor(""); setClotting(""); setPain(0); setCramp(0);
-    setRange(undefined);
+    setSelectedDays([]);
     load();
   }
 
@@ -126,9 +122,7 @@ export function PeriodLogger() {
   const loggedModifier = (d: Date) => loggedDays.has(toISO(d));
   const startModifier = (d: Date) => loggedStarts.has(toISO(d));
 
-  const durationDays = range?.from && range?.to
-    ? Math.round((+range.to - +range.from) / 86400000) + 1
-    : range?.from ? 1 : 0;
+  const durationDays = selectedDays.length;
 
   const sevTone: Record<Severity, string> = {
     1: "bg-sage/20 text-sage border-sage/40",
@@ -143,7 +137,7 @@ export function PeriodLogger() {
         <CardHeader>
           <CardTitle className="font-serif italic text-2xl">Log a period</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Tap a day to mark the start, then tap another day for the end. Tap again to reset.
+            Tap each period day once to mark it red. Tap a selected day again to clear it.
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -151,8 +145,8 @@ export function PeriodLogger() {
             <PeriodRangeCalendar
               visibleMonth={visibleMonth}
               setVisibleMonth={setVisibleMonth}
-              range={range}
-              onPick={(day) => setRange((current) => pickPeriodRange(current, day))}
+              selectedDays={selectedDays}
+              onPick={togglePeriodDay}
               isLogged={loggedModifier}
               isLoggedStart={startModifier}
             />
@@ -161,19 +155,20 @@ export function PeriodLogger() {
                 <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-300" /> Previously logged</span>
               </div>
               <div className="flex items-center gap-2">
-                {range?.from && (
+                {selectedDays.length > 0 && (
                   <span className="text-earth font-medium">
-                    {format(range.from, "MMM d")}
-                    {range?.to ? ` → ${format(range.to, "MMM d")} · ${durationDays} day${durationDays > 1 ? "s" : ""}` : " · pick end day (optional)"}
+                    {format(fromISO(selectedDays[0]), "MMM d")}
+                    {selectedDays.length > 1 ? ` → ${format(fromISO(selectedDays[selectedDays.length - 1]), "MMM d")}` : ""}
+                    {` · ${durationDays} day${durationDays > 1 ? "s" : ""} selected`}
                   </span>
                 )}
-                {(range?.from || range?.to) && (
+                {selectedDays.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setRange(undefined)}
+                    onClick={() => setSelectedDays([])}
                     className="text-muted-foreground hover:text-earth underline underline-offset-2"
                   >
-                    reset
+                    clear
                   </button>
                 )}
               </div>
@@ -303,14 +298,14 @@ export function PeriodLogger() {
 function PeriodRangeCalendar({
   visibleMonth,
   setVisibleMonth,
-  range,
+  selectedDays,
   onPick,
   isLogged,
   isLoggedStart,
 }: {
   visibleMonth: Date;
   setVisibleMonth: (date: Date) => void;
-  range: DateRange | undefined;
+  selectedDays: string[];
   onPick: (day: Date) => void;
   isLogged: (day: Date) => boolean;
   isLoggedStart: (day: Date) => boolean;
@@ -350,7 +345,7 @@ function PeriodRangeCalendar({
         <MonthCalendar
           month={visibleMonth}
           maxDay={maxDay}
-          range={range}
+          selectedDays={selectedDays}
           onPick={onPick}
           isLogged={isLogged}
           isLoggedStart={isLoggedStart}
@@ -363,14 +358,14 @@ function PeriodRangeCalendar({
 function MonthCalendar({
   month,
   maxDay,
-  range,
+  selectedDays,
   onPick,
   isLogged,
   isLoggedStart,
 }: {
   month: Date;
   maxDay: Date;
-  range: DateRange | undefined;
+  selectedDays: string[];
   onPick: (day: Date) => void;
   isLogged: (day: Date) => boolean;
   isLoggedStart: (day: Date) => boolean;
@@ -396,17 +391,10 @@ function MonthCalendar({
           if (!day) return <div key={`blank-${index}`} className="aspect-square" aria-hidden="true" />;
 
           const disabled = isAfter(day, maxDay);
+          const dayIso = toISO(day);
           const logged = isLogged(day);
           const loggedStart = isLoggedStart(day);
-          const selected = Boolean(
-            range?.from && (
-              range.to
-                ? differenceInCalendarDays(day, range.from) >= 0 && differenceInCalendarDays(range.to, day) >= 0
-                : isSameDay(day, range.from)
-            ),
-          );
-          const selectedStart = Boolean(range?.from && isSameDay(day, range.from));
-          const selectedEnd = Boolean(range?.to && isSameDay(day, range.to));
+          const selected = selectedDays.includes(dayIso);
 
           return (
             <button
@@ -422,7 +410,7 @@ function MonthCalendar({
                   : logged
                     ? "rounded-md bg-rose-100 text-rose-900"
                     : "rounded-md bg-transparent text-foreground hover:bg-sand/40"
-              } ${(selectedStart || selectedEnd || loggedStart) && (selected || logged) ? "font-semibold" : "font-normal"}`}
+              } ${(selected || loggedStart) && (selected || logged) ? "font-semibold" : "font-normal"}`}
             >
               {format(day, "d")}
             </button>
