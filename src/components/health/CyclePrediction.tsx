@@ -703,6 +703,165 @@ function numFmt(v: number | null, unit = ""): string {
   if (!Number.isFinite(n)) return "—";
   return `${Math.round(n * 10) / 10}${unit}`;
 }
+
+function classifyCramp(stats: { avgCramp: number | null; peakCramp: number | null; severeCrampCycles: number }) {
+  const avg = stats.avgCramp ?? 0;
+  const peak = stats.peakCramp ?? 0;
+  const severe = stats.severeCrampCycles ?? 0;
+  if (avg >= 7 || peak >= 9 || severe >= 2) {
+    return {
+      tier: "discuss-with-clinician" as const,
+      tone: "rose" as const,
+      threshold: "avg ≥ 7, peak ≥ 9, or ≥ 2 cycles ≥ 7",
+      reason:
+        avg >= 7
+          ? `your average cramp is ${avg}/10 (≥ 7)`
+          : peak >= 9
+            ? `your peak cramp hit ${peak}/10 (≥ 9)`
+            : `${severe} cycles logged severe cramps (≥ 7)`,
+      confidencePenalty: avg >= 7 ? -5 : 0,
+    };
+  }
+  if (avg >= 4 || peak >= 7) {
+    return {
+      tier: "monitor" as const,
+      tone: "amber" as const,
+      threshold: "avg 4–6 or peak 7–8",
+      reason: avg >= 4 ? `your average cramp is ${avg}/10 (4–6 range)` : `your peak cramp reached ${peak}/10 (7–8 range)`,
+      confidencePenalty: 0,
+    };
+  }
+  return {
+    tier: "routine" as const,
+    tone: "emerald" as const,
+    threshold: "avg 0–3 and peak < 7",
+    reason: stats.avgCramp == null ? "no cramp data logged yet" : `your average cramp is ${avg}/10 (0–3 range)`,
+    confidencePenalty: 0,
+  };
+}
+
+function CrampExplanationPanel({
+  stats,
+  urgency,
+  confidence,
+}: {
+  stats: CrampStats;
+  urgency: "routine" | "monitor" | "discuss-with-clinician";
+  confidence: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const c = classifyCramp(stats);
+  const baseConf = Math.min(95, 50 + Math.max(0, stats.cycleCount - 2) * 8);
+  const regPenalty = stats.regularityLabel === "Irregular" ? -15 : 0;
+  const tones: Record<string, string> = {
+    rose: "border-rose-200 bg-rose-50/60",
+    amber: "border-amber-200 bg-amber-50/60",
+    emerald: "border-emerald-200 bg-emerald-50/60",
+  };
+  const dot: Record<string, string> = {
+    rose: "bg-rose-500",
+    amber: "bg-amber-500",
+    emerald: "bg-emerald-500",
+  };
+  const mismatch = c.tier !== urgency;
+  return (
+    <div className={`rounded-lg border ${tones[c.tone]} text-sm`}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left"
+        aria-expanded={open}
+      >
+        <Info className="h-4 w-4 shrink-0 opacity-70" />
+        <span className="font-medium">How cramp_level shaped this prediction</span>
+        <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-3 border-t border-current/10">
+          <div className="grid sm:grid-cols-3 gap-2 pt-3">
+            <Stat label="Avg cramp" value={stats.avgCramp == null ? "—" : `${stats.avgCramp}/10`} />
+            <Stat label="Peak cramp" value={stats.peakCramp == null ? "—" : `${stats.peakCramp}/10`} />
+            <Stat label="Severe cycles (≥7)" value={`${stats.severeCrampCycles}`} />
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-wider opacity-70 mb-1.5">Tier ladder used</p>
+            <ul className="space-y-1.5">
+              <TierRow
+                active={c.tier === "routine"}
+                dot={dot.emerald}
+                name="routine"
+                threshold="avg 0–3 and peak < 7"
+                note="no extra signal added"
+              />
+              <TierRow
+                active={c.tier === "monitor"}
+                dot={dot.amber}
+                name="monitor"
+                threshold="avg 4–6 or peak 7–8"
+                note="surfaces a cramp note; no confidence change"
+              />
+              <TierRow
+                active={c.tier === "discuss-with-clinician"}
+                dot={dot.rose}
+                name="discuss-with-clinician"
+                threshold="avg ≥ 7, peak ≥ 9, or ≥ 2 cycles ≥ 7"
+                note="surfaces a clinician note; −5% confidence if avg ≥ 7"
+              />
+            </ul>
+          </div>
+
+          <div className="rounded-md bg-background/60 border border-current/10 p-2.5 space-y-1">
+            <p className="text-[10px] uppercase tracking-wider opacity-70">Why this tier</p>
+            <p>
+              Matched <strong>{c.tier}</strong> because {c.reason}. Threshold: <code className="text-[11px]">{c.threshold}</code>.
+            </p>
+            {mismatch && (
+              <p className="text-xs opacity-80">
+                AI returned <strong>{urgency}</strong> — it may have weighted other context. Local rule shown for transparency.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-wider opacity-70 mb-1">Confidence breakdown ({Math.round(confidence)}%)</p>
+            <ul className="text-xs space-y-0.5 tabular-nums">
+              <li>base 50% + 8% × ({stats.cycleCount} cycles − 2) → <strong>{baseConf}%</strong> (capped 95)</li>
+              {regPenalty !== 0 && <li>irregular cycle penalty → <strong>{regPenalty}%</strong></li>}
+              {c.confidencePenalty !== 0 && (
+                <li>cramp severity penalty (avg ≥ 7) → <strong>{c.confidencePenalty}%</strong></li>
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-background/60 border border-current/10 p-2">
+      <p className="text-[10px] uppercase tracking-wider opacity-70">{label}</p>
+      <p className="font-medium tabular-nums mt-0.5">{value}</p>
+    </div>
+  );
+}
+
+function TierRow({ active, dot, name, threshold, note }: { active: boolean; dot: string; name: string; threshold: string; note: string }) {
+  return (
+    <li className={`flex items-start gap-2 rounded-md px-2 py-1.5 ${active ? "bg-background/80 ring-1 ring-current/20" : "opacity-70"}`}>
+      <span className={`mt-1 h-2 w-2 rounded-full ${dot}`} />
+      <div className="flex-1 text-xs">
+        <p>
+          <strong className="font-medium">{name}</strong> · <span className="opacity-80">{threshold}</span>
+        </p>
+        <p className="opacity-70">{note}</p>
+      </div>
+      {active && <Badge variant="outline" className="text-[10px] h-5">matched</Badge>}
+    </li>
+  );
+}
 function numDelta(a: number | null, b: number | null, unit = ""): string {
   if (a == null || b == null) return "—";
   const d = Math.round((Number(b) - Number(a)) * 10) / 10;
