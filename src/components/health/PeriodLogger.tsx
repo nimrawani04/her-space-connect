@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { differenceInCalendarDays, format, isBefore, isSameDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,21 @@ type Severity = 1 | 2 | 3;
 
 function toISO(d: Date) {
   return format(d, "yyyy-MM-dd");
+}
+
+function fromISO(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function pickPeriodRange(current: DateRange | undefined, day: Date): DateRange {
+  const picked = new Date(day);
+  picked.setHours(0, 0, 0, 0);
+
+  if (!current?.from || current.to) return { from: picked, to: undefined };
+  if (isSameDay(picked, current.from)) return { from: picked, to: undefined };
+  if (isBefore(picked, current.from)) return { from: picked, to: current.from };
+  return { from: current.from, to: picked };
 }
 
 export function PeriodLogger() {
@@ -96,8 +111,9 @@ export function PeriodLogger() {
     if (!h.entry_date) return;
     const isPeriodEntry = h.is_period_start || h.flow_intensity;
     if (!isPeriodEntry) return;
-    const start = new Date(h.entry_date);
-    const end = h.end_date ? new Date(h.end_date) : start;
+    const start = fromISO(h.entry_date);
+    const rawEnd = h.end_date ? fromISO(h.end_date) : start;
+    const end = differenceInCalendarDays(rawEnd, start) > 14 ? start : rawEnd;
     loggedStarts.add(h.entry_date);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       loggedDays.add(toISO(d));
@@ -105,6 +121,11 @@ export function PeriodLogger() {
   });
   const loggedModifier = (d: Date) => loggedDays.has(toISO(d));
   const startModifier = (d: Date) => loggedStarts.has(toISO(d));
+  const draftStartModifier = (d: Date) => Boolean(range?.from && isSameDay(d, range.from));
+  const draftEndModifier = (d: Date) => Boolean(range?.to && isSameDay(d, range.to));
+  const draftMiddleModifier = (d: Date) => Boolean(
+    range?.from && range?.to && isBefore(range.from, d) && isBefore(d, range.to),
+  );
 
   const durationDays = range?.from && range?.to
     ? Math.round((+range.to - +range.from) / 86400000) + 1
@@ -129,22 +150,30 @@ export function PeriodLogger() {
         <CardContent className="space-y-5">
           <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3 overflow-x-auto">
             <Calendar
-              mode="range"
-              selected={range}
-              onSelect={(r) => {
-                // If a complete range exists and user taps a new day, restart from that day
-                if (range?.from && range?.to && r?.from && r?.to && +r.from === +range.from && +r.to === +range.to) {
-                  return;
-                }
-                setRange(r);
+              mode="default"
+              onDayClick={(day, modifiers) => {
+                if (modifiers.disabled) return;
+                setRange((current) => pickPeriodRange(current, day));
               }}
               numberOfMonths={months}
               defaultMonth={range?.from ?? new Date()}
               showOutsideDays={false}
-              modifiers={{ logged: loggedModifier, loggedStart: startModifier }}
+              modifiers={{
+                logged: loggedModifier,
+                loggedStart: startModifier,
+                draftStart: draftStartModifier,
+                draftMiddle: draftMiddleModifier,
+                draftEnd: draftEndModifier,
+              }}
               modifiersClassNames={{
-                logged: "bg-rose-100/70 text-rose-900 rounded-md",
-                loggedStart: "ring-1 ring-rose-400",
+                logged: "bg-rose-100 text-rose-900 rounded-md",
+                loggedStart: "bg-rose-200 text-rose-950 ring-1 ring-rose-500",
+                draftStart: "ring-2 ring-earth text-earth rounded-md",
+                draftMiddle: "bg-sand/60 text-earth rounded-none",
+                draftEnd: "ring-2 ring-earth text-earth rounded-md",
+              }}
+              classNames={{
+                today: "text-foreground",
               }}
               className="pointer-events-auto mx-auto w-fit"
               disabled={{ after: new Date(new Date().setMonth(new Date().getMonth() + 2)) }}
