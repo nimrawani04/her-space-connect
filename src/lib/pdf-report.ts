@@ -13,7 +13,15 @@ export type ReportInput = {
     shortest: number | null;
   };
   cycleHistory: Array<{
-    date: string; end?: string | null; flow?: string | null; pain?: number | null; symptoms?: string | null;
+    date: string;
+    end?: string | null;
+    flow?: string | null;
+    pain?: number | null;
+    cramp?: number | null;
+    bloodColor?: string | null;
+    clotting?: string | null;
+    symptoms?: string | null;
+    notes?: string | null;
   }>;
   insights: string[];
   doctorQuestions: string[];
@@ -38,50 +46,65 @@ export function buildHealthPdf(input: ReportInput): Blob {
   y += 22;
   doc.setTextColor(20);
 
-  // Summary table
+  // Summary table — only include metrics with real values
   const s = input.cycleSummary;
+  const summaryRows: [string, string][] = [];
+  summaryRows.push(["Cycles tracked", String(s.cycleCount)]);
+  if (s.avgCycle) summaryRows.push(["Average cycle length", `${s.avgCycle} days`]);
+  if (s.avgPeriod) summaryRows.push(["Average period length", `${s.avgPeriod} days`]);
+  if (s.flow?.label) summaryRows.push(["Average flow", s.flow.label]);
+  if (s.regularity?.label) summaryRows.push(["Regularity", s.regularity.label]);
+  if (s.longest) summaryRows.push(["Longest cycle", `${s.longest} days`]);
+  if (s.shortest) summaryRows.push(["Shortest cycle", `${s.shortest} days`]);
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
     head: [["Metric", "Value"]],
-    body: [
-      ["Cycles tracked", String(s.cycleCount)],
-      ["Average cycle length", s.avgCycle ? `${s.avgCycle} days` : "—"],
-      ["Average period length", s.avgPeriod ? `${s.avgPeriod} days` : "—"],
-      ["Average flow", s.flow?.label ?? "—"],
-      ["Regularity", s.regularity?.label ?? "—"],
-      ["Longest cycle", s.longest ? `${s.longest} days` : "—"],
-      ["Shortest cycle", s.shortest ? `${s.shortest} days` : "—"],
-    ],
+    body: summaryRows,
     theme: "striped",
     styles: { font: "helvetica", fontSize: 10 },
     headStyles: { fillColor: [120, 80, 60] },
   });
   y = (doc as any).lastAutoTable.finalY + 24;
 
-  // Wellness averages
-  doc.setFont("times", "italic"); doc.setFontSize(14);
-  doc.text("Wellness averages", margin, y); y += 14;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  // Wellness averages — only render lines with logged values
   const w = input.wellnessAverages;
-  const lines = [
-    `Sleep: ${w.sleepHours ? `${w.sleepHours} hrs/night avg` : "—"}`,
-    `Water: ${w.waterGlasses ? `${w.waterGlasses} glasses/day avg` : "—"}`,
-    `Energy: ${w.energyAvg ? `${w.energyAvg}/5 avg` : "—"}`,
-    `Most reported moods: ${w.topMoods.length ? w.topMoods.join(", ") : "—"}`,
-  ];
-  for (const line of lines) { doc.text(line, margin, y); y += 14; }
-  y += 8;
+  const wlines: string[] = [];
+  if (w.sleepHours) wlines.push(`Sleep: ${w.sleepHours} hrs/night avg`);
+  if (w.waterGlasses) wlines.push(`Water: ${w.waterGlasses} glasses/day avg`);
+  if (w.energyAvg) wlines.push(`Energy: ${w.energyAvg}/5 avg`);
+  if (w.topMoods.length) wlines.push(`Most reported moods: ${w.topMoods.join(", ")}`);
+  if (wlines.length) {
+    doc.setFont("times", "italic"); doc.setFontSize(14);
+    doc.text("Wellness averages", margin, y); y += 14;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    for (const line of wlines) { doc.text(line, margin, y); y += 14; }
+    y += 8;
+  }
 
-  // Cycle history
+  // Cycle history — dynamic columns: drop any column where every entry is blank
   if (input.cycleHistory.length) {
+    const rows = input.cycleHistory.slice(0, 20);
+    type Col = { key: string; label: string; get: (r: typeof rows[number]) => string };
+    const allCols: Col[] = [
+      { key: "date", label: "Start", get: (r) => r.date },
+      { key: "end", label: "End", get: (r) => r.end ?? "" },
+      { key: "flow", label: "Flow", get: (r) => r.flow ?? "" },
+      { key: "bloodColor", label: "Blood color", get: (r) => r.bloodColor ?? "" },
+      { key: "clotting", label: "Clotting", get: (r) => r.clotting ?? "" },
+      { key: "pain", label: "Pain (0–10)", get: (r) => (r.pain != null ? String(r.pain) : "") },
+      { key: "cramp", label: "Cramps (0–10)", get: (r) => (r.cramp != null ? String(r.cramp) : "") },
+      { key: "symptoms", label: "Symptoms", get: (r) => r.symptoms ?? "" },
+      { key: "notes", label: "Notes", get: (r) => r.notes ?? "" },
+    ];
+    const cols = allCols.filter((c) => c.key === "date" || rows.some((r) => c.get(r).trim() !== ""));
     doc.setFont("times", "italic"); doc.setFontSize(14);
     doc.text("Recent cycle history", margin, y); y += 6;
     autoTable(doc, {
       startY: y + 8,
       margin: { left: margin, right: margin },
-      head: [["Start", "End", "Flow", "Pain (0–10)", "Symptoms"]],
-      body: input.cycleHistory.slice(0, 20).map((r) => [r.date, r.end ?? "—", r.flow ?? "—", r.pain != null ? String(r.pain) : "—", r.symptoms ?? "—"]),
+      head: [cols.map((c) => c.label)],
+      body: rows.map((r) => cols.map((c) => c.get(r) || "—")),
       theme: "grid",
       styles: { font: "helvetica", fontSize: 9 },
       headStyles: { fillColor: [120, 80, 60] },
