@@ -87,9 +87,11 @@ export function PeriodLogger() {
   const loggedStarts = new Set<string>();
   history.forEach((h) => {
     if (!h.entry_date) return;
+    const isPeriodEntry = h.is_period_start || h.flow_intensity;
+    if (!isPeriodEntry) return;
     const start = new Date(h.entry_date);
     const end = h.end_date ? new Date(h.end_date) : start;
-    if (h.is_period_start) loggedStarts.add(h.entry_date);
+    loggedStarts.add(h.entry_date);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       loggedDays.add(toISO(d));
     }
