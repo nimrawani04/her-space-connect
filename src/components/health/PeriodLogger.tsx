@@ -20,6 +20,7 @@ export function PeriodLogger() {
   const [bloodColor, setBloodColor] = useState("");
   const [clotting, setClotting] = useState("");
   const [pain, setPain] = useState<number>(0);
+  const [cramp, setCramp] = useState<number>(0);
   const [symptoms, setSymptoms] = useState<Record<string, Severity>>({});
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,13 +63,14 @@ export function PeriodLogger() {
       blood_color: bloodColor || null,
       clotting: clotting || null,
       pain_level: pain,
+      cramp_level: cramp,
       period_symptoms: Object.keys(symptoms).length ? symptoms : null,
       notes: notes || null,
     }, { onConflict: "user_id,entry_date" });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Period logged.");
-    setSymptoms({}); setNotes(""); setEndDate(""); setBloodColor(""); setClotting(""); setPain(0);
+    setSymptoms({}); setNotes(""); setEndDate(""); setBloodColor(""); setClotting(""); setPain(0); setCramp(0);
     load();
   }
 
@@ -134,6 +136,17 @@ export function PeriodLogger() {
           </div>
 
           <div>
+            <Label>
+              Cramp level — <span className="text-earth font-medium">{cramp}/10</span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                {cramp === 0 ? "none" : cramp <= 3 ? "mild" : cramp <= 6 ? "moderate" : cramp <= 8 ? "strong" : "severe"}
+              </span>
+            </Label>
+            <Slider value={[cramp]} min={0} max={10} step={1} onValueChange={(v) => setCramp(v[0])} className="mt-2" />
+            <p className="text-[11px] text-muted-foreground mt-1">Rate cramps separately from overall pain — sharper signal for phase correlations.</p>
+          </div>
+
+          <div>
             <Label>Symptoms</Label>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {PERIOD_SYMPTOMS.map((s) => {
@@ -180,7 +193,13 @@ export function PeriodLogger() {
                   <span className="font-medium">{h.entry_date}{h.end_date ? ` → ${h.end_date}` : ""}</span>
                   {h.flow_intensity && <Badge variant="outline" className="capitalize">{(h.flow_intensity as string).replace("_", " ")}</Badge>}
                 </div>
-                {h.pain_level != null && <p className="text-muted-foreground mt-0.5">Pain: {h.pain_level}/10</p>}
+                {(h.pain_level != null || h.cramp_level != null) && (
+                  <p className="text-muted-foreground mt-0.5">
+                    {h.pain_level != null && <>Pain: {h.pain_level}/10</>}
+                    {h.pain_level != null && h.cramp_level != null && " · "}
+                    {h.cramp_level != null && <>Cramps: {h.cramp_level}/10</>}
+                  </p>
+                )}
               </div>
             ))}
             {!history.filter((h) => h.flow_intensity || h.is_period_start).length && (

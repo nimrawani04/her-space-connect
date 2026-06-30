@@ -89,6 +89,7 @@ export type Database = {
         Row: {
           blood_color: string | null
           clotting: string | null
+          cramp_level: number | null
           created_at: string
           end_date: string | null
           energy: number | null
@@ -108,6 +109,7 @@ export type Database = {
         Insert: {
           blood_color?: string | null
           clotting?: string | null
+          cramp_level?: number | null
           created_at?: string
           end_date?: string | null
           energy?: number | null
@@ -127,6 +129,7 @@ export type Database = {
         Update: {
           blood_color?: string | null
           clotting?: string | null
+          cramp_level?: number | null
           created_at?: string
           end_date?: string | null
           energy?: number | null
