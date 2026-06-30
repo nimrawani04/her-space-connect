@@ -174,6 +174,9 @@ const predictInput = z.object({
   avgPeriodLength: z.number().nullable(),
   regularityLabel: z.string().nullable(),
   today: z.string(),
+  avgCramp: z.number().nullable().optional(),
+  peakCramp: z.number().nullable().optional(),
+  severeCrampCycles: z.number().nullable().optional(),
 });
 
 const predictSchema = z.object({
@@ -187,15 +190,21 @@ const predictSchema = z.object({
   confidence: z.number().min(0).max(100),
   isLate: z.boolean(),
   summary: z.string(),
+  crampSeverityNote: z.string().optional(),
+  urgencyLevel: z.enum(["routine", "monitor", "discuss-with-clinician"]).optional(),
 });
 
 const PREDICT_SYSTEM = `You are HerSpace Cycle Prediction AI.
 Given a woman's recent period start dates and averages, estimate her next cycle phases.
 Use the median cycle length and variance to compute a date range for the next period (low/high), the fertile window (typically days 11-16 from last period start when cycle is 28d), ovulation (~14 days before next period), PMS phase (~5 days before next period), and an expected end date (start + avg period length).
 If today is past the predicted high date, set isLate=true.
-Confidence: 50% with 2 cycles, +8% per additional cycle up to 95%; subtract 15% if regularity is "Irregular".
-Return ISO date strings (YYYY-MM-DD).
-The summary should be one sentence like: "Based on your previous N cycles, your next period is expected between {low}–{high} with approximately {confidence}% confidence."`;
+Confidence: 50% with 2 cycles, +8% per additional cycle up to 95%; subtract 15% if regularity is "Irregular"; subtract another 5% if avgCramp is 7+ (cramps that severe often signal underlying variability worth flagging).
+Cramp scoring (0–10 scale, logged per period):
+  - avgCramp 0–3 → urgencyLevel "routine"; no crampSeverityNote needed unless peakCramp ≥ 7.
+  - avgCramp 4–6 OR peakCramp 7–8 → urgencyLevel "monitor"; crampSeverityNote should acknowledge moderate cramps and suggest tracking triggers (sleep, stress, NSAID timing).
+  - avgCramp ≥ 7, peakCramp ≥ 9, OR severeCrampCycles ≥ 2 → urgencyLevel "discuss-with-clinician"; crampSeverityNote must be specific (e.g. mention endometriosis, adenomyosis, or fibroid screening worth discussing) and reference the numeric trend, while still avoiding diagnosis.
+The summary stays one sentence about the date prediction. Put cramp guidance ONLY in crampSeverityNote.
+Return ISO date strings (YYYY-MM-DD).`;
 
 export const predictCycle = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => predictInput.parse(d))
@@ -205,7 +214,16 @@ export const predictCycle = createServerFn({ method: "POST" })
     return await generateJson({
       key,
       system: PREDICT_SYSTEM,
-      prompt: `Today: ${data.today}\nRecent period start dates (newest first): ${data.recentStarts.join(", ") || "none"}\nAvg cycle length: ${data.avgCycleLength ?? "unknown"}\nAvg period length: ${data.avgPeriodLength ?? "unknown"}\nRegularity: ${data.regularityLabel ?? "unknown"}\n\nReturn structured prediction.`,
+      prompt: `Today: ${data.today}
+Recent period start dates (newest first): ${data.recentStarts.join(", ") || "none"}
+Avg cycle length: ${data.avgCycleLength ?? "unknown"}
+Avg period length: ${data.avgPeriodLength ?? "unknown"}
+Regularity: ${data.regularityLabel ?? "unknown"}
+Avg cramp (0–10): ${data.avgCramp ?? "unknown"}
+Peak cramp (0–10): ${data.peakCramp ?? "unknown"}
+Cycles with severe cramps (≥7): ${data.severeCrampCycles ?? 0}
+
+Return structured prediction; factor cramp severity into confidence and crampSeverityNote per the rules.`,
       schema: predictSchema,
       schemaHint: `{
   "nextPeriodLow": "YYYY-MM-DD",
@@ -217,7 +235,9 @@ export const predictCycle = createServerFn({ method: "POST" })
   "pmsStart": "YYYY-MM-DD",
   "confidence": number (0-100),
   "isLate": boolean,
-  "summary": string
+  "summary": string,
+  "crampSeverityNote": string (optional, omit only when avgCramp and peakCramp are both low),
+  "urgencyLevel": "routine" | "monitor" | "discuss-with-clinician"
 }`,
     });
   });
