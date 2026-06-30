@@ -779,9 +779,9 @@ function CrampExplanationPanel({
       {open && (
         <div className="px-3 pb-3 space-y-3 border-t border-current/10">
           <div className="grid sm:grid-cols-3 gap-2 pt-3">
-            <Stat label="Avg cramp" value={stats.avgCramp == null ? "—" : `${stats.avgCramp}/10`} />
-            <Stat label="Peak cramp" value={stats.peakCramp == null ? "—" : `${stats.peakCramp}/10`} />
-            <Stat label="Severe cycles (≥7)" value={`${stats.severeCrampCycles}`} />
+            <MiniStat label="Avg cramp" value={stats.avgCramp == null ? "—" : `${stats.avgCramp}/10`} />
+            <MiniStat label="Peak cramp" value={stats.peakCramp == null ? "—" : `${stats.peakCramp}/10`} />
+            <MiniStat label="Severe cycles (≥7)" value={`${stats.severeCrampCycles}`} />
           </div>
 
           <div>
@@ -839,7 +839,7 @@ function CrampExplanationPanel({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md bg-background/60 border border-current/10 p-2">
       <p className="text-[10px] uppercase tracking-wider opacity-70">{label}</p>
