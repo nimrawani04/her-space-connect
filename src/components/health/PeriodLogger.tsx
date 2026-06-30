@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
-import { differenceInCalendarDays, format, isBefore, isSameDay } from "date-fns";
+import {
+  addMonths,
+  differenceInCalendarDays,
+  endOfMonth,
+  format,
+  getDay,
+  isAfter,
+  isBefore,
+  isSameDay,
+  startOfMonth,
+} from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +19,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { FLOW_OPTIONS, BLOOD_COLORS, CLOTTING_OPTIONS, PERIOD_SYMPTOMS, summarizeCycles } from "@/lib/cycle-stats";
 
@@ -35,6 +45,7 @@ function pickPeriodRange(current: DateRange | undefined, day: Date): DateRange {
 
 export function PeriodLogger() {
   const [range, setRange] = useState<DateRange | undefined>();
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [flowIntensity, setFlowIntensity] = useState<string>("");
   const [bloodColor, setBloodColor] = useState("");
   const [clotting, setClotting] = useState("");
@@ -121,11 +132,6 @@ export function PeriodLogger() {
   });
   const loggedModifier = (d: Date) => loggedDays.has(toISO(d));
   const startModifier = (d: Date) => loggedStarts.has(toISO(d));
-  const draftStartModifier = (d: Date) => Boolean(range?.from && isSameDay(d, range.from));
-  const draftEndModifier = (d: Date) => Boolean(range?.to && isSameDay(d, range.to));
-  const draftMiddleModifier = (d: Date) => Boolean(
-    range?.from && range?.to && isBefore(range.from, d) && isBefore(d, range.to),
-  );
 
   const durationDays = range?.from && range?.to
     ? Math.round((+range.to - +range.from) / 86400000) + 1
@@ -149,33 +155,14 @@ export function PeriodLogger() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3 overflow-x-auto">
-            <Calendar
-              onDayClick={(day, modifiers) => {
-                if (modifiers.disabled) return;
-                setRange((current) => pickPeriodRange(current, day));
-              }}
-              numberOfMonths={months}
-              defaultMonth={new Date()}
-              showOutsideDays={false}
-              modifiers={{
-                logged: loggedModifier,
-                loggedStart: startModifier,
-                draftStart: draftStartModifier,
-                draftMiddle: draftMiddleModifier,
-                draftEnd: draftEndModifier,
-              }}
-              modifiersClassNames={{
-                logged: "bg-rose-100 text-rose-900 rounded-md",
-                loggedStart: "bg-rose-200 text-rose-950 ring-1 ring-rose-500",
-                draftStart: "bg-rose-200 text-rose-950 ring-1 ring-rose-500 rounded-md",
-                draftMiddle: "bg-rose-100 text-rose-900 rounded-none",
-                draftEnd: "bg-rose-200 text-rose-950 ring-1 ring-rose-500 rounded-md",
-              }}
-              classNames={{
-                today: "text-foreground",
-              }}
-              className="pointer-events-auto mx-auto w-fit"
-              disabled={{ after: new Date(new Date().setMonth(new Date().getMonth() + 2)) }}
+            <PeriodRangeCalendar
+              visibleMonth={visibleMonth}
+              setVisibleMonth={setVisibleMonth}
+              months={months}
+              range={range}
+              onPick={(day) => setRange((current) => pickPeriodRange(current, day))}
+              isLogged={loggedModifier}
+              isLoggedStart={startModifier}
             />
             <div className="flex flex-wrap items-center justify-between gap-2 mt-2 px-1 text-xs">
               <div className="flex items-center gap-3 text-muted-foreground">
