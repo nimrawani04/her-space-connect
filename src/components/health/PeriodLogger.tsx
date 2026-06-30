@@ -34,7 +34,7 @@ function pickPeriodRange(current: DateRange | undefined, day: Date): DateRange {
 }
 
 export function PeriodLogger() {
-  const [range, setRange] = useState<DateRange | undefined>({ from: new Date(), to: undefined });
+  const [range, setRange] = useState<DateRange | undefined>();
   const [flowIntensity, setFlowIntensity] = useState<string>("");
   const [bloodColor, setBloodColor] = useState("");
   const [clotting, setClotting] = useState("");
@@ -99,7 +99,7 @@ export function PeriodLogger() {
     if (error) { toast.error(error.message); return; }
     toast.success("Period logged.");
     setSymptoms({}); setNotes(""); setBloodColor(""); setClotting(""); setPain(0); setCramp(0);
-    setRange({ from: new Date(), to: undefined });
+    setRange(undefined);
     load();
   }
 
@@ -155,7 +155,7 @@ export function PeriodLogger() {
                 setRange((current) => pickPeriodRange(current, day));
               }}
               numberOfMonths={months}
-              defaultMonth={range?.from ?? new Date()}
+              defaultMonth={new Date()}
               showOutsideDays={false}
               modifiers={{
                 logged: loggedModifier,
@@ -191,7 +191,7 @@ export function PeriodLogger() {
                 {(range?.from || range?.to) && (
                   <button
                     type="button"
-                    onClick={() => setRange({ from: new Date(), to: undefined })}
+                    onClick={() => setRange(undefined)}
                     className="text-muted-foreground hover:text-earth underline underline-offset-2"
                   >
                     reset
