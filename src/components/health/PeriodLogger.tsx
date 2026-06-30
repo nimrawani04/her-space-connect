@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { FLOW_OPTIONS, BLOOD_COLORS, CLOTTING_OPTIONS, PERIOD_SYMPTOMS, summarizeCycles } from "@/lib/cycle-stats";
 
 type Severity = 1 | 2 | 3;
 
+function toISO(d: Date) {
+  return format(d, "yyyy-MM-dd");
+}
+
 export function PeriodLogger() {
-  const today = new Date().toISOString().slice(0, 10);
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState("");
+  const [range, setRange] = useState<DateRange | undefined>({ from: new Date(), to: undefined });
   const [flowIntensity, setFlowIntensity] = useState<string>("");
   const [bloodColor, setBloodColor] = useState("");
   const [clotting, setClotting] = useState("");
@@ -49,13 +53,16 @@ export function PeriodLogger() {
   }
 
   async function save() {
+    if (!range?.from) { toast.error("Pick a start date on the calendar"); return; }
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { toast.error("Sign in required"); setLoading(false); return; }
+    const startDate = toISO(range.from);
+    const endDate = range.to ? toISO(range.to) : null;
     const { error } = await supabase.from("cycle_entries").upsert({
       user_id: u.user.id,
       entry_date: startDate,
-      end_date: endDate || null,
+      end_date: endDate,
       is_period_start: true,
       flow_intensity: flowIntensity || null,
       flow: flowIntensity || null,
@@ -69,11 +76,30 @@ export function PeriodLogger() {
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Period logged.");
-    setSymptoms({}); setNotes(""); setEndDate(""); setBloodColor(""); setClotting(""); setPain(0); setCramp(0);
+    setSymptoms({}); setNotes(""); setBloodColor(""); setClotting(""); setPain(0); setCramp(0);
+    setRange({ from: new Date(), to: undefined });
     load();
   }
 
   const stats = summarizeCycles(history);
+
+  const loggedDays = new Set<string>();
+  const loggedStarts = new Set<string>();
+  history.forEach((h) => {
+    if (!h.entry_date) return;
+    const start = new Date(h.entry_date);
+    const end = h.end_date ? new Date(h.end_date) : start;
+    if (h.is_period_start) loggedStarts.add(h.entry_date);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      loggedDays.add(toISO(d));
+    }
+  });
+  const loggedModifier = (d: Date) => loggedDays.has(toISO(d));
+  const startModifier = (d: Date) => loggedStarts.has(toISO(d));
+
+  const durationDays = range?.from && range?.to
+    ? Math.round((+range.to - +range.from) / 86400000) + 1
+    : range?.from ? 1 : 0;
 
   const sevTone: Record<Severity, string> = {
     1: "bg-sage/20 text-sage border-sage/40",
@@ -85,11 +111,51 @@ export function PeriodLogger() {
   return (
     <div className="grid lg:grid-cols-5 gap-6">
       <Card className="lg:col-span-3">
-        <CardHeader><CardTitle className="font-serif italic text-2xl">Log a period</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="font-serif italic text-2xl">Log a period</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Tap a day to mark the start, then tap another day for the end. Tap again to reset.
+          </p>
+        </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-            <div><Label>End date (optional)</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={startDate} /></div>
+          <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3">
+            <Calendar
+              mode="range"
+              selected={range}
+              onSelect={setRange}
+              numberOfMonths={2}
+              defaultMonth={range?.from ?? new Date()}
+              showOutsideDays
+              modifiers={{ logged: loggedModifier, loggedStart: startModifier }}
+              modifiersClassNames={{
+                logged: "bg-rose-100/70 text-rose-900 rounded-md",
+                loggedStart: "ring-1 ring-rose-400",
+              }}
+              className="pointer-events-auto mx-auto"
+              disabled={{ after: new Date(new Date().setMonth(new Date().getMonth() + 2)) }}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-2 px-1 text-xs">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-300" /> Previously logged</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {range?.from && (
+                  <span className="text-earth font-medium">
+                    {format(range.from, "MMM d")}
+                    {range?.to ? ` → ${format(range.to, "MMM d")} · ${durationDays} day${durationDays > 1 ? "s" : ""}` : " · pick end day (optional)"}
+                  </span>
+                )}
+                {(range?.from || range?.to) && (
+                  <button
+                    type="button"
+                    onClick={() => setRange({ from: new Date(), to: undefined })}
+                    className="text-muted-foreground hover:text-earth underline underline-offset-2"
+                  >
+                    reset
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div>
