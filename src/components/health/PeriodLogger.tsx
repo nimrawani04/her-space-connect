@@ -150,7 +150,6 @@ export function PeriodLogger() {
         <CardContent className="space-y-5">
           <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3 overflow-x-auto">
             <Calendar
-              mode="default"
               onDayClick={(day, modifiers) => {
                 if (modifiers.disabled) return;
                 setRange((current) => pickPeriodRange(current, day));
