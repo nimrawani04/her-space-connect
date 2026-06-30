@@ -101,9 +101,17 @@ export function CycleDashboard() {
       generatedFor: u.user?.email ?? "you",
       cycleSummary: stats,
       cycleHistory: cycles.filter((c) => c.flow_intensity || c.is_period_start).slice(-20).reverse().map((c) => ({
-        date: c.entry_date, end: c.end_date, flow: c.flow_intensity,
-        pain: c.pain_level,
-        symptoms: c.period_symptoms ? Object.keys(c.period_symptoms).join(", ") : (c.symptoms ?? []).join(", "),
+        date: c.entry_date,
+        end: c.end_date || null,
+        flow: c.flow_intensity || null,
+        bloodColor: c.blood_color || null,
+        clotting: c.clotting || null,
+        pain: c.pain_level ?? null,
+        cramp: c.cramp_level ?? null,
+        symptoms: c.period_symptoms
+          ? Object.keys(c.period_symptoms).join(", ") || null
+          : (Array.isArray(c.symptoms) && c.symptoms.length ? c.symptoms.join(", ") : null),
+        notes: c.notes || null,
       })),
       insights: [],
       doctorQuestions: [],
