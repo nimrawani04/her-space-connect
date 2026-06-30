@@ -56,13 +56,6 @@ export function PeriodLogger() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
 
-  const [months, setMonths] = useState(typeof window !== "undefined" && window.innerWidth >= 1024 ? 2 : 1);
-  useEffect(() => {
-    const onResize = () => setMonths(window.innerWidth >= 1024 ? 2 : 1);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
   async function load() {
     const { data } = await supabase
       .from("cycle_entries")
