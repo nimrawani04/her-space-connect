@@ -56,13 +56,6 @@ export function PeriodLogger() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
 
-  const [months, setMonths] = useState(typeof window !== "undefined" && window.innerWidth >= 1024 ? 2 : 1);
-  useEffect(() => {
-    const onResize = () => setMonths(window.innerWidth >= 1024 ? 2 : 1);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
   async function load() {
     const { data } = await supabase
       .from("cycle_entries")
@@ -154,11 +147,10 @@ export function PeriodLogger() {
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3 overflow-x-auto">
+          <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3">
             <PeriodRangeCalendar
               visibleMonth={visibleMonth}
               setVisibleMonth={setVisibleMonth}
-              months={months}
               range={range}
               onPick={(day) => setRange((current) => pickPeriodRange(current, day))}
               isLogged={loggedModifier}
@@ -311,7 +303,6 @@ export function PeriodLogger() {
 function PeriodRangeCalendar({
   visibleMonth,
   setVisibleMonth,
-  months,
   range,
   onPick,
   isLogged,
@@ -319,7 +310,6 @@ function PeriodRangeCalendar({
 }: {
   visibleMonth: Date;
   setVisibleMonth: (date: Date) => void;
-  months: number;
   range: DateRange | undefined;
   onPick: (day: Date) => void;
   isLogged: (day: Date) => boolean;
@@ -327,10 +317,9 @@ function PeriodRangeCalendar({
 }) {
   const maxDay = addMonths(new Date(), 2);
   maxDay.setHours(23, 59, 59, 999);
-  const renderedMonths = Array.from({ length: months }, (_, index) => addMonths(visibleMonth, index));
 
   return (
-    <div className="min-w-[292px]">
+    <div className="w-full">
       <div className="mb-3 flex items-center justify-between gap-2 px-1">
         <Button
           type="button"
@@ -344,7 +333,6 @@ function PeriodRangeCalendar({
         </Button>
         <div className="text-sm font-medium text-earth">
           {format(visibleMonth, "MMMM yyyy")}
-          {months > 1 && ` – ${format(addMonths(visibleMonth, months - 1), "MMMM yyyy")}`}
         </div>
         <Button
           type="button"
@@ -358,18 +346,15 @@ function PeriodRangeCalendar({
         </Button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {renderedMonths.map((month) => (
-          <MonthCalendar
-            key={toISO(month)}
-            month={month}
-            maxDay={maxDay}
-            range={range}
-            onPick={onPick}
-            isLogged={isLogged}
-            isLoggedStart={isLoggedStart}
-          />
-        ))}
+      <div className="w-full">
+        <MonthCalendar
+          month={visibleMonth}
+          maxDay={maxDay}
+          range={range}
+          onPick={onPick}
+          isLogged={isLogged}
+          isLoggedStart={isLoggedStart}
+        />
       </div>
     </div>
   );
