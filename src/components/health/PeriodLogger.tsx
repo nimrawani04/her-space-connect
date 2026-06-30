@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
-import { differenceInCalendarDays, format, isBefore, isSameDay } from "date-fns";
+import {
+  addMonths,
+  differenceInCalendarDays,
+  endOfMonth,
+  format,
+  getDay,
+  isAfter,
+  isBefore,
+  isSameDay,
+  startOfMonth,
+} from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +19,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { FLOW_OPTIONS, BLOOD_COLORS, CLOTTING_OPTIONS, PERIOD_SYMPTOMS, summarizeCycles } from "@/lib/cycle-stats";
 
@@ -35,6 +45,7 @@ function pickPeriodRange(current: DateRange | undefined, day: Date): DateRange {
 
 export function PeriodLogger() {
   const [range, setRange] = useState<DateRange | undefined>();
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [flowIntensity, setFlowIntensity] = useState<string>("");
   const [bloodColor, setBloodColor] = useState("");
   const [clotting, setClotting] = useState("");
@@ -121,11 +132,6 @@ export function PeriodLogger() {
   });
   const loggedModifier = (d: Date) => loggedDays.has(toISO(d));
   const startModifier = (d: Date) => loggedStarts.has(toISO(d));
-  const draftStartModifier = (d: Date) => Boolean(range?.from && isSameDay(d, range.from));
-  const draftEndModifier = (d: Date) => Boolean(range?.to && isSameDay(d, range.to));
-  const draftMiddleModifier = (d: Date) => Boolean(
-    range?.from && range?.to && isBefore(range.from, d) && isBefore(d, range.to),
-  );
 
   const durationDays = range?.from && range?.to
     ? Math.round((+range.to - +range.from) / 86400000) + 1
@@ -149,33 +155,14 @@ export function PeriodLogger() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3 overflow-x-auto">
-            <Calendar
-              onDayClick={(day, modifiers) => {
-                if (modifiers.disabled) return;
-                setRange((current) => pickPeriodRange(current, day));
-              }}
-              numberOfMonths={months}
-              defaultMonth={new Date()}
-              showOutsideDays={false}
-              modifiers={{
-                logged: loggedModifier,
-                loggedStart: startModifier,
-                draftStart: draftStartModifier,
-                draftMiddle: draftMiddleModifier,
-                draftEnd: draftEndModifier,
-              }}
-              modifiersClassNames={{
-                logged: "bg-rose-100 text-rose-900 rounded-md",
-                loggedStart: "bg-rose-200 text-rose-950 ring-1 ring-rose-500",
-                draftStart: "bg-rose-200 text-rose-950 ring-1 ring-rose-500 rounded-md",
-                draftMiddle: "bg-rose-100 text-rose-900 rounded-none",
-                draftEnd: "bg-rose-200 text-rose-950 ring-1 ring-rose-500 rounded-md",
-              }}
-              classNames={{
-                today: "text-foreground",
-              }}
-              className="pointer-events-auto mx-auto w-fit"
-              disabled={{ after: new Date(new Date().setMonth(new Date().getMonth() + 2)) }}
+            <PeriodRangeCalendar
+              visibleMonth={visibleMonth}
+              setVisibleMonth={setVisibleMonth}
+              months={months}
+              range={range}
+              onPick={(day) => setRange((current) => pickPeriodRange(current, day))}
+              isLogged={loggedModifier}
+              isLoggedStart={startModifier}
             />
             <div className="flex flex-wrap items-center justify-between gap-2 mt-2 px-1 text-xs">
               <div className="flex items-center gap-3 text-muted-foreground">
@@ -318,6 +305,146 @@ export function PeriodLogger() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function PeriodRangeCalendar({
+  visibleMonth,
+  setVisibleMonth,
+  months,
+  range,
+  onPick,
+  isLogged,
+  isLoggedStart,
+}: {
+  visibleMonth: Date;
+  setVisibleMonth: (date: Date) => void;
+  months: number;
+  range: DateRange | undefined;
+  onPick: (day: Date) => void;
+  isLogged: (day: Date) => boolean;
+  isLoggedStart: (day: Date) => boolean;
+}) {
+  const maxDay = addMonths(new Date(), 2);
+  maxDay.setHours(23, 59, 59, 999);
+  const renderedMonths = Array.from({ length: months }, (_, index) => addMonths(visibleMonth, index));
+
+  return (
+    <div className="min-w-[292px]">
+      <div className="mb-3 flex items-center justify-between gap-2 px-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Previous month"
+          onClick={() => setVisibleMonth(startOfMonth(addMonths(visibleMonth, -1)))}
+          className="h-8 w-8 shrink-0 rounded-full"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="text-sm font-medium text-earth">
+          {format(visibleMonth, "MMMM yyyy")}
+          {months > 1 && ` – ${format(addMonths(visibleMonth, months - 1), "MMMM yyyy")}`}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Next month"
+          onClick={() => setVisibleMonth(startOfMonth(addMonths(visibleMonth, 1)))}
+          className="h-8 w-8 shrink-0 rounded-full"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {renderedMonths.map((month) => (
+          <MonthCalendar
+            key={toISO(month)}
+            month={month}
+            maxDay={maxDay}
+            range={range}
+            onPick={onPick}
+            isLogged={isLogged}
+            isLoggedStart={isLoggedStart}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MonthCalendar({
+  month,
+  maxDay,
+  range,
+  onPick,
+  isLogged,
+  isLoggedStart,
+}: {
+  month: Date;
+  maxDay: Date;
+  range: DateRange | undefined;
+  onPick: (day: Date) => void;
+  isLogged: (day: Date) => boolean;
+  isLoggedStart: (day: Date) => boolean;
+}) {
+  const monthStart = startOfMonth(month);
+  const monthEnd = endOfMonth(month);
+  const leadingBlanks = getDay(monthStart);
+  const daysInMonth = monthEnd.getDate();
+  const cells = [
+    ...Array.from({ length: leadingBlanks }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1)),
+  ];
+  const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
+
+  return (
+    <section aria-label={format(monthStart, "MMMM yyyy")} className="w-full min-w-[268px]">
+      <h3 className="mb-2 text-center text-sm font-medium text-earth lg:hidden">{format(monthStart, "MMMM yyyy")}</h3>
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
+        {weekDays.map((day, index) => <div key={`${day}-${index}`} className="h-6 leading-6">{day}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, index) => {
+          if (!day) return <div key={`blank-${index}`} className="aspect-square" aria-hidden="true" />;
+
+          const disabled = isAfter(day, maxDay);
+          const logged = isLogged(day);
+          const loggedStart = isLoggedStart(day);
+          const selected = Boolean(
+            range?.from && (
+              range.to
+                ? differenceInCalendarDays(day, range.from) >= 0 && differenceInCalendarDays(range.to, day) >= 0
+                : isSameDay(day, range.from)
+            ),
+          );
+          const selectedStart = Boolean(range?.from && isSameDay(day, range.from));
+          const selectedEnd = Boolean(range?.to && isSameDay(day, range.to));
+
+          return (
+            <button
+              key={toISO(day)}
+              type="button"
+              disabled={disabled}
+              aria-pressed={selected || logged}
+              aria-label={format(day, "MMMM d, yyyy")}
+              onClick={() => onPick(day)}
+              className={`aspect-square min-h-9 w-full text-sm transition disabled:pointer-events-none disabled:opacity-35 ${
+                selected
+                  ? "rounded-md bg-rose-200 text-rose-950 ring-1 ring-rose-500"
+                  : logged
+                    ? "rounded-md bg-rose-100 text-rose-900"
+                    : "rounded-md bg-transparent text-foreground hover:bg-sand/40"
+              } ${(selectedStart || selectedEnd || loggedStart) && (selected || logged) ? "font-semibold" : "font-normal"}`}
+            >
+              {format(day, "d")}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
