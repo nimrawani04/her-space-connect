@@ -30,6 +30,13 @@ export function PeriodLogger() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
 
+  const [months, setMonths] = useState(typeof window !== "undefined" && window.innerWidth >= 1024 ? 2 : 1);
+  useEffect(() => {
+    const onResize = () => setMonths(window.innerWidth >= 1024 ? 2 : 1);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   async function load() {
     const { data } = await supabase
       .from("cycle_entries")
@@ -120,20 +127,26 @@ export function PeriodLogger() {
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3">
+          <div className="rounded-xl border border-border bg-sand/20 p-2 sm:p-3 overflow-x-auto">
             <Calendar
               mode="range"
               selected={range}
-              onSelect={setRange}
-              numberOfMonths={2}
+              onSelect={(r) => {
+                // If a complete range exists and user taps a new day, restart from that day
+                if (range?.from && range?.to && r?.from && r?.to && +r.from === +range.from && +r.to === +range.to) {
+                  return;
+                }
+                setRange(r);
+              }}
+              numberOfMonths={months}
               defaultMonth={range?.from ?? new Date()}
-              showOutsideDays
+              showOutsideDays={false}
               modifiers={{ logged: loggedModifier, loggedStart: startModifier }}
               modifiersClassNames={{
                 logged: "bg-rose-100/70 text-rose-900 rounded-md",
                 loggedStart: "ring-1 ring-rose-400",
               }}
-              className="pointer-events-auto mx-auto"
+              className="pointer-events-auto mx-auto w-fit"
               disabled={{ after: new Date(new Date().setMonth(new Date().getMonth() + 2)) }}
             />
             <div className="flex flex-wrap items-center justify-between gap-2 mt-2 px-1 text-xs">
