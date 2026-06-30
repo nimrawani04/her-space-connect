@@ -20,6 +20,7 @@ export function PeriodLogger() {
   const [bloodColor, setBloodColor] = useState("");
   const [clotting, setClotting] = useState("");
   const [pain, setPain] = useState<number>(0);
+  const [cramp, setCramp] = useState<number>(0);
   const [symptoms, setSymptoms] = useState<Record<string, Severity>>({});
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,13 +63,14 @@ export function PeriodLogger() {
       blood_color: bloodColor || null,
       clotting: clotting || null,
       pain_level: pain,
+      cramp_level: cramp,
       period_symptoms: Object.keys(symptoms).length ? symptoms : null,
       notes: notes || null,
     }, { onConflict: "user_id,entry_date" });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Period logged.");
-    setSymptoms({}); setNotes(""); setEndDate(""); setBloodColor(""); setClotting(""); setPain(0);
+    setSymptoms({}); setNotes(""); setEndDate(""); setBloodColor(""); setClotting(""); setPain(0); setCramp(0);
     load();
   }
 
@@ -131,6 +133,17 @@ export function PeriodLogger() {
           <div>
             <Label>Pain level — <span className="text-earth font-medium">{pain}/10</span></Label>
             <Slider value={[pain]} min={0} max={10} step={1} onValueChange={(v) => setPain(v[0])} className="mt-2" />
+          </div>
+
+          <div>
+            <Label>
+              Cramp level — <span className="text-earth font-medium">{cramp}/10</span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                {cramp === 0 ? "none" : cramp <= 3 ? "mild" : cramp <= 6 ? "moderate" : cramp <= 8 ? "strong" : "severe"}
+              </span>
+            </Label>
+            <Slider value={[cramp]} min={0} max={10} step={1} onValueChange={(v) => setCramp(v[0])} className="mt-2" />
+            <p className="text-[11px] text-muted-foreground mt-1">Rate cramps separately from overall pain — sharper signal for phase correlations.</p>
           </div>
 
           <div>
