@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Plane, MapPin, Search, X, LocateFixed, Lock, MessageCircle, Check, Inbox, Eye, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useInfiniteQuery, useSuspenseQuery, useQuery, queryOptions } from "@tanstack/react-query";
@@ -277,6 +278,8 @@ function Travel() {
   // Connection request dialog state
   const [connectFor, setConnectFor] = useState<any | null>(null);
   const [connectMsg, setConnectMsg] = useState("");
+  const [connectContactType, setConnectContactType] = useState<string>("instagram");
+  const [connectContactHandle, setConnectContactHandle] = useState<string>("");
 
   // Contact reveal gate (per accepted request)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
@@ -285,17 +288,21 @@ function Travel() {
   const sendConnect = useMutation({
     mutationFn: async () => {
       if (!connectFor || !meId) throw new Error("Not ready");
+      const handle = connectContactHandle.trim();
+      if (!handle) throw new Error("Add your contact so she can vet you before accepting.");
       const { error } = await supabase.from("travel_connections").insert({
         request_id: connectFor.id,
         from_user: meId,
         to_user: connectFor.user_id,
         message: connectMsg.trim() || null,
+        contact_type: connectContactType,
+        contact_handle: handle,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Request sent. She'll see it in her inbox.");
-      setConnectFor(null); setConnectMsg("");
+      setConnectFor(null); setConnectMsg(""); setConnectContactHandle("");
       qc.invalidateQueries({ queryKey: ["travel_connections", meId] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -405,10 +412,10 @@ function Travel() {
             />
           </div>
           <Button onClick={() => postRequest.mutate()} disabled={postRequest.isPending} className="rounded-full sm:col-span-2">
-            Post to the network
+            Post to the sisterhood
           </Button>
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            Your contact stays hidden. Sisters send a connection request; you review and choose who sees your details.
+            Posts are visible to every signed-in woman on HerSpace — that's "the sisterhood". Your contact stays hidden; sisters send a connection request with their Insta/WhatsApp so you can vet them, then you choose who to trust.
           </p>
         </CardContent>
       </Card>
@@ -587,22 +594,52 @@ function Travel() {
       </section>
 
       {/* Connection request dialog */}
-      <Dialog open={!!connectFor} onOpenChange={(o) => { if (!o) { setConnectFor(null); setConnectMsg(""); } }}>
+      <Dialog open={!!connectFor} onOpenChange={(o) => { if (!o) { setConnectFor(null); setConnectMsg(""); setConnectContactHandle(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-serif italic">Request to connect</DialogTitle>
             <DialogDescription>
-              Send a short note. She'll see your request in her inbox. If she accepts, you'll both see each other's contact — meet safely on a call first.
+              Share a public handle (Instagram, WhatsApp, etc.) with your note. She'll be able to look you up before accepting — real profile, real name, real posts build trust.
             </DialogDescription>
           </DialogHeader>
-          <Textarea
-            placeholder="Hi sister, I'm nearby and I can help with…"
-            value={connectMsg}
-            maxLength={300}
-            onChange={(e) => setConnectMsg(e.target.value)}
-          />
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              <Select value={connectContactType} onValueChange={setConnectContactType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="telegram">Telegram</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                className="col-span-2"
+                placeholder={
+                  connectContactType === "instagram" ? "@yourhandle"
+                  : connectContactType === "whatsapp" || connectContactType === "phone" ? "+91 98xxxxxxxx"
+                  : connectContactType === "email" ? "you@example.com"
+                  : "handle or link"
+                }
+                value={connectContactHandle}
+                maxLength={120}
+                onChange={(e) => setConnectContactHandle(e.target.value)}
+              />
+            </div>
+            <Textarea
+              placeholder="Hi sister, I'm nearby and I can help with…"
+              value={connectMsg}
+              maxLength={300}
+              onChange={(e) => setConnectMsg(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              She'll see this handle before deciding. Use one you're comfortable being looked up on.
+            </p>
+          </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setConnectFor(null); setConnectMsg(""); }}>Cancel</Button>
+            <Button variant="ghost" onClick={() => { setConnectFor(null); setConnectMsg(""); setConnectContactHandle(""); }}>Cancel</Button>
             <Button onClick={() => sendConnect.mutate()} disabled={sendConnect.isPending}>
               {sendConnect.isPending ? "Sending…" : "Send request"}
             </Button>
