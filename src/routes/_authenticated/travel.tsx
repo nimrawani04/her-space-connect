@@ -283,11 +283,11 @@ function Travel() {
 
       <Card>
         <CardHeader><CardTitle className="font-serif italic text-lg">Become a local sister</CardTitle></CardHeader>
-        <CardContent className="grid sm:grid-cols-4 gap-2">
+        <CardContent className="grid sm:grid-cols-2 md:grid-cols-4 gap-2">
           <Input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
           <Input placeholder="Country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
           <Input className="sm:col-span-2" placeholder="A line about how you can help (optional)" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-          <Button onClick={() => becomeHost.mutate()} disabled={becomeHost.isPending} className="rounded-full sm:col-span-4">List me</Button>
+          <Button onClick={() => becomeHost.mutate()} disabled={becomeHost.isPending} className="rounded-full sm:col-span-2 md:col-span-4">List me</Button>
         </CardContent>
       </Card>
 
@@ -339,7 +339,7 @@ function Travel() {
                 e.preventDefault();
                 navigate({ search: { ...search, ...draft } as any });
               }}
-              className="grid sm:grid-cols-4 gap-2"
+              className="grid sm:grid-cols-2 md:grid-cols-4 gap-2"
             >
               <Input
                 placeholder="City"
