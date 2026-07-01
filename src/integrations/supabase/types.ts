@@ -451,6 +451,9 @@ export type Database = {
           theme_mode: string | null
           updated_at: string
           username: string | null
+          verification_selfie_path: string | null
+          verification_status: string
+          verified_at: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -467,6 +470,9 @@ export type Database = {
           theme_mode?: string | null
           updated_at?: string
           username?: string | null
+          verification_selfie_path?: string | null
+          verification_status?: string
+          verified_at?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -483,6 +489,9 @@ export type Database = {
           theme_mode?: string | null
           updated_at?: string
           username?: string | null
+          verification_selfie_path?: string | null
+          verification_status?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -608,6 +617,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      travel_connections: {
+        Row: {
+          created_at: string
+          from_user: string
+          id: string
+          message: string | null
+          request_id: string
+          status: string
+          to_user: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_user: string
+          id?: string
+          message?: string | null
+          request_id: string
+          status?: string
+          to_user: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_user?: string
+          id?: string
+          message?: string | null
+          request_id?: string
+          status?: string
+          to_user?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_connections_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "travel_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       travel_hosts: {
         Row: {
@@ -759,6 +809,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_verified: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "mentor" | "member"
