@@ -611,6 +611,8 @@ export type Database = {
       }
       travel_connections: {
         Row: {
+          contact_handle: string | null
+          contact_type: string | null
           created_at: string
           from_user: string
           id: string
@@ -621,6 +623,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          contact_handle?: string | null
+          contact_type?: string | null
           created_at?: string
           from_user: string
           id?: string
@@ -631,6 +635,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          contact_handle?: string | null
+          contact_type?: string | null
           created_at?: string
           from_user?: string
           id?: string
