@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plane, MapPin, Search, X, LocateFixed, ShieldCheck, ShieldAlert, Lock, MessageCircle, Check, Inbox } from "lucide-react";
+import { Plane, MapPin, Search, X, LocateFixed, Lock, MessageCircle, Check, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useMemo } from "react";
@@ -237,22 +237,6 @@ function Travel() {
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
   }, []);
 
-  // Verification status for the current user
-  const { data: myProfile, refetch: refetchProfile } = useQuery({
-    queryKey: ["profile-verification", meId],
-    enabled: !!meId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("verification_status, verified_at")
-        .eq("id", meId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-  const isVerified = myProfile?.verification_status === "verified";
-
   // All connections involving me (to know which contacts I can see + inbox)
   const { data: myConnections } = useQuery({
     queryKey: ["travel_connections", meId],
@@ -279,32 +263,6 @@ function Travel() {
   }, [myConnections, meId]);
 
   const inbox = (myConnections ?? []).filter((c: any) => c.to_user === meId && c.status === "pending");
-
-  // Selfie verification (MVP: auto-approves on upload; production would review)
-  const [selfieUploading, setSelfieUploading] = useState(false);
-  async function submitSelfie(file: File) {
-    if (!meId) return;
-    if (!file.type.startsWith("image/")) { toast.error("Please upload an image"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
-    setSelfieUploading(true);
-    try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${meId}/verify/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({ verification_status: "verified", verification_selfie_path: path, verified_at: new Date().toISOString() })
-        .eq("id", meId);
-      if (profErr) throw profErr;
-      toast.success("You're verified. Welcome, sister.");
-      refetchProfile();
-    } catch (e: any) {
-      toast.error(e.message || "Could not verify");
-    } finally {
-      setSelfieUploading(false);
-    }
-  }
 
   // Connection request dialog state
   const [connectFor, setConnectFor] = useState<any | null>(null);
@@ -352,52 +310,12 @@ function Travel() {
         <Plane className="h-4 w-4" />
         <AlertTitle>Trust & safety</AlertTitle>
         <AlertDescription>
-          Women-only, verified members. We never expose your exact location or contact publicly — sisters must request to connect, and only after you accept do you exchange details. If you're in immediate danger, call local emergency services first.
+          Your contact and exact location are never public. Sisters must request to connect — you choose who to trust before any details are exchanged. Start with a call before meeting, and if you're in immediate danger, call local emergency services first.
         </AlertDescription>
       </Alert>
 
-      {/* Verification gate */}
-      {!isVerified && (
-        <Card className="border-earth/40">
-          <CardHeader>
-            <CardTitle className="font-serif italic text-lg flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-earth" /> Verify to enter the sisterhood
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <p className="text-muted-foreground">
-              To keep this space women-only, upload a selfie for verification. Your photo stays private — only used to confirm you. Unverified accounts can't see posts, contacts, or send connection requests.
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Input
-                type="file"
-                accept="image/*"
-                capture="user"
-                disabled={selfieUploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) submitSelfie(f); }}
-                className="max-w-xs"
-              />
-              {selfieUploading && <span className="text-xs text-muted-foreground">Verifying…</span>}
-              {myProfile?.verification_status === "pending" && <Badge variant="outline">Pending review</Badge>}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              By uploading, you confirm this is a photo of you. False verification results in a permanent ban.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {isVerified && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="default" className="bg-sage text-background flex items-center gap-1">
-            <ShieldCheck className="h-3 w-3" /> Verified sister
-          </Badge>
-          <span>You can post requests, see other sisters, and connect.</span>
-        </div>
-      )}
-
       {/* Inbox: incoming connection requests on my posts */}
-      {isVerified && inbox.length > 0 && (
+      {inbox.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="font-serif italic text-lg flex items-center gap-2">
@@ -436,7 +354,7 @@ function Travel() {
         </CardContent>
       </Card>
 
-      {isVerified && <Card>
+      <Card>
         <CardHeader>
           <CardTitle className="font-serif italic text-lg flex items-center gap-2">
             <MapPin className="h-4 w-4" /> Post what you need
@@ -484,9 +402,9 @@ function Travel() {
             Your contact stays hidden. Sisters send a connection request; you review and choose who sees your details.
           </p>
         </CardContent>
-      </Card>}
+      </Card>
 
-      {isVerified ? <section className="space-y-4">
+      <section className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="font-serif italic text-2xl">Sisters reaching out now</h2>
           <div className="flex items-center gap-2">
@@ -643,14 +561,7 @@ function Travel() {
             </div>
           </>
         )}
-      </section> : (
-        <Card className="border-dashed">
-          <CardContent className="py-8 text-center space-y-2">
-            <Lock className="h-6 w-6 mx-auto text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Verify to see sisters reaching out and to send connection requests.</p>
-          </CardContent>
-        </Card>
-      )}
+      </section>
 
       {/* Connection request dialog */}
       <Dialog open={!!connectFor} onOpenChange={(o) => { if (!o) { setConnectFor(null); setConnectMsg(""); } }}>
