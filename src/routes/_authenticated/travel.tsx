@@ -310,52 +310,12 @@ function Travel() {
         <Plane className="h-4 w-4" />
         <AlertTitle>Trust & safety</AlertTitle>
         <AlertDescription>
-          Women-only, verified members. We never expose your exact location or contact publicly — sisters must request to connect, and only after you accept do you exchange details. If you're in immediate danger, call local emergency services first.
+          Your contact and exact location are never public. Sisters must request to connect — you choose who to trust before any details are exchanged. Start with a call before meeting, and if you're in immediate danger, call local emergency services first.
         </AlertDescription>
       </Alert>
 
-      {/* Verification gate */}
-      {!isVerified && (
-        <Card className="border-earth/40">
-          <CardHeader>
-            <CardTitle className="font-serif italic text-lg flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-earth" /> Verify to enter the sisterhood
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <p className="text-muted-foreground">
-              To keep this space women-only, upload a selfie for verification. Your photo stays private — only used to confirm you. Unverified accounts can't see posts, contacts, or send connection requests.
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Input
-                type="file"
-                accept="image/*"
-                capture="user"
-                disabled={selfieUploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) submitSelfie(f); }}
-                className="max-w-xs"
-              />
-              {selfieUploading && <span className="text-xs text-muted-foreground">Verifying…</span>}
-              {myProfile?.verification_status === "pending" && <Badge variant="outline">Pending review</Badge>}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              By uploading, you confirm this is a photo of you. False verification results in a permanent ban.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {isVerified && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="default" className="bg-sage text-background flex items-center gap-1">
-            <ShieldCheck className="h-3 w-3" /> Verified sister
-          </Badge>
-          <span>You can post requests, see other sisters, and connect.</span>
-        </div>
-      )}
-
       {/* Inbox: incoming connection requests on my posts */}
-      {isVerified && inbox.length > 0 && (
+      {inbox.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="font-serif italic text-lg flex items-center gap-2">
@@ -394,7 +354,7 @@ function Travel() {
         </CardContent>
       </Card>
 
-      {isVerified && <Card>
+      <Card>
         <CardHeader>
           <CardTitle className="font-serif italic text-lg flex items-center gap-2">
             <MapPin className="h-4 w-4" /> Post what you need
@@ -442,9 +402,9 @@ function Travel() {
             Your contact stays hidden. Sisters send a connection request; you review and choose who sees your details.
           </p>
         </CardContent>
-      </Card>}
+      </Card>
 
-      {isVerified ? <section className="space-y-4">
+      <section className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="font-serif italic text-2xl">Sisters reaching out now</h2>
           <div className="flex items-center gap-2">
@@ -601,14 +561,7 @@ function Travel() {
             </div>
           </>
         )}
-      </section> : (
-        <Card className="border-dashed">
-          <CardContent className="py-8 text-center space-y-2">
-            <Lock className="h-6 w-6 mx-auto text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Verify to see sisters reaching out and to send connection requests.</p>
-          </CardContent>
-        </Card>
-      )}
+      </section>
 
       {/* Connection request dialog */}
       <Dialog open={!!connectFor} onOpenChange={(o) => { if (!o) { setConnectFor(null); setConnectMsg(""); } }}>
