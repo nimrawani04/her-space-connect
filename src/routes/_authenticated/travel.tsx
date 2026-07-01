@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plane, MapPin, Search, X, LocateFixed, Lock, MessageCircle, Check, Inbox, Eye, ShieldAlert } from "lucide-react";
+import { Plane, MapPin, Search, X, Lock, MessageCircle, Check, Inbox, Eye, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,10 +13,7 @@ import { useMutation, useQueryClient, useInfiniteQuery, useSuspenseQuery, useQue
 import { toast } from "sonner";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useServerFn } from "@tanstack/react-start";
-import { reverseGeocode } from "@/lib/geocode.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -33,7 +30,6 @@ const travelSearchSchema = z.object({
   city: fallback(z.string().max(100), "").default(""),
   country: fallback(z.string().max(100), "").default(""),
   need: fallback(z.string().max(200), "").default(""),
-  radius: fallback(z.union([z.literal(0), z.literal(5), z.literal(10), z.literal(25), z.literal(50), z.literal(100)]), 0).default(0),
 });
 
 const travelRequestsQueryOptions = (filters: { city: string; country: string; need: string }) =>
@@ -42,7 +38,7 @@ const travelRequestsQueryOptions = (filters: { city: string; country: string; ne
     queryFn: async () => {
       let q = supabase
         .from("travel_requests")
-        .select("id,city,country,need,contact,created_at,user_id,latitude,longitude")
+        .select("id,city,country,need,contact,created_at,user_id")
         .order("created_at", { ascending: false });
       if (filters.city.trim()) q = q.ilike("city", `%${filters.city.trim()}%`);
       if (filters.country.trim()) q = q.ilike("country", `%${filters.country.trim()}%`);
@@ -78,88 +74,16 @@ function Travel() {
   const navigate = useNavigate({ from: "/travel" });
   const search = Route.useSearch();
   const [form, setForm] = useState({ city: "", country: "", note: "" });
-  const [req, setReq] = useState<{ city: string; country: string; need: string; contact: string; latitude: number | null; longitude: number | null }>({ city: "", country: "", need: "", contact: "", latitude: null, longitude: null });
+  const [req, setReq] = useState<{ city: string; country: string; need: string; contact: string }>({ city: "", country: "", need: "", contact: "" });
   const [draft, setDraft] = useState(search);
-  const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [postLocating, setPostLocating] = useState(false);
-  const [autoLoc, setAutoLoc] = useState(false);
-  const geocode = useServerFn(reverseGeocode);
 
   useEffect(() => {
     setDraft(search);
-  }, [search.city, search.country, search.need, search.radius]);
+  }, [search.city, search.country, search.need]);
 
   const { data: requests } = useSuspenseQuery(travelRequestsQueryOptions(search));
 
-  function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-    const R = 6371;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(b.lat - a.lat);
-    const dLng = toRad(b.lng - a.lng);
-    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(s));
-  }
-
-  const sortedRequests = myCoords
-    ? [...requests].sort((a: any, b: any) => {
-        const da = a.latitude != null && a.longitude != null ? haversine(myCoords, { lat: a.latitude, lng: a.longitude }) : Infinity;
-        const db = b.latitude != null && b.longitude != null ? haversine(myCoords, { lat: b.latitude, lng: b.longitude }) : Infinity;
-        return da - db;
-      })
-    : requests;
-
-  const visibleRequests = myCoords && search.radius > 0
-    ? sortedRequests.filter((r: any) => {
-        if (r.latitude == null || r.longitude == null) return false;
-        return haversine(myCoords, { lat: r.latitude, lng: r.longitude }) <= search.radius;
-      })
-    : sortedRequests;
-
-  function useMyLocation() {
-    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); return; }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setMyCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocating(false);
-        toast.success("Sorted by distance from you");
-      },
-      (err) => { setLocating(false); toast.error(err.message || "Could not get location"); },
-      { enableHighAccuracy: false, timeout: 8000 },
-    );
-  }
-
-  function detectLocation() {
-    if (!("geolocation" in navigator)) { toast.error("Geolocation not supported"); setAutoLoc(false); return; }
-    setPostLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { city, country } = await geocode({ data: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
-          setReq((r) => ({
-            ...r,
-            city: city || r.city,
-            country: country || r.country,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          }));
-          toast.success(city ? `Location set to ${city}, ${country}` : "Coordinates attached");
-        } catch (e: any) {
-          setReq((r) => ({
-            ...r,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          }));
-          toast.error(e.message || "Could not resolve city/country");
-        } finally {
-          setPostLocating(false);
-        }
-      },
-      (err) => { setPostLocating(false); setAutoLoc(false); toast.error(err.message || "Could not get location"); },
-      { enableHighAccuracy: false, timeout: 8000 },
-    );
-  }
+  const visibleRequests = requests;
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["travel_hosts"],
@@ -220,14 +144,11 @@ function Travel() {
         country: req.country.trim(),
         need: req.need.trim(),
         contact: req.contact.trim(),
-        latitude: null,
-        longitude: null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      setReq({ city: "", country: "", need: "", contact: "", latitude: null, longitude: null });
-      setAutoLoc(false);
+      setReq({ city: "", country: "", need: "", contact: "" });
       qc.invalidateQueries({ queryKey: ["travel_requests"] });
       toast.success("Shared — sisters nearby can reach you");
     },
