@@ -278,6 +278,10 @@ function Travel() {
   const [connectFor, setConnectFor] = useState<any | null>(null);
   const [connectMsg, setConnectMsg] = useState("");
 
+  // Contact reveal gate (per accepted request)
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [revealCandidate, setRevealCandidate] = useState<any | null>(null);
+
   const sendConnect = useMutation({
     mutationFn: async () => {
       if (!connectFor || !meId) throw new Error("Not ready");
