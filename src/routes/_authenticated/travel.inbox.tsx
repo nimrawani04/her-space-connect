@@ -337,9 +337,10 @@ function TravelInbox() {
                           <p className="whitespace-pre-wrap">"{confirming.conn.message}"</p>
                         </div>
                       )}
+                      <VetBlock c={confirming.conn} />
                       <p className="text-xs text-muted-foreground">
                         {isAccept
-                          ? "Accepting will share her contact with you and yours with her. Start on a voice or video call before meeting — never share your home address."
+                          ? "Open her handle above and check it looks like a real person before accepting. Accepting shares her full contact and yours — meet on a call first, never share your home address."
                           : "She won't be notified with a reason. You can't undo this."}
                       </p>
                     </div>
