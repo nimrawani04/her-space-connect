@@ -351,8 +351,81 @@ function Travel() {
       <Alert>
         <Plane className="h-4 w-4" />
         <AlertTitle>Trust & safety</AlertTitle>
-        <AlertDescription>Verified hosts carry the verified badge. We do not share location data publicly. If you're in immediate danger, call local emergency services first.</AlertDescription>
+        <AlertDescription>
+          Women-only, verified members. We never expose your exact location or contact publicly — sisters must request to connect, and only after you accept do you exchange details. If you're in immediate danger, call local emergency services first.
+        </AlertDescription>
       </Alert>
+
+      {/* Verification gate */}
+      {!isVerified && (
+        <Card className="border-earth/40">
+          <CardHeader>
+            <CardTitle className="font-serif italic text-lg flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-earth" /> Verify to enter the sisterhood
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              To keep this space women-only, upload a selfie for verification. Your photo stays private — only used to confirm you. Unverified accounts can't see posts, contacts, or send connection requests.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Input
+                type="file"
+                accept="image/*"
+                capture="user"
+                disabled={selfieUploading}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) submitSelfie(f); }}
+                className="max-w-xs"
+              />
+              {selfieUploading && <span className="text-xs text-muted-foreground">Verifying…</span>}
+              {myProfile?.verification_status === "pending" && <Badge variant="outline">Pending review</Badge>}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              By uploading, you confirm this is a photo of you. False verification results in a permanent ban.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isVerified && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="default" className="bg-sage text-background flex items-center gap-1">
+            <ShieldCheck className="h-3 w-3" /> Verified sister
+          </Badge>
+          <span>You can post requests, see other sisters, and connect.</span>
+        </div>
+      )}
+
+      {/* Inbox: incoming connection requests on my posts */}
+      {isVerified && inbox.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif italic text-lg flex items-center gap-2">
+              <Inbox className="h-4 w-4" /> Sisters wanting to connect ({inbox.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {inbox.map((c: any) => (
+              <div key={c.id} className="rounded-lg border p-3 space-y-2">
+                {c.message && <p className="text-sm whitespace-pre-wrap">"{c.message}"</p>}
+                <p className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  Accepting shares your contact from your post with her, and hers with you. Talk on a call first — never share your home address.
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" className="rounded-full" onClick={() => respondConnect.mutate({ id: c.id, status: "accepted" })}>
+                    <Check className="h-3 w-3 mr-1" /> Accept
+                  </Button>
+                  <Button size="sm" variant="outline" className="rounded-full" onClick={() => respondConnect.mutate({ id: c.id, status: "declined" })}>
+                    Decline
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader><CardTitle className="font-serif italic text-lg">Become a local sister</CardTitle></CardHeader>
         <CardContent className="grid sm:grid-cols-4 gap-2">
@@ -363,10 +436,10 @@ function Travel() {
         </CardContent>
       </Card>
 
-      <Card>
+      {isVerified && <Card>
         <CardHeader>
           <CardTitle className="font-serif italic text-lg flex items-center gap-2">
-            <MapPin className="h-4 w-4" /> Share your location & what you need
+            <MapPin className="h-4 w-4" /> Post what you need
           </CardTitle>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-2">
@@ -381,7 +454,7 @@ function Travel() {
           />
           <Input
             className="sm:col-span-2"
-            placeholder="How sisters can reach you (WhatsApp, Signal, email, IG handle)"
+            placeholder="Contact for accepted sisters only (WhatsApp, Signal, IG). Hidden until you accept a request."
             value={req.contact}
             maxLength={200}
             onChange={(e) => setReq({ ...req, contact: e.target.value })}
@@ -389,9 +462,9 @@ function Travel() {
           <div className="sm:col-span-2 flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
               <Label htmlFor="use-my-location" className="font-medium flex items-center gap-2">
-                <LocateFixed className="h-4 w-4" /> Use my location
+                <LocateFixed className="h-4 w-4" /> Attach coordinates (private)
               </Label>
-              <p className="text-xs text-muted-foreground">Auto-fill city and country and pin coordinates for nearby sisters.</p>
+              <p className="text-xs text-muted-foreground">Only used so other sisters see rough distance from their own device. Your exact coordinates are never displayed.</p>
             </div>
             <Switch
               id="use-my-location"
@@ -404,21 +477,16 @@ function Travel() {
               }}
             />
           </div>
-          {req.latitude != null && req.longitude != null && (
-            <p className="text-xs text-muted-foreground sm:col-span-2">
-              Pinned: {req.latitude.toFixed(3)}, {req.longitude.toFixed(3)} · {req.city && req.country ? `${req.city}, ${req.country}` : "Coordinates attached"}
-            </p>
-          )}
           <Button onClick={() => postRequest.mutate()} disabled={postRequest.isPending} className="rounded-full sm:col-span-2">
             Post to the network
           </Button>
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            Your contact is visible to signed-in members only. Share what you're comfortable with — never share home addresses publicly.
+            Your contact stays hidden. Sisters send a connection request; you review and choose who sees your details.
           </p>
         </CardContent>
-      </Card>
+      </Card>}
 
-      <section className="space-y-4">
+      {isVerified ? <section className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="font-serif italic text-2xl">Sisters reaching out now</h2>
           <div className="flex items-center gap-2">
@@ -520,6 +588,11 @@ function Travel() {
                 const dist = myCoords && r.latitude != null && r.longitude != null
                   ? haversine(myCoords, { lat: r.latitude, lng: r.longitude })
                   : null;
+                const mine = meId === r.user_id;
+                const conn = connByRequest.get(r.id);
+                const accepted = mine || conn?.status === "accepted";
+                const pending = !mine && conn?.status === "pending";
+                const declined = !mine && conn?.status === "declined";
                 return (
                 <Card key={r.id}>
                   <CardHeader className="pb-2">
@@ -534,8 +607,29 @@ function Travel() {
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
                     <p className="whitespace-pre-wrap">{r.need}</p>
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
-                    <p className="font-medium break-words">{r.contact}</p>
+                    {accepted ? (
+                      <>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
+                        <p className="font-medium break-words">{r.contact}</p>
+                        {!mine && <p className="text-[11px] text-muted-foreground">Start with a voice or video call before meeting. Never share your home address.</p>}
+                      </>
+                    ) : (
+                      <div className="rounded-md bg-muted/40 border border-dashed p-3 flex items-start gap-2">
+                        <Lock className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="space-y-2 flex-1">
+                          <p className="text-xs text-muted-foreground">
+                            Contact is hidden. {pending ? "Your request is pending." : declined ? "Your request was declined." : "Send a note to ask her to connect — she'll decide whether to share her contact."}
+                          </p>
+                          {!pending && !declined && (
+                            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setConnectFor(r)}>
+                              <MessageCircle className="h-3.5 w-3.5 mr-1" /> Request to connect
+                            </Button>
+                          )}
+                          {pending && <Badge variant="outline">Pending</Badge>}
+                          {declined && <Badge variant="outline">Declined</Badge>}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center pt-1">
                       <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
                       {meId === r.user_id && (
@@ -549,7 +643,38 @@ function Travel() {
             </div>
           </>
         )}
-      </section>
+      </section> : (
+        <Card className="border-dashed">
+          <CardContent className="py-8 text-center space-y-2">
+            <Lock className="h-6 w-6 mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Verify to see sisters reaching out and to send connection requests.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Connection request dialog */}
+      <Dialog open={!!connectFor} onOpenChange={(o) => { if (!o) { setConnectFor(null); setConnectMsg(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-serif italic">Request to connect</DialogTitle>
+            <DialogDescription>
+              Send a short note. She'll see your request in her inbox. If she accepts, you'll both see each other's contact — meet safely on a call first.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Hi sister, I'm nearby and I can help with…"
+            value={connectMsg}
+            maxLength={300}
+            onChange={(e) => setConnectMsg(e.target.value)}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setConnectFor(null); setConnectMsg(""); }}>Cancel</Button>
+            <Button onClick={() => sendConnect.mutate()} disabled={sendConnect.isPending}>
+              {sendConnect.isPending ? "Sending…" : "Send request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {!isLoading && cities.length === 0 && <p className="text-sm text-muted-foreground">No hosts yet — be the first to list your city.</p>}
