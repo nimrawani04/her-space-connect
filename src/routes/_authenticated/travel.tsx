@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -314,35 +314,30 @@ function Travel() {
         </AlertDescription>
       </Alert>
 
-      {/* Inbox: incoming connection requests on my posts */}
-      {inbox.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-serif italic text-lg flex items-center gap-2">
-              <Inbox className="h-4 w-4" /> Sisters wanting to connect ({inbox.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {inbox.map((c: any) => (
-              <div key={c.id} className="rounded-lg border p-3 space-y-2">
-                {c.message && <p className="text-sm whitespace-pre-wrap">"{c.message}"</p>}
-                <p className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">
-                  Accepting shares your contact from your post with her, and hers with you. Talk on a call first — never share your home address.
-                </p>
-                <div className="flex gap-2">
-                  <Button size="sm" className="rounded-full" onClick={() => respondConnect.mutate({ id: c.id, status: "accepted" })}>
-                    <Check className="h-3 w-3 mr-1" /> Accept
-                  </Button>
-                  <Button size="sm" variant="outline" className="rounded-full" onClick={() => respondConnect.mutate({ id: c.id, status: "declined" })}>
-                    Decline
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      {/* Inbox link: dedicated screen for incoming requests */}
+      <Card>
+        <CardContent className="py-4 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-earth/10 flex items-center justify-center">
+              <Inbox className="h-5 w-5 text-earth" />
+            </div>
+            <div>
+              <p className="font-medium">Your inbox</p>
+              <p className="text-xs text-muted-foreground">
+                {inbox.length > 0
+                  ? `${inbox.length} sister${inbox.length === 1 ? "" : "s"} waiting for you to review`
+                  : "Review sisters requesting to connect on your posts"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {inbox.length > 0 && <Badge>{inbox.length} pending</Badge>}
+            <Button asChild variant="outline" size="sm" className="rounded-full">
+              <Link to="/travel/inbox">Open inbox</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="font-serif italic text-lg">Become a local sister</CardTitle></CardHeader>
