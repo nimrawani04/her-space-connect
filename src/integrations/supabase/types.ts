@@ -451,9 +451,6 @@ export type Database = {
           theme_mode: string | null
           updated_at: string
           username: string | null
-          verification_selfie_path: string | null
-          verification_status: string
-          verified_at: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -470,9 +467,6 @@ export type Database = {
           theme_mode?: string | null
           updated_at?: string
           username?: string | null
-          verification_selfie_path?: string | null
-          verification_status?: string
-          verified_at?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -489,9 +483,6 @@ export type Database = {
           theme_mode?: string | null
           updated_at?: string
           username?: string | null
-          verification_selfie_path?: string | null
-          verification_status?: string
-          verified_at?: string | null
         }
         Relationships: []
       }
@@ -809,7 +800,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_verified: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "mentor" | "member"
