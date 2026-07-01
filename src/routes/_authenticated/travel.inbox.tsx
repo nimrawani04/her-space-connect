@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Check, Eye, Inbox, MapPin, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, Check, Eye, ExternalLink, Inbox, MapPin, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -44,6 +44,8 @@ type Conn = {
   status: "pending" | "accepted" | "declined";
   message: string | null;
   created_at: string;
+  contact_type: string | null;
+  contact_handle: string | null;
 };
 
 function TravelInbox() {
@@ -63,7 +65,7 @@ function TravelInbox() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("travel_connections")
-        .select("id,request_id,from_user,to_user,status,message,created_at")
+        .select("id,request_id,from_user,to_user,status,message,created_at,contact_type,contact_handle")
         .eq("to_user", meId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -141,6 +143,38 @@ function TravelInbox() {
     return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   }
 
+  function vettingLink(type: string | null, handle: string | null): string | null {
+    if (!type || !handle) return null;
+    const h = handle.trim();
+    if (type === "instagram") return `https://instagram.com/${h.replace(/^@/, "")}`;
+    if (type === "whatsapp" || type === "phone") return `https://wa.me/${h.replace(/[^\d+]/g, "").replace(/^\+/, "")}`;
+    if (type === "telegram") return `https://t.me/${h.replace(/^@/, "")}`;
+    if (type === "email") return `mailto:${h}`;
+    if (/^https?:\/\//i.test(h)) return h;
+    return null;
+  }
+
+  function VetBlock({ c }: { c: Conn }) {
+    if (!c.contact_handle) return null;
+    const link = vettingLink(c.contact_type, c.contact_handle);
+    const label = (c.contact_type ?? "contact").replace(/^./, (s) => s.toUpperCase());
+    return (
+      <div className="rounded-md border border-dashed p-3 text-sm space-y-1.5">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Vet her before accepting</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="rounded-full">{label}</Badge>
+          <span className="font-medium break-all">{c.contact_handle}</span>
+          {link && (
+            <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-earth underline underline-offset-2">
+              Open <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground">Check that the profile looks real — actual name, photos, mutuals, posts. If it feels off, decline.</p>
+      </div>
+    );
+  }
+
   function Row({ c }: { c: Conn }) {
     const who = profileMap.get(c.from_user);
     const post = requestMap.get(c.request_id);
@@ -171,6 +205,7 @@ function TravelInbox() {
         {c.message && (
           <blockquote className="text-sm border-l-2 border-earth pl-3 whitespace-pre-wrap">"{c.message}"</blockquote>
         )}
+        {(c.status === "pending" || c.status === "accepted") && <VetBlock c={c} />}
         {c.status === "pending" && (
           <>
             <p className="text-xs text-muted-foreground">
