@@ -610,6 +610,47 @@ function Travel() {
         </DialogContent>
       </Dialog>
 
+      {/* Contact reveal confirmation */}
+      <AlertDialog open={!!revealCandidate} onOpenChange={(o) => { if (!o) setRevealCandidate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif italic flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-earth" /> Reveal her contact?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-left">
+                {revealCandidate && (
+                  <div className="rounded-md bg-muted/40 p-3 text-xs">
+                    <p className="uppercase tracking-wider text-muted-foreground mb-1">Her post</p>
+                    <p className="font-medium text-foreground">{revealCandidate.city}, {revealCandidate.country}</p>
+                    <p className="italic mt-1 whitespace-pre-wrap">{revealCandidate.need}</p>
+                  </div>
+                )}
+                <ul className="text-xs space-y-1 list-disc pl-4 text-muted-foreground">
+                  <li>Start with a voice or video call — never meet before you've heard her voice.</li>
+                  <li>Meet in a public place first. Share the plan with a trusted person.</li>
+                  <li>Never share your home address, ID, or financial details over chat.</li>
+                  <li>If anything feels off, block and report immediately.</li>
+                </ul>
+                <p className="text-xs text-muted-foreground">Only reveal if you're ready to reach out now.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep hidden</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (revealCandidate) setRevealed((s) => ({ ...s, [revealCandidate.id]: true }));
+                setRevealCandidate(null);
+              }}
+            >
+              I understand — reveal contact
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {!isLoading && cities.length === 0 && <p className="text-sm text-muted-foreground">No hosts yet — be the first to list your city.</p>}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
