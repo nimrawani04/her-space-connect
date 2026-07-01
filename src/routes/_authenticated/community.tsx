@@ -79,7 +79,7 @@ function Community() {
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">02 · Sisterhood</p>
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-4xl md:text-5xl font-serif italic">Safe Space</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Safe Space</h1>
           <span className={`inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full border ${live ? "border-sage/40 text-sage bg-sage/10" : "border-border text-muted-foreground"}`}>
             <Radio className={`h-3 w-3 ${live ? "animate-pulse" : ""}`} /> {live ? "Live" : "Connecting…"}
           </span>

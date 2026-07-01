@@ -48,7 +48,7 @@ function Mentorship() {
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">04 · Growth</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Mentorship</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Mentorship</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl">Connect with verified women leaders across engineering, medicine, research, AI, entrepreneurship, design, UPSC, and freelancing.</p>
       </header>
 

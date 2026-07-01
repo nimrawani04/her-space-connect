@@ -89,7 +89,7 @@ function Experience() {
     <div className="max-w-5xl mx-auto space-y-8">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">03 · Match</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Experience Match</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Experience Match</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl">Find women who've lived what you're living. Request a conversation, or join the circle around a shared journey.</p>
       </header>
       <div className="flex flex-wrap gap-2 items-center">
