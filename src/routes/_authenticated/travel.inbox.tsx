@@ -10,6 +10,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Check, Inbox, MapPin, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/travel/inbox")({
   head: () => ({ meta: [{ title: "Travel Inbox · HerSpace" }] }),
@@ -39,6 +49,7 @@ type Conn = {
 function TravelInbox() {
   const qc = useQueryClient();
   const [meId, setMeId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<{ conn: Conn; action: "accepted" | "declined" } | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
@@ -113,6 +124,7 @@ function TravelInbox() {
       toast.success(v.status === "accepted" ? "Contact shared — talk safe." : "Declined.");
       qc.invalidateQueries({ queryKey: ["travel_inbox", meId] });
       qc.invalidateQueries({ queryKey: ["travel_connections", meId] });
+      setConfirming(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -163,10 +175,10 @@ function TravelInbox() {
               Accepting shares her contact with you and yours with her. Start on a voice or video call before meeting. Never share your home address.
             </p>
             <div className="flex gap-2">
-              <Button size="sm" className="rounded-full" onClick={() => respond.mutate({ id: c.id, status: "accepted" })} disabled={respond.isPending}>
+              <Button size="sm" className="rounded-full" onClick={() => setConfirming({ conn: c, action: "accepted" })} disabled={respond.isPending}>
                 <Check className="h-3.5 w-3.5 mr-1" /> Accept
               </Button>
-              <Button size="sm" variant="outline" className="rounded-full" onClick={() => respond.mutate({ id: c.id, status: "declined" })} disabled={respond.isPending}>
+              <Button size="sm" variant="outline" className="rounded-full" onClick={() => setConfirming({ conn: c, action: "declined" })} disabled={respond.isPending}>
                 <X className="h-3.5 w-3.5 mr-1" /> Decline
               </Button>
             </div>
@@ -232,6 +244,75 @@ function TravelInbox() {
           ) : declined.map((c) => <Row key={c.id} c={c} />)}
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!confirming} onOpenChange={(o) => { if (!o) setConfirming(null); }}>
+        <AlertDialogContent>
+          {confirming && (() => {
+            const who = profileMap.get(confirming.conn.from_user);
+            const post = requestMap.get(confirming.conn.request_id);
+            const isAccept = confirming.action === "accepted";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-serif italic">
+                    {isAccept ? "Accept this sister?" : "Decline this request?"}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3 text-left">
+                      <div className="flex items-start gap-3 pt-2">
+                        <Avatar className="h-10 w-10">
+                          {who?.avatar_url && <AvatarImage src={who.avatar_url} alt="" />}
+                          <AvatarFallback>{initials(who?.display_name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="text-sm">
+                          <p className="font-medium text-foreground">{who?.display_name ?? "A sister"}</p>
+                          {(who?.city || who?.country) && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" /> {[who.city, who.country].filter(Boolean).join(", ")}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">Sent {new Date(confirming.conn.created_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      {post && (
+                        <div className="rounded-md bg-muted/40 p-3 text-xs">
+                          <p className="uppercase tracking-wider text-muted-foreground mb-1">On your post</p>
+                          <p className="font-medium text-foreground">{post.city}, {post.country}</p>
+                          <p className="italic mt-1 whitespace-pre-wrap">{post.need}</p>
+                        </div>
+                      )}
+                      {confirming.conn.message && (
+                        <div className="rounded-md border-l-2 border-earth pl-3 text-sm">
+                          <p className="uppercase text-xs tracking-wider text-muted-foreground mb-1">Her note</p>
+                          <p className="whitespace-pre-wrap">"{confirming.conn.message}"</p>
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {isAccept
+                          ? "Accepting will share her contact with you and yours with her. Start on a voice or video call before meeting — never share your home address."
+                          : "She won't be notified with a reason. You can't undo this."}
+                      </p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={respond.isPending}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault();
+                      respond.mutate({ id: confirming.conn.id, status: confirming.action });
+                    }}
+                    disabled={respond.isPending}
+                    className={isAccept ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+                  >
+                    {respond.isPending ? "Saving…" : isAccept ? "Yes, accept & share contact" : "Yes, decline"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
