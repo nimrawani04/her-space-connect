@@ -51,6 +51,22 @@
   --color-sand: var(--sand);
   --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  /* Shared typography tokens — use these instead of ad-hoc leading/measure
+     values so every heading and body block wraps the same way across the app.
+     Line-heights are unitless so they scale with font-size. Measure caps use
+     `ch` so the reading width stays comfortable regardless of viewport. */
+  --leading-display: 1.05;
+  --leading-heading: 1.15;
+  --leading-subheading: 1.3;
+  --leading-body: 1.6;
+  --leading-tight-body: 1.5;
+  --tracking-display: -0.02em;
+  --tracking-heading: -0.01em;
+  --tracking-body: 0em;
+  --measure-display: 22ch;
+  --measure-heading: 34ch;
+  --measure-body: 68ch;
+  --measure-narrow: 52ch;
 }
 
 :root {
@@ -145,15 +161,45 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "ss02";
+    line-height: var(--leading-body);
+    letter-spacing: var(--tracking-body);
   }
-  h1, h2, h3, h4 {
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-serif);
-    letter-spacing: -0.01em;
+    letter-spacing: var(--tracking-heading);
     /* text-wrap: pretty prevents orphaned last-line words. Supported in
        Chrome 117+, Safari 17.5+, Firefox 121+. Older engines ignore it. */
     text-wrap: pretty;
   }
+  h1 { line-height: var(--leading-display); letter-spacing: var(--tracking-display); }
+  h2 { line-height: var(--leading-heading); }
+  h3, h4 { line-height: var(--leading-subheading); }
+  h5, h6 { line-height: var(--leading-subheading); }
+  p { line-height: var(--leading-body); }
 }
+
+/* Shared measure + wrapping utilities. Use these anywhere copy needs a
+   comfortable reading width instead of hardcoding `max-w-[42ch]` etc. */
+@utility measure-display {
+  max-inline-size: var(--measure-display);
+  text-wrap: balance;
+}
+@utility measure-heading {
+  max-inline-size: var(--measure-heading);
+  text-wrap: balance;
+}
+@utility measure-body {
+  max-inline-size: var(--measure-body);
+  text-wrap: pretty;
+}
+@utility measure-narrow {
+  max-inline-size: var(--measure-narrow);
+  text-wrap: pretty;
+}
+@utility leading-display { line-height: var(--leading-display); }
+@utility leading-heading { line-height: var(--leading-heading); }
+@utility leading-subheading { line-height: var(--leading-subheading); }
+@utility leading-body { line-height: var(--leading-body); }
 
 /* Safari <17.5 does not support text-wrap: balance (used by Tailwind's
    `text-balance` utility on hero headings). Fall back to `pretty` where
@@ -162,7 +208,11 @@
 @supports not (text-wrap: balance) {
   .text-balance {
     text-wrap: pretty;
-    max-inline-size: 22ch;
+    max-inline-size: var(--measure-display);
+  }
+  .measure-display,
+  .measure-heading {
+    text-wrap: pretty;
   }
 }
 
