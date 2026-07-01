@@ -96,7 +96,7 @@ function HealthHub() {
     <div className="max-w-5xl mx-auto space-y-8">
       <section className="rounded-3xl bg-sand/40 border border-border p-8 md:p-12">
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-3">01 · Intelligence</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic leading-tight max-w-2xl">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic leading-tight max-w-2xl">
           Understand your body, before you see the doctor.
         </h1>
         <p className="text-muted-foreground mt-4 max-w-2xl leading-relaxed">

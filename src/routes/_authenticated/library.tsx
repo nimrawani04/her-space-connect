@@ -25,7 +25,7 @@ function Library() {
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">10 · Library</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Library & Stories</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Library & Stories</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl">Expert-reviewed health articles, women's research, and lived-experience stories — written by us, for us.</p>
       </header>
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}

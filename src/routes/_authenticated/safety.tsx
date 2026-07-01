@@ -25,7 +25,7 @@ function Safety() {
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">07 · Safety</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Safety Network</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Safety Network</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl">Verified safe places, reviews by women for women, and real-time alerts. For active danger, call your local emergency number first.</p>
       </header>
 
