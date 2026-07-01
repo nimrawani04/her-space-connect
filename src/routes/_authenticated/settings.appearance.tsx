@@ -104,7 +104,7 @@ function AppearancePage() {
     <div className="max-w-5xl mx-auto space-y-8">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">Settings</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Theme &amp; Appearance</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Theme &amp; Appearance</h1>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
           <p className="text-muted-foreground max-w-2xl">
             Tune HerSpace to feel like yours. Everything saves to your profile and follows you across devices.

@@ -250,7 +250,7 @@ function TravelInbox() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">Travel Sisterhood</p>
-          <h1 className="text-3xl md:text-4xl font-serif italic flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif italic flex items-center gap-3">
             <Inbox className="h-7 w-7" /> Inbox
           </h1>
         </div>
