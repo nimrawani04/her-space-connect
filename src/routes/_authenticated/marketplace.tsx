@@ -69,14 +69,18 @@ function Marketplace() {
       </header>
       <Card>
         <CardHeader><CardTitle className="font-serif italic text-lg">List your service</CardTitle></CardHeader>
-        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           <Input placeholder="Your name" value={form.provider_name} onChange={(e) => setForm({ ...form, provider_name: e.target.value })} />
           <Input placeholder="What you do" value={form.craft} onChange={(e) => setForm({ ...form, craft: e.target.value })} />
           <Input placeholder="Price (e.g. $60/hr)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-          <div className="flex gap-2">
-            <Input placeholder="Tags (comma)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
-            <Button onClick={() => addListing.mutate()} disabled={addListing.isPending} className="rounded-full">List</Button>
-          </div>
+          <Input placeholder="Tags (comma)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+          <Button
+            onClick={() => addListing.mutate()}
+            disabled={addListing.isPending}
+            className="rounded-full sm:col-span-2 lg:col-span-4"
+          >
+            List service
+          </Button>
         </CardContent>
       </Card>
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
