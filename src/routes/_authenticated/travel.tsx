@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plane, MapPin, Search, X, LocateFixed, ShieldCheck, ShieldAlert, Lock, MessageCircle, Check, Inbox } from "lucide-react";
+import { Plane, MapPin, Search, X, LocateFixed, Lock, MessageCircle, Check, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useMemo } from "react";
