@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plane, MapPin, Search, X, LocateFixed } from "lucide-react";
+import { Plane, MapPin, Search, X, LocateFixed, ShieldCheck, ShieldAlert, Lock, MessageCircle, Check, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient, useInfiniteQuery, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery, useSuspenseQuery, useQuery, queryOptions } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useServerFn } from "@tanstack/react-start";
 import { reverseGeocode } from "@/lib/geocode.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const travelSearchSchema = z.object({
   city: fallback(z.string().max(100), "").default(""),
