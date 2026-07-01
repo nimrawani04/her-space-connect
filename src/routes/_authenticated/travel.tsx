@@ -220,8 +220,8 @@ function Travel() {
         country: req.country.trim(),
         need: req.need.trim(),
         contact: req.contact.trim(),
-        latitude: req.latitude,
-        longitude: req.longitude,
+        latitude: null,
+        longitude: null,
       });
       if (error) throw error;
     },
@@ -393,24 +393,6 @@ function Travel() {
             maxLength={200}
             onChange={(e) => setReq({ ...req, contact: e.target.value })}
           />
-          <div className="sm:col-span-2 flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="use-my-location" className="font-medium flex items-center gap-2">
-                <LocateFixed className="h-4 w-4" /> Attach coordinates (private)
-              </Label>
-              <p className="text-xs text-muted-foreground">Only used so other sisters see rough distance from their own device. Your exact coordinates are never displayed.</p>
-            </div>
-            <Switch
-              id="use-my-location"
-              checked={autoLoc}
-              disabled={postLocating}
-              onCheckedChange={(checked) => {
-                setAutoLoc(checked);
-                if (checked) detectLocation();
-                else setReq((r) => ({ ...r, latitude: null, longitude: null }));
-              }}
-            />
-          </div>
           <Button onClick={() => postRequest.mutate()} disabled={postRequest.isPending} className="rounded-full sm:col-span-2">
             Post to the sisterhood
           </Button>
