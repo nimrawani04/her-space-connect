@@ -60,7 +60,7 @@ function Careers() {
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">05 · Opportunity</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Careers & Opportunity</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Careers & Opportunity</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl">Internships, scholarships, fellowships, grants, and competitions shared by the community — for women, by women.</p>
       </header>
 

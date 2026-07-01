@@ -32,7 +32,7 @@ function Dashboard() {
     <div className="max-w-6xl mx-auto space-y-10">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">{today}</p>
-        <h1 className="text-4xl md:text-5xl font-serif italic">Good morning, {name}.</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Good morning, {name}.</h1>
       </header>
 
       <div className="grid gap-6 md:grid-cols-3">
