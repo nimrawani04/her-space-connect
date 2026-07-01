@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plane, MapPin, Search, X, LocateFixed, Lock, MessageCircle, Check, Inbox } from "lucide-react";
+import { Plane, MapPin, Search, X, LocateFixed, Lock, MessageCircle, Check, Inbox, Eye, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useMemo } from "react";
@@ -17,6 +17,16 @@ import { Label } from "@/components/ui/label";
 import { useServerFn } from "@tanstack/react-start";
 import { reverseGeocode } from "@/lib/geocode.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const travelSearchSchema = z.object({
   city: fallback(z.string().max(100), "").default(""),
@@ -267,6 +277,10 @@ function Travel() {
   // Connection request dialog state
   const [connectFor, setConnectFor] = useState<any | null>(null);
   const [connectMsg, setConnectMsg] = useState("");
+
+  // Contact reveal gate (per accepted request)
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [revealCandidate, setRevealCandidate] = useState<any | null>(null);
 
   const sendConnect = useMutation({
     mutationFn: async () => {
@@ -521,11 +535,25 @@ function Travel() {
                   <CardContent className="space-y-2 text-sm">
                     <p className="whitespace-pre-wrap">{r.need}</p>
                     {accepted ? (
-                      <>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
-                        <p className="font-medium break-words">{r.contact}</p>
-                        {!mine && <p className="text-[11px] text-muted-foreground">Start with a voice or video call before meeting. Never share your home address.</p>}
-                      </>
+                      mine || revealed[r.id] ? (
+                        <>
+                          <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
+                          <p className="font-medium break-words">{r.contact}</p>
+                          {!mine && <p className="text-[11px] text-muted-foreground">Start with a voice or video call before meeting. Never share your home address.</p>}
+                        </>
+                      ) : (
+                        <div className="rounded-md bg-muted/40 border border-dashed p-3 flex items-start gap-2">
+                          <Lock className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+                          <div className="space-y-2 flex-1">
+                            <p className="text-xs text-muted-foreground">
+                              She accepted your request. Her contact is hidden until you confirm you're ready to reach out safely.
+                            </p>
+                            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setRevealCandidate(r)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Reveal contact
+                            </Button>
+                          </div>
+                        </div>
+                      )
                     ) : (
                       <div className="rounded-md bg-muted/40 border border-dashed p-3 flex items-start gap-2">
                         <Lock className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
@@ -581,6 +609,47 @@ function Travel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Contact reveal confirmation */}
+      <AlertDialog open={!!revealCandidate} onOpenChange={(o) => { if (!o) setRevealCandidate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif italic flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-earth" /> Reveal her contact?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-left">
+                {revealCandidate && (
+                  <div className="rounded-md bg-muted/40 p-3 text-xs">
+                    <p className="uppercase tracking-wider text-muted-foreground mb-1">Her post</p>
+                    <p className="font-medium text-foreground">{revealCandidate.city}, {revealCandidate.country}</p>
+                    <p className="italic mt-1 whitespace-pre-wrap">{revealCandidate.need}</p>
+                  </div>
+                )}
+                <ul className="text-xs space-y-1 list-disc pl-4 text-muted-foreground">
+                  <li>Start with a voice or video call — never meet before you've heard her voice.</li>
+                  <li>Meet in a public place first. Share the plan with a trusted person.</li>
+                  <li>Never share your home address, ID, or financial details over chat.</li>
+                  <li>If anything feels off, block and report immediately.</li>
+                </ul>
+                <p className="text-xs text-muted-foreground">Only reveal if you're ready to reach out now.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep hidden</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (revealCandidate) setRevealed((s) => ({ ...s, [revealCandidate.id]: true }));
+                setRevealCandidate(null);
+              }}
+            >
+              I understand — reveal contact
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {!isLoading && cities.length === 0 && <p className="text-sm text-muted-foreground">No hosts yet — be the first to list your city.</p>}

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Check, Inbox, MapPin, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, Check, Eye, Inbox, MapPin, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -50,6 +50,8 @@ function TravelInbox() {
   const qc = useQueryClient();
   const [meId, setMeId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ conn: Conn; action: "accepted" | "declined" } | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [revealConn, setRevealConn] = useState<Conn | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
@@ -185,10 +187,23 @@ function TravelInbox() {
           </>
         )}
         {c.status === "accepted" && post && (
-          <div className="rounded-md bg-muted/40 p-3 text-sm">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Her contact</p>
-            <p className="font-medium break-words">{post.contact}</p>
-          </div>
+          revealed[c.id] ? (
+            <div className="rounded-md bg-muted/40 p-3 text-sm">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Contact you shared with her</p>
+              <p className="font-medium break-words">{post.contact}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Talk on a call first. Never share your home address.</p>
+            </div>
+          ) : (
+            <div className="rounded-md bg-muted/40 border border-dashed p-3 flex items-start gap-2">
+              <ShieldCheck className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+              <div className="space-y-2 flex-1">
+                <p className="text-xs text-muted-foreground">Contact hidden. Reveal it only when you're ready to reach out.</p>
+                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setRevealConn(c)}>
+                  <Eye className="h-3.5 w-3.5 mr-1" /> Reveal contact
+                </Button>
+              </div>
+            </div>
+          )
         )}
         {c.status === "declined" && <Badge variant="outline">Declined</Badge>}
       </div>
@@ -311,6 +326,37 @@ function TravelInbox() {
               </>
             );
           })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!revealConn} onOpenChange={(o) => { if (!o) setRevealConn(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif italic">Reveal contact?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-left">
+                <p className="text-sm">You accepted this sister. Before reaching out, remember:</p>
+                <ul className="text-xs space-y-1 list-disc pl-4 text-muted-foreground">
+                  <li>Start on a voice or video call — never before you've heard her voice.</li>
+                  <li>Meet in a public place first. Tell a trusted person your plan.</li>
+                  <li>Never share your home address, ID, or financial details.</li>
+                  <li>If anything feels off, block and report immediately.</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep hidden</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (revealConn) setRevealed((s) => ({ ...s, [revealConn.id]: true }));
+                setRevealConn(null);
+              }}
+            >
+              I understand — reveal
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
