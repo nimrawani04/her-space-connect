@@ -412,10 +412,10 @@ function Travel() {
             />
           </div>
           <Button onClick={() => postRequest.mutate()} disabled={postRequest.isPending} className="rounded-full sm:col-span-2">
-            Post to the network
+            Post to the sisterhood
           </Button>
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            Your contact stays hidden. Sisters send a connection request; you review and choose who sees your details.
+            Posts are visible to every signed-in woman on HerSpace — that's "the sisterhood". Your contact stays hidden; sisters send a connection request with their Insta/WhatsApp so you can vet them, then you choose who to trust.
           </p>
         </CardContent>
       </Card>
