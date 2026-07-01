@@ -149,6 +149,20 @@
   h1, h2, h3, h4 {
     font-family: var(--font-serif);
     letter-spacing: -0.01em;
+    /* text-wrap: pretty prevents orphaned last-line words. Supported in
+       Chrome 117+, Safari 17.5+, Firefox 121+. Older engines ignore it. */
+    text-wrap: pretty;
+  }
+}
+
+/* Safari <17.5 does not support text-wrap: balance (used by Tailwind's
+   `text-balance` utility on hero headings). Fall back to `pretty` where
+   available and cap the measure so a ragged wrap still looks intentional
+   instead of stretching the full container width. */
+@supports not (text-wrap: balance) {
+  .text-balance {
+    text-wrap: pretty;
+    max-inline-size: 22ch;
   }
 }
 
