@@ -326,38 +326,7 @@ function Travel() {
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="font-serif italic text-2xl">Sisters reaching out now</h2>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={useMyLocation} disabled={locating}>
-              <LocateFixed className="h-4 w-4 mr-2" /> {locating ? "Locating…" : myCoords ? "Update location" : "Use my location"}
-            </Button>
-            {myCoords && (
-              <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setMyCoords(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
         </div>
-        {myCoords && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">Within</span>
-            {[0, 5, 10, 25, 50, 100].map((km) => (
-              <Button
-                key={km}
-                type="button"
-                size="sm"
-                variant={search.radius === km ? "default" : "outline"}
-                className="rounded-full h-7 px-3 text-xs"
-                onClick={() => navigate({ search: { ...search, radius: km } as any })}
-              >
-                {km === 0 ? "Any" : `${km} km`}
-              </Button>
-            ))}
-            <span className="text-xs text-muted-foreground ml-1">Sorted by distance. Posts without coordinates {search.radius > 0 ? "are hidden" : "appear last"}.</span>
-          </div>
-        )}
-        {!myCoords && (
-          <p className="text-xs text-muted-foreground">Tap "Use my location" to filter posts by distance.</p>
-        )}
         <Card>
           <CardHeader>
             <CardTitle className="font-serif italic text-lg flex items-center gap-2">
@@ -409,22 +378,14 @@ function Travel() {
         </Card>
 
         {visibleRequests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {myCoords && search.radius > 0
-              ? `No sisters within ${search.radius} km. Try a wider radius.`
-              : "No matching requests. Try widening your filters or be the first to share."}
-          </p>
+          <p className="text-sm text-muted-foreground">No matching requests. Try widening your filters or be the first to share.</p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
               {visibleRequests.length} sister{visibleRequests.length === 1 ? "" : "s"} found
-              {myCoords && search.radius > 0 ? ` within ${search.radius} km` : ""}
             </p>
             <div className="grid sm:grid-cols-2 gap-4">
               {visibleRequests.map((r: any) => {
-                const dist = myCoords && r.latitude != null && r.longitude != null
-                  ? haversine(myCoords, { lat: r.latitude, lng: r.longitude })
-                  : null;
                 const mine = meId === r.user_id;
                 const conn = connByRequest.get(r.id);
                 const accepted = mine || conn?.status === "accepted";
@@ -435,11 +396,6 @@ function Travel() {
                   <CardHeader className="pb-2">
                     <CardTitle className="font-serif italic text-lg flex items-center gap-2 flex-wrap">
                       <MapPin className="h-4 w-4 text-earth" /> {r.city}, {r.country}
-                      {dist != null && (
-                        <Badge variant="outline" className="ml-auto text-xs font-sans not-italic">
-                          {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist < 10 ? dist.toFixed(1) : Math.round(dist)} km`} away
-                        </Badge>
-                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
