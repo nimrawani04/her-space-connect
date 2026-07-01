@@ -535,11 +535,25 @@ function Travel() {
                   <CardContent className="space-y-2 text-sm">
                     <p className="whitespace-pre-wrap">{r.need}</p>
                     {accepted ? (
-                      <>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
-                        <p className="font-medium break-words">{r.contact}</p>
-                        {!mine && <p className="text-[11px] text-muted-foreground">Start with a voice or video call before meeting. Never share your home address.</p>}
-                      </>
+                      mine || revealed[r.id] ? (
+                        <>
+                          <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
+                          <p className="font-medium break-words">{r.contact}</p>
+                          {!mine && <p className="text-[11px] text-muted-foreground">Start with a voice or video call before meeting. Never share your home address.</p>}
+                        </>
+                      ) : (
+                        <div className="rounded-md bg-muted/40 border border-dashed p-3 flex items-start gap-2">
+                          <Lock className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+                          <div className="space-y-2 flex-1">
+                            <p className="text-xs text-muted-foreground">
+                              She accepted your request. Her contact is hidden until you confirm you're ready to reach out safely.
+                            </p>
+                            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setRevealCandidate(r)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Reveal contact
+                            </Button>
+                          </div>
+                        </div>
+                      )
                     ) : (
                       <div className="rounded-md bg-muted/40 border border-dashed p-3 flex items-start gap-2">
                         <Lock className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
