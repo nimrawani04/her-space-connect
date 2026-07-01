@@ -237,6 +237,110 @@ function Travel() {
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
   }, []);
 
+  // Verification status for the current user
+  const { data: myProfile, refetch: refetchProfile } = useQuery({
+    queryKey: ["profile-verification", meId],
+    enabled: !!meId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("verification_status, verified_at")
+        .eq("id", meId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const isVerified = myProfile?.verification_status === "verified";
+
+  // All connections involving me (to know which contacts I can see + inbox)
+  const { data: myConnections } = useQuery({
+    queryKey: ["travel_connections", meId],
+    enabled: !!meId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("travel_connections")
+        .select("id,request_id,from_user,to_user,status,message,created_at")
+        .or(`from_user.eq.${meId},to_user.eq.${meId}`)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const connByRequest = useMemo(() => {
+    const m = new Map<string, any>();
+    (myConnections ?? []).forEach((c: any) => {
+      // Prefer the record where I'm the sender for a given request
+      const existing = m.get(c.request_id);
+      if (!existing || c.from_user === meId) m.set(c.request_id, c);
+    });
+    return m;
+  }, [myConnections, meId]);
+
+  const inbox = (myConnections ?? []).filter((c: any) => c.to_user === meId && c.status === "pending");
+
+  // Selfie verification (MVP: auto-approves on upload; production would review)
+  const [selfieUploading, setSelfieUploading] = useState(false);
+  async function submitSelfie(file: File) {
+    if (!meId) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+    setSelfieUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${meId}/verify/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ verification_status: "verified", verification_selfie_path: path, verified_at: new Date().toISOString() })
+        .eq("id", meId);
+      if (profErr) throw profErr;
+      toast.success("You're verified. Welcome, sister.");
+      refetchProfile();
+    } catch (e: any) {
+      toast.error(e.message || "Could not verify");
+    } finally {
+      setSelfieUploading(false);
+    }
+  }
+
+  // Connection request dialog state
+  const [connectFor, setConnectFor] = useState<any | null>(null);
+  const [connectMsg, setConnectMsg] = useState("");
+
+  const sendConnect = useMutation({
+    mutationFn: async () => {
+      if (!connectFor || !meId) throw new Error("Not ready");
+      const { error } = await supabase.from("travel_connections").insert({
+        request_id: connectFor.id,
+        from_user: meId,
+        to_user: connectFor.user_id,
+        message: connectMsg.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Request sent. She'll see it in her inbox.");
+      setConnectFor(null); setConnectMsg("");
+      qc.invalidateQueries({ queryKey: ["travel_connections", meId] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const respondConnect = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "accepted" | "declined" }) => {
+      const { error } = await supabase.from("travel_connections").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(v.status === "accepted" ? "Contact shared — talk safe." : "Declined.");
+      qc.invalidateQueries({ queryKey: ["travel_connections", meId] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
