@@ -237,22 +237,6 @@ function Travel() {
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
   }, []);
 
-  // Verification status for the current user
-  const { data: myProfile, refetch: refetchProfile } = useQuery({
-    queryKey: ["profile-verification", meId],
-    enabled: !!meId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("verification_status, verified_at")
-        .eq("id", meId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-  const isVerified = myProfile?.verification_status === "verified";
-
   // All connections involving me (to know which contacts I can see + inbox)
   const { data: myConnections } = useQuery({
     queryKey: ["travel_connections", meId],
@@ -279,32 +263,6 @@ function Travel() {
   }, [myConnections, meId]);
 
   const inbox = (myConnections ?? []).filter((c: any) => c.to_user === meId && c.status === "pending");
-
-  // Selfie verification (MVP: auto-approves on upload; production would review)
-  const [selfieUploading, setSelfieUploading] = useState(false);
-  async function submitSelfie(file: File) {
-    if (!meId) return;
-    if (!file.type.startsWith("image/")) { toast.error("Please upload an image"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
-    setSelfieUploading(true);
-    try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${meId}/verify/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({ verification_status: "verified", verification_selfie_path: path, verified_at: new Date().toISOString() })
-        .eq("id", meId);
-      if (profErr) throw profErr;
-      toast.success("You're verified. Welcome, sister.");
-      refetchProfile();
-    } catch (e: any) {
-      toast.error(e.message || "Could not verify");
-    } finally {
-      setSelfieUploading(false);
-    }
-  }
 
   // Connection request dialog state
   const [connectFor, setConnectFor] = useState<any | null>(null);
