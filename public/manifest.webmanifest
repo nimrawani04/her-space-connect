@@ -1,0 +1,16 @@
+{
+  "name": "HerSpace — Health, safety & sisterhood",
+  "short_name": "HerSpace",
+  "description": "A trusted space for women's health, safety, mentorship and community.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7f5",
+  "theme_color": "#e9b4c4",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
