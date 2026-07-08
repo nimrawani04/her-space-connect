@@ -92,6 +92,44 @@ export default defineConfig({
                 matchOptions: { ignoreSearch: false },
               },
             },
+            {
+              // Supabase Storage: images & file attachments referenced by
+              // Community posts and Library articles (public + signed URLs).
+              urlPattern: ({ url, request }) =>
+                !!SUPABASE_HOST &&
+                url.host === SUPABASE_HOST &&
+                request.method === "GET" &&
+                (url.pathname.startsWith("/storage/v1/object/public/") ||
+                  url.pathname.startsWith("/storage/v1/object/sign/") ||
+                  url.pathname.startsWith("/storage/v1/render/image/public/") ||
+                  url.pathname.startsWith("/storage/v1/render/image/sign/")),
+              handler: "CacheFirst",
+              method: "GET",
+              options: {
+                cacheName: "herspace-media",
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] },
+                rangeRequests: true,
+              },
+            },
+            {
+              // Cross-origin images/media embedded in posts and articles
+              // (e.g. uploaded to a CDN or linked from external sources).
+              urlPattern: ({ url, request, sameOrigin }) =>
+                !sameOrigin &&
+                url.host !== SUPABASE_HOST &&
+                url.origin !== "https://fonts.gstatic.com" &&
+                (request.destination === "image" ||
+                  request.destination === "video" ||
+                  request.destination === "audio"),
+              handler: "StaleWhileRevalidate",
+              method: "GET",
+              options: {
+                cacheName: "herspace-remote-media",
+                expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
           ],
         },
       }),
