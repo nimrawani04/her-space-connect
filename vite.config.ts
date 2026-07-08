@@ -7,6 +7,16 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? "";
+const SUPABASE_HOST = SUPABASE_URL ? new URL(SUPABASE_URL).host : "";
+const CACHEABLE_TABLES = [
+  "library_articles",
+  "community_posts",
+  "health_resources",
+  "health_articles",
+  "cycle_phases",
+];
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -63,6 +73,23 @@ export default defineConfig({
               options: {
                 cacheName: "google-fonts",
                 expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              },
+            },
+            {
+              // Supabase REST reads for public list endpoints (Health / Community / Library).
+              urlPattern: ({ url, request }) =>
+                !!SUPABASE_HOST &&
+                url.host === SUPABASE_HOST &&
+                url.pathname.startsWith("/rest/v1/") &&
+                request.method === "GET" &&
+                CACHEABLE_TABLES.some((t) => url.pathname.startsWith(`/rest/v1/${t}`)),
+              handler: "StaleWhileRevalidate",
+              method: "GET",
+              options: {
+                cacheName: "herspace-api",
+                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+                cacheableResponse: { statuses: [0, 200] },
+                matchOptions: { ignoreSearch: false },
               },
             },
           ],
