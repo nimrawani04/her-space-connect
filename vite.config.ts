@@ -25,6 +25,18 @@ export default defineConfig({
           globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff2}"],
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          additionalManifestEntries: [
+            { url: "/", revision: null },
+            { url: "/dashboard", revision: Date.now().toString() },
+            { url: "/health", revision: Date.now().toString() },
+            { url: "/community", revision: Date.now().toString() },
+            { url: "/wellness", revision: Date.now().toString() },
+            { url: "/safety", revision: Date.now().toString() },
+            { url: "/mentorship", revision: Date.now().toString() },
+            { url: "/careers", revision: Date.now().toString() },
+            { url: "/library", revision: Date.now().toString() },
+            { url: "/marketplace", revision: Date.now().toString() },
+          ],
           runtimeCaching: [
             {
               urlPattern: ({ request, sameOrigin }) =>
