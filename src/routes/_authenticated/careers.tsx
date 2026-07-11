@@ -201,7 +201,6 @@ function Careers() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
             {isLoading && <CareersSkeleton count={5} />}
             {!isLoading && opps.length === 0 && (
               <p className="text-sm text-muted-foreground">
