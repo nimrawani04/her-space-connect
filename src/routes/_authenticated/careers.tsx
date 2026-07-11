@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -62,6 +62,22 @@ function Careers() {
     getNextPageParam: (last, all) => (last.length < PAGE_SIZE ? undefined : all.length),
   });
   const opps = data?.pages.flat() ?? [];
+
+  // Auto-load next page when sentinel scrolls into view.
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasNextPage) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) fetchNextPage();
+      },
+      { rootMargin: "400px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, opps.length]);
+
   const activeFilters = useMemo(
     () => (typeFilter !== "all" ? 1 : 0) + (regionFilter !== "all" ? 1 : 0) + (search.trim() ? 1 : 0),
     [typeFilter, regionFilter, search],
@@ -148,11 +164,19 @@ function Careers() {
               </div>
             ))}
             {hasNextPage && (
-              <div className="pt-2">
-                <Button variant="outline" className="rounded-full w-full" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-                  {isFetchingNextPage ? "Loading…" : "Load more"}
+              <div ref={sentinelRef} className="pt-2">
+                <Button
+                  variant="outline"
+                  className="rounded-full w-full"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? "Loading more…" : "Load more"}
                 </Button>
               </div>
+            )}
+            {!hasNextPage && opps.length > PAGE_SIZE && (
+              <p className="text-center text-xs text-muted-foreground pt-2">You've reached the end.</p>
             )}
           </CardContent>
         </Card>
