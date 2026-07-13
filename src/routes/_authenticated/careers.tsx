@@ -29,35 +29,35 @@ function ProfessionSkeletonRow({ i }: { i: number }) {
   const initial = label[0];
   return (
     <div
-      className="flex items-center justify-between border-b border-border pb-3 last:border-0 animate-fade-in"
+      className="flex items-center justify-between border-b border-border pb-3 last:border-0 motion-reduce:animate-none animate-fade-in"
       style={{ animationDelay: `${i * 60}ms` }}
       aria-hidden="true"
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div
-          className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-sand to-muted flex items-center justify-center text-earth font-serif italic text-lg relative overflow-hidden"
+          className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-sand to-muted flex items-center justify-center text-earth font-serif italic text-lg relative overflow-hidden border border-border"
         >
           <span className="relative z-10">{initial}</span>
-          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/60 to-transparent animate-[shimmer_1.6s_ease-in-out_infinite]" />
+          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent motion-reduce:animate-none animate-[shimmer_1.6s_ease-in-out_infinite]" />
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex gap-2">
-            <span className="h-4 w-16 rounded-full bg-muted/70 overflow-hidden relative">
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent animate-[shimmer_1.6s_ease-in-out_infinite]" />
+            <span className="h-4 w-16 rounded-full bg-muted/80 overflow-hidden relative">
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent motion-reduce:animate-none animate-[shimmer_1.6s_ease-in-out_infinite]" />
             </span>
-            <span className="h-4 w-20 rounded-full bg-muted/60 overflow-hidden relative">
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent animate-[shimmer_1.6s_ease-in-out_infinite]" />
+            <span className="h-4 w-20 rounded-full bg-muted/70 overflow-hidden relative">
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent motion-reduce:animate-none animate-[shimmer_1.6s_ease-in-out_infinite]" />
             </span>
           </div>
-          <div className="h-4 rounded bg-muted/70 relative overflow-hidden" style={{ width: `${55 + ((i * 13) % 35)}%` }}>
-            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent animate-[shimmer_1.6s_ease-in-out_infinite]" />
+          <div className="h-4 rounded bg-muted/80 relative overflow-hidden" style={{ width: `${55 + ((i * 13) % 35)}%` }}>
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent motion-reduce:animate-none animate-[shimmer_1.6s_ease-in-out_infinite]" />
           </div>
-          <div className="h-3 w-24 rounded bg-muted/50 relative overflow-hidden">
-            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent animate-[shimmer_1.6s_ease-in-out_infinite]" />
+          <div className="h-3 w-24 rounded bg-muted/60 relative overflow-hidden">
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-background/70 to-transparent motion-reduce:animate-none animate-[shimmer_1.6s_ease-in-out_infinite]" />
           </div>
         </div>
       </div>
-      <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-earth/70 font-medium hidden sm:inline">
+      <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-earth/80 font-medium hidden sm:inline">
         {label}
       </span>
     </div>
