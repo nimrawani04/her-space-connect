@@ -200,7 +200,7 @@ function Careers() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3" aria-busy={isLoading || isFetching} aria-live="polite">
             {(isLoading || (isFetching && !isFetchingNextPage)) && (
               <CareersSkeleton count={5} />
             )}
