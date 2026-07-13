@@ -94,7 +94,7 @@ function Careers() {
     },
   });
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const { data, isLoading, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["opportunities", { search, typeFilter, regionFilter }],
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
@@ -201,13 +201,15 @@ function Careers() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {isLoading && <CareersSkeleton count={5} />}
-            {!isLoading && opps.length === 0 && (
+            {(isLoading || (isFetching && !isFetchingNextPage)) && (
+              <CareersSkeleton count={5} />
+            )}
+            {!isLoading && !isFetching && opps.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {activeFilters ? "No opportunities match your filters." : "No opportunities yet — share the first."}
               </p>
             )}
-            {opps.map((o) => (
+            {!(isFetching && !isFetchingNextPage) && opps.map((o) => (
               <div key={o.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0">
                 <div>
                   <div className="flex gap-2 mb-1"><Badge variant="outline">{o.type}</Badge><Badge variant="outline">{o.region}</Badge></div>
