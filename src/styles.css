@@ -255,3 +255,14 @@ html:not(.bg-plain) body {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* Accessibility: stop the shimmer sweep for users who prefer reduced motion.
+   The skeleton bars remain visible as static placeholders. */
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-"][class*="shimmer"] {
+    animation: none !important;
+  }
+  [class*="animate-"][class*="shimmer"] .absolute.inset-0 {
+    transform: none !important;
+  }
+}
