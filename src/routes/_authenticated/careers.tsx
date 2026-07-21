@@ -148,12 +148,8 @@ function Careers() {
 
   const wasLoading = usePrevious(isLoading);
   useEffect(() => {
-    if (wasLoading && !isLoading) {
-      if (opps.length === 0) {
-        setAnnouncement("No opportunities match your filters.");
-      } else {
-        setAnnouncement(activeFilters > 0 ? "Search results updated." : "Opportunities updated.");
-      }
+    if (wasLoading && !isLoading && activeFilters > 0) {
+      setAnnouncement(opps.length === 0 ? "No opportunities match your filters." : "Search results updated.");
     }
   }, [wasLoading, isLoading, opps.length, activeFilters]);
 
