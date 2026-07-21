@@ -78,6 +78,7 @@ function Careers() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [announcement, setAnnouncement] = useState("");
 
   // Load distinct types/regions for filter dropdowns (data-driven).
   const { data: facets } = useQuery({
