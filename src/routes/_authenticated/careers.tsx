@@ -72,12 +72,19 @@ function CareersSkeleton({ count = 4 }: { count?: number }) {
   );
 }
 
+function usePrevious<T>(value: T) {
+  const ref = useRef<T>(value);
+  useEffect(() => { ref.current = value; });
+  return ref.current;
+}
+
 function Careers() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ type: "", title: "", org: "", region: "", url: "" });
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [announcement, setAnnouncement] = useState("");
 
   // Load distinct types/regions for filter dropdowns (data-driven).
   const { data: facets } = useQuery({
@@ -139,6 +146,19 @@ function Careers() {
     [typeFilter, regionFilter, search],
   );
 
+  const wasLoading = usePrevious(isLoading);
+  useEffect(() => {
+    if (wasLoading && !isLoading && activeFilters > 0) {
+      setAnnouncement(opps.length === 0 ? "No opportunities match your filters." : "Search results updated.");
+    }
+  }, [wasLoading, isLoading, opps.length, activeFilters]);
+
+  useEffect(() => {
+    if (!hasNextPage && opps.length > PAGE_SIZE) {
+      setAnnouncement("No more opportunities.");
+    }
+  }, [hasNextPage, opps.length]);
+
   const addOpp = useMutation({
     mutationFn: async () => {
       const uid = (await supabase.auth.getUser()).data.user?.id;
@@ -160,6 +180,9 @@ function Careers() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </div>
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">05 · Opportunity</p>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Careers & Opportunity</h1>
