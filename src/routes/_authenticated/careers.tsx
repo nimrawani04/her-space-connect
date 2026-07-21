@@ -72,6 +72,12 @@ function CareersSkeleton({ count = 4 }: { count?: number }) {
   );
 }
 
+function usePrevious<T>(value: T) {
+  const ref = useRef<T>(value);
+  useEffect(() => { ref.current = value; });
+  return ref.current;
+}
+
 function Careers() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ type: "", title: "", org: "", region: "", url: "" });
