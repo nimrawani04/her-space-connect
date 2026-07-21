@@ -184,6 +184,9 @@ function Careers() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </div>
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">05 · Opportunity</p>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Careers & Opportunity</h1>
