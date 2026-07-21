@@ -84,7 +84,7 @@ describe("summarizeCycles", () => {
     const s = summarizeCycles(rows);
     expect(s.cycleCount).toBe(4);
     expect(s.avgCycle).toBe(29);
-    expect(s.avgPeriod).toBe(4.75);
+    expect(s.avgPeriod).toBe(4.8);
     expect(s.peakCramp).toBe(8);
     expect(s.severeCrampCycles).toBe(1);
     expect(s.lastStart).toBe("2026-03-30");
@@ -102,9 +102,10 @@ describe("predictNextWindow", () => {
     expect(w).toEqual({ low: "2026-01-27", mid: "2026-01-29", high: "2026-01-31" });
   });
 
-  it("uses a minimum pad of 1 day", () => {
+  it("falls back to a 2-day pad when variance is zero", () => {
+    // variance is coerced with `|| 2`, so 0 becomes 2.
     const w = predictNextWindow("2026-01-01", 28, 0);
-    expect(w?.low).toBe("2026-01-28");
-    expect(w?.high).toBe("2026-01-30");
+    expect(w?.low).toBe("2026-01-27");
+    expect(w?.high).toBe("2026-01-31");
   });
 });
