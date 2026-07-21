@@ -146,6 +146,23 @@ function Careers() {
     [typeFilter, regionFilter, search],
   );
 
+  const wasLoading = usePrevious(isLoading);
+  useEffect(() => {
+    if (wasLoading && !isLoading) {
+      if (opps.length === 0) {
+        setAnnouncement("No opportunities match your filters.");
+      } else {
+        setAnnouncement(activeFilters > 0 ? "Search results updated." : "Opportunities updated.");
+      }
+    }
+  }, [wasLoading, isLoading, opps.length, activeFilters]);
+
+  useEffect(() => {
+    if (!hasNextPage && opps.length > PAGE_SIZE) {
+      setAnnouncement("No more opportunities.");
+    }
+  }, [hasNextPage, opps.length]);
+
   const addOpp = useMutation({
     mutationFn: async () => {
       const uid = (await supabase.auth.getUser()).data.user?.id;
