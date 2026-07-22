@@ -83,9 +83,9 @@ function makeBuilder() {
       return builder;
     },
     then(resolve: (v: { data: Opp[]; error: null }) => void) {
-      // Resolve on the next microtask so React Query briefly enters a
-      // fetching state — this is what makes skeletons visible on refetch.
-      queueMicrotask(() => resolve({ data: runQuery(state), error: null }));
+      // Small delay so React Query stays in a fetching state long enough
+      // for the skeleton UI to be observable during refetch.
+      setTimeout(() => resolve({ data: runQuery(state), error: null }), 30);
     },
   };
   return builder;
