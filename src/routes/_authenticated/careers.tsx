@@ -78,7 +78,7 @@ function usePrevious<T>(value: T) {
   return ref.current;
 }
 
-function Careers() {
+export function Careers() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ type: "", title: "", org: "", region: "", url: "" });
   const [search, setSearch] = useState("");
