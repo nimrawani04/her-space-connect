@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup, act } from "@testing-library/react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -83,7 +83,9 @@ function makeBuilder() {
       return builder;
     },
     then(resolve: (v: { data: Opp[]; error: null }) => void) {
-      resolve({ data: runQuery(state), error: null });
+      // Resolve on the next microtask so React Query briefly enters a
+      // fetching state — this is what makes skeletons visible on refetch.
+      queueMicrotask(() => resolve({ data: runQuery(state), error: null }));
     },
   };
   return builder;
@@ -190,17 +192,20 @@ describe("Careers page", () => {
     await screen.findByText("Rhodes Scholarship");
 
     const input = screen.getByPlaceholderText(/search title or organization/i);
-    // Fire the change synchronously so we can observe the transient skeleton.
-    act(() => {
-      input.focus();
-    });
-    await user.type(input, "R");
+    await user.type(input, "Rhodes");
 
-    // At some point during the refetch we should see the loading status.
+    // Transient skeleton appears while the filtered query is in flight.
     await waitFor(() => {
       expect(
         screen.queryByRole("status", { name: /loading more opportunities/i }),
       ).toBeInTheDocument();
+    });
+
+    // And clears once results arrive.
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("status", { name: /loading more opportunities/i }),
+      ).not.toBeInTheDocument();
     });
   });
 });
