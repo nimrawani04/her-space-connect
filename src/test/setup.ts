@@ -7,5 +7,5 @@ class IO {
   disconnect() {}
   takeRecords() { return []; }
 }
-// @ts-expect-error - test env
-globalThis.IntersectionObserver = globalThis.IntersectionObserver ?? IO;
+(globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver =
+  (globalThis as unknown as { IntersectionObserver?: unknown }).IntersectionObserver ?? IO;
