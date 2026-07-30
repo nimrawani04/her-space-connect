@@ -201,6 +201,53 @@ export type Database = {
           },
         ]
       }
+      journey_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          author_id: string
+          body: string | null
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          journey_id: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          author_id: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          journey_id: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          author_id?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          journey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_messages_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journeys: {
         Row: {
           created_at: string
