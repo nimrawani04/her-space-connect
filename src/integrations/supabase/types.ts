@@ -213,6 +213,9 @@ export type Database = {
           id: string
           is_anonymous: boolean
           journey_id: string
+          scan_detail: string | null
+          scan_status: string
+          scanned_at: string | null
         }
         Insert: {
           attachment_name?: string | null
@@ -225,6 +228,9 @@ export type Database = {
           id?: string
           is_anonymous?: boolean
           journey_id: string
+          scan_detail?: string | null
+          scan_status?: string
+          scanned_at?: string | null
         }
         Update: {
           attachment_name?: string | null
@@ -237,6 +243,9 @@ export type Database = {
           id?: string
           is_anonymous?: boolean
           journey_id?: string
+          scan_detail?: string | null
+          scan_status?: string
+          scanned_at?: string | null
         }
         Relationships: [
           {
@@ -532,6 +541,50 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      quarantined_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          journey_id: string | null
+          reason: string
+          updated_at: string
+          uploader_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          journey_id?: string | null
+          reason: string
+          updated_at?: string
+          uploader_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          journey_id?: string | null
+          reason?: string
+          updated_at?: string
+          uploader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quarantined_files_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       safe_places: {
         Row: {
