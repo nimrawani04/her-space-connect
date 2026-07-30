@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Paperclip, Send, Trash2, X, FileText, Download } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
+import { scanAttachment } from "@/lib/attachment-scan.functions";
 
 export const Route = createFileRoute("/_authenticated/experience")({
   head: () => ({ meta: [{ title: "Experience Match · HerSpace" }] }),
@@ -29,6 +31,8 @@ type Msg = {
   attachment_name: string | null;
   attachment_type: string | null;
   attachment_size: number | null;
+  scan_status: string;
+  scan_detail: string | null;
 };
 
 function prettySize(n?: number | null) {
@@ -41,7 +45,7 @@ function prettySize(n?: number | null) {
 function Attachment({ msg }: { msg: Msg }) {
   const { data: url } = useQuery({
     queryKey: ["circle-file", msg.attachment_path],
-    enabled: !!msg.attachment_path,
+    enabled: !!msg.attachment_path && msg.scan_status === "clean",
     staleTime: 1000 * 60 * 30,
     queryFn: async () => {
       const { data, error } = await supabase.storage
@@ -53,6 +57,22 @@ function Attachment({ msg }: { msg: Msg }) {
   });
   const isImage = (msg.attachment_type ?? "").startsWith("image/");
   if (!msg.attachment_path) return null;
+  if (msg.scan_status === "pending") {
+    return (
+      <div className="mt-2 flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+        Scanning “{msg.attachment_name}” for malware…
+      </div>
+    );
+  }
+  if (msg.scan_status !== "clean") {
+    return (
+      <div className="mt-2 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+        <span>{msg.scan_detail ?? "This file could not be verified and is hidden."}</span>
+      </div>
+    );
+  }
   if (isImage) {
     return url ? (
       <a href={url} target="_blank" rel="noreferrer" className="block mt-2">
@@ -77,6 +97,7 @@ function Attachment({ msg }: { msg: Msg }) {
       <FileText className="h-4 w-4 shrink-0 text-earth" />
       <span className="truncate max-w-[14rem]">{msg.attachment_name}</span>
       <span className="text-xs text-muted-foreground">{prettySize(msg.attachment_size)}</span>
+      <ShieldCheck className="h-3.5 w-3.5 text-earth" aria-label="Scanned and safe" />
       <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
     </a>
   );
@@ -95,7 +116,7 @@ function CircleChat({ journey, userId, onClose }: { journey: { id: string; title
     queryFn: async () => {
       const { data, error } = await supabase
         .from("journey_messages")
-        .select("id,body,author_id,is_anonymous,created_at,attachment_path,attachment_name,attachment_type,attachment_size")
+        .select("id,body,author_id,is_anonymous,created_at,attachment_path,attachment_name,attachment_type,attachment_size,scan_status,scan_detail")
         .eq("journey_id", journey.id)
         .order("created_at", { ascending: true })
         .limit(200);
@@ -137,21 +158,35 @@ function CircleChat({ journey, userId, onClose }: { journey: { id: string; title
           attachment_size: file.size,
         };
       }
-      const { error } = await supabase.from("journey_messages").insert({
-        journey_id: journey.id,
-        author_id: userId,
-        body: body || null,
-        is_anonymous: anon,
-        ...attachment,
-      });
+      const { data: inserted, error } = await supabase
+        .from("journey_messages")
+        .insert({
+          journey_id: journey.id,
+          author_id: userId,
+          body: body || null,
+          is_anonymous: anon,
+          scan_status: file ? "pending" : "clean",
+          ...attachment,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (file && inserted) {
+        const result = await scanAttachment({ data: { messageId: inserted.id } });
+        if (result.status === "infected") {
+          throw new Error(`Blocked and quarantined: ${result.reason}`);
+        }
+      }
     },
     onSuccess: () => {
       setText(""); setFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
+      toast.error(e.message);
+    },
   });
 
   const remove = useMutation({
