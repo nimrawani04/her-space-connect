@@ -3,10 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Paperclip, Send, Trash2, X, FileText, Download } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/experience")({
   head: () => ({ meta: [{ title: "Experience Match · HerSpace" }] }),
@@ -14,11 +17,240 @@ export const Route = createFileRoute("/_authenticated/experience")({
 });
 
 const PAGE_SIZE = 12;
+const MAX_FILE_MB = 20;
+
+type Msg = {
+  id: string;
+  body: string | null;
+  author_id: string;
+  is_anonymous: boolean;
+  created_at: string;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  attachment_type: string | null;
+  attachment_size: number | null;
+};
+
+function prettySize(n?: number | null) {
+  if (!n) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function Attachment({ msg }: { msg: Msg }) {
+  const { data: url } = useQuery({
+    queryKey: ["circle-file", msg.attachment_path],
+    enabled: !!msg.attachment_path,
+    staleTime: 1000 * 60 * 30,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from("circle-files")
+        .createSignedUrl(msg.attachment_path!, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+  const isImage = (msg.attachment_type ?? "").startsWith("image/");
+  if (!msg.attachment_path) return null;
+  if (isImage) {
+    return url ? (
+      <a href={url} target="_blank" rel="noreferrer" className="block mt-2">
+        <img
+          src={url}
+          alt={msg.attachment_name ?? "Shared image"}
+          loading="lazy"
+          className="max-h-64 rounded-lg border border-border object-cover"
+        />
+      </a>
+    ) : (
+      <div className="mt-2 h-24 w-40 rounded-lg bg-muted/60 animate-pulse motion-reduce:animate-none" />
+    );
+  }
+  return (
+    <a
+      href={url ?? "#"}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-2 flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <FileText className="h-4 w-4 shrink-0 text-earth" />
+      <span className="truncate max-w-[14rem]">{msg.attachment_name}</span>
+      <span className="text-xs text-muted-foreground">{prettySize(msg.attachment_size)}</span>
+      <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
+    </a>
+  );
+}
+
+function CircleChat({ journey, userId, onClose }: { journey: { id: string; title: string }; userId: string | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [anon, setAnon] = useState(true);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ["journey-messages", journey.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("journey_messages")
+        .select("id,body,author_id,is_anonymous,created_at,attachment_path,attachment_name,attachment_type,attachment_size")
+        .eq("journey_id", journey.id)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as Msg[];
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel(`journey-${journey.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "journey_messages", filter: `journey_id=eq.${journey.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [journey.id, qc]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
+
+  const send = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error("Sign in required");
+      const body = text.trim();
+      if (!body && !file) throw new Error("Write something or attach a file");
+      let attachment: Partial<Msg> = {};
+      if (file) {
+        if (file.size > MAX_FILE_MB * 1024 * 1024) throw new Error(`Files must be under ${MAX_FILE_MB} MB`);
+        const ext = file.name.split(".").pop() ?? "bin";
+        const path = `${journey.id}/${userId}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("circle-files").upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+        if (upErr) throw upErr;
+        attachment = {
+          attachment_path: path,
+          attachment_name: file.name,
+          attachment_type: file.type || "application/octet-stream",
+          attachment_size: file.size,
+        };
+      }
+      const { error } = await supabase.from("journey_messages").insert({
+        journey_id: journey.id,
+        author_id: userId,
+        body: body || null,
+        is_anonymous: anon,
+        ...attachment,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setText(""); setFile(null);
+      if (fileRef.current) fileRef.current.value = "";
+      qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (m: Msg) => {
+      if (m.attachment_path) await supabase.storage.from("circle-files").remove([m.attachment_path]);
+      const { error } = await supabase.from("journey_messages").delete().eq("id", m.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-5 py-4 border-b border-border">
+          <DialogTitle className="font-serif italic text-xl">{journey.title}</DialogTitle>
+          <p className="text-xs text-muted-foreground">Anonymous by default · shared files stay inside this circle</p>
+        </DialogHeader>
+        <div className="h-[55vh] overflow-y-auto px-5 py-4 space-y-4" aria-live="polite" aria-busy={isLoading}>
+          {isLoading && <p className="text-sm text-muted-foreground">Loading conversation…</p>}
+          {!isLoading && messages.length === 0 && (
+            <p className="text-sm text-muted-foreground">No one has spoken yet. Start the conversation.</p>
+          )}
+          {messages.map((m) => {
+            const mine = m.author_id === userId;
+            return (
+              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? "bg-primary/10" : "bg-muted/50"}`}>
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-earth mb-1">
+                    {m.is_anonymous ? "Anonymous sister" : mine ? "You" : "A sister"}
+                  </p>
+                  {m.body && <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>}
+                  <Attachment msg={m} />
+                  {mine && (
+                    <button
+                      onClick={() => remove.mutate(m)}
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    >
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+        <div className="border-t border-border p-4 space-y-2">
+          {file && (
+            <div className="flex items-center gap-2 text-xs rounded-lg border border-border px-3 py-2">
+              <FileText className="h-3.5 w-3.5 text-earth" />
+              <span className="truncate">{file.name}</span>
+              <span className="text-muted-foreground">{prettySize(file.size)}</span>
+              <button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} className="ml-auto" aria-label="Remove attachment">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          <div className="flex items-end gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              className="sr-only"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+            />
+            <Button type="button" variant="outline" size="icon" className="rounded-full shrink-0" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Share a thought…"
+              rows={1}
+              className="min-h-10 resize-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.mutate(); }
+              }}
+            />
+            <Button onClick={() => send.mutate()} disabled={send.isPending} className="rounded-full shrink-0" aria-label="Send">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={anon} onChange={(e) => setAnon(e.target.checked)} className="accent-primary" />
+            Post anonymously
+          </label>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function Experience() {
   const [q, setQ] = useState("");
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState("");
+  const [openCircle, setOpenCircle] = useState<{ id: string; title: string } | null>(null);
   const qc = useQueryClient();
 
   const { data: userId } = useQuery({
@@ -113,9 +345,16 @@ function Experience() {
                 <div className="flex flex-wrap gap-1.5">{j.tags.map((t) => <Badge key={t} variant="outline">{t}</Badge>)}</div>
                 <p className="text-xs text-muted-foreground">{j.count.toLocaleString()} sisters</p>
               </div>
-              <Button variant={j.joined ? "default" : "outline"} className="rounded-full" onClick={() => toggleJoin.mutate({ id: j.id, joined: j.joined })} disabled={toggleJoin.isPending}>
-                {j.joined ? "Leave" : "Join circle"}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {j.joined && (
+                  <Button variant="default" className="rounded-full" onClick={() => setOpenCircle({ id: j.id, title: j.title })}>
+                    Open circle
+                  </Button>
+                )}
+                <Button variant={j.joined ? "outline" : "default"} className="rounded-full" onClick={() => toggleJoin.mutate({ id: j.id, joined: j.joined })} disabled={toggleJoin.isPending}>
+                  {j.joined ? "Leave" : "Join circle"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -127,6 +366,7 @@ function Experience() {
           </Button>
         </div>
       )}
+      {openCircle && <CircleChat journey={openCircle} userId={userId ?? null} onClose={() => setOpenCircle(null)} />}
     </div>
   );
 }
