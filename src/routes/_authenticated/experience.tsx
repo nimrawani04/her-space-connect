@@ -3,10 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Paperclip, Send, Trash2, X, FileText, Download, Eye, ExternalLink, SmilePlus } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldQuestion, Loader2 } from "lucide-react";
+import { scanAttachment } from "@/lib/attachment-scan.functions";
+import { scanLink } from "@/lib/link-scan.functions";
 
 export const Route = createFileRoute("/_authenticated/experience")({
   head: () => ({ meta: [{ title: "Experience Match · HerSpace" }] }),
@@ -14,11 +20,630 @@ export const Route = createFileRoute("/_authenticated/experience")({
 });
 
 const PAGE_SIZE = 12;
+const MAX_FILE_MB = 20;
+const REACTIONS = ["❤️", "🫂", "🙏", "💪", "😢", "✨"] as const;
+const BLOCKED_CLIENT_EXTENSIONS = new Set([
+  "exe", "dll", "scr", "com", "bat", "cmd", "msi", "ps1", "vbs", "js", "mjs", "jar", "apk", "sh", "bin", "app",
+]);
+const URL_RE = /(https?:\/\/[^\s<>"')]+)/gi;
+
+type Msg = {
+  id: string;
+  body: string | null;
+  author_id: string;
+  is_anonymous: boolean;
+  created_at: string;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  attachment_type: string | null;
+  attachment_size: number | null;
+  scan_status: string;
+  scan_detail: string | null;
+};
+
+function prettySize(n?: number | null) {
+  if (!n) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+type ScanState = "pending" | "scanning" | "clean" | "quarantined" | "error";
+
+function scanState(msg: Msg, scanning: boolean): ScanState {
+  if (scanning) return "scanning";
+  if (msg.scan_status === "pending") return "pending";
+  if (msg.scan_status === "clean") return "clean";
+  if (msg.scan_status === "infected") return "quarantined";
+  return "error";
+}
+
+const SCAN_LABEL: Record<ScanState, string> = {
+  pending: "Pending scan",
+  scanning: "Scanning…",
+  clean: "Cleared",
+  quarantined: "Quarantined",
+  error: "Not verified",
+};
+
+function ScanIndicator({ state, detail }: { state: ScanState; detail?: string | null }) {
+  const tone =
+    state === "clean"
+      ? "border-earth/40 bg-earth/10 text-earth"
+      : state === "quarantined"
+        ? "border-destructive/40 bg-destructive/10 text-destructive"
+        : "border-border bg-muted/50 text-muted-foreground";
+  const Icon =
+    state === "clean" ? ShieldCheck : state === "quarantined" ? ShieldAlert : state === "error" ? ShieldQuestion : Loader2;
+  const spin = state === "scanning" || state === "pending";
+  return (
+    <span
+      className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${tone}`}
+      role="status"
+      aria-live="polite"
+      title={detail ?? SCAN_LABEL[state]}
+    >
+      <Icon className={`h-3 w-3 shrink-0 ${spin ? "animate-spin motion-reduce:animate-none" : ""}`} />
+      {SCAN_LABEL[state]}
+    </span>
+  );
+}
+
+function ConfirmOpen({
+  target,
+  onCancel,
+  onConfirm,
+}: {
+  target: { kind: "file" | "link"; label: string; sub?: string };
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-serif italic text-xl">
+            {target.kind === "file" ? "Download this file?" : "Open this link?"}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          {target.kind === "file"
+            ? "Nothing downloads automatically. This file passed our scan, but open it only if you trust the sender."
+            : "This link was shared by another member and leads outside HerSpace. Open it only if you trust the sender."}
+        </p>
+        <div className="rounded-lg border border-border px-3 py-2 text-sm break-all">
+          <p className="font-medium">{target.label}</p>
+          {target.sub && <p className="text-xs text-muted-foreground">{target.sub}</p>}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" className="rounded-full" onClick={onCancel}>Cancel</Button>
+          <Button className="rounded-full" onClick={onConfirm}>
+            {target.kind === "file" ? "Download" : "Open link"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MessageBody({ body }: { body: string }) {
+  const [pending, setPending] = useState<string | null>(null);
+  const parts = body.split(URL_RE);
+  return (
+    <>
+      <p className="text-sm whitespace-pre-wrap break-words">
+        {parts.map((part, i) =>
+          /^https?:\/\//i.test(part) ? (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setPending(part)}
+              className="inline-flex items-center gap-1 underline underline-offset-2 text-earth hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring rounded break-all"
+            >
+              {part}
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </button>
+          ) : (
+            <span key={i}>{part}</span>
+          ),
+        )}
+      </p>
+      {pending && (
+        <LinkScanDialog url={pending} onClose={() => setPending(null)} />
+      )}
+    </>
+  );
+}
+
+type LinkVerdict = "safe" | "unknown" | "unsafe";
+
+const VERDICT_UI: Record<LinkVerdict, { label: string; tone: string; Icon: typeof ShieldCheck; blurb: string }> = {
+  safe: {
+    label: "Looks safe",
+    tone: "border-earth/40 bg-earth/10 text-earth",
+    Icon: ShieldCheck,
+    blurb: "No risk signals found, but only open links from people you trust.",
+  },
+  unknown: {
+    label: "Unknown",
+    tone: "border-border bg-muted/60 text-muted-foreground",
+    Icon: ShieldQuestion,
+    blurb: "We couldn't verify this destination. Proceed only if you know the sender.",
+  },
+  unsafe: {
+    label: "Unsafe",
+    tone: "border-destructive/40 bg-destructive/10 text-destructive",
+    Icon: ShieldAlert,
+    blurb: "This link shows signs of phishing or malware. We strongly recommend not opening it.",
+  },
+};
+
+function LinkScanDialog({ url, onClose }: { url: string; onClose: () => void }) {
+  const [acknowledged, setAcknowledged] = useState(false);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["link-scan", url],
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+    queryFn: () => scanLink({ data: { url } }),
+  });
+
+  const verdict: LinkVerdict | null = isError ? "unknown" : (data?.verdict as LinkVerdict | undefined) ?? null;
+  const ui = verdict ? VERDICT_UI[verdict] : null;
+  const needsExtra = verdict === "unsafe";
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-serif italic text-xl">Open this link?</DialogTitle>
+        </DialogHeader>
+
+        <div className="rounded-lg border border-border px-3 py-2 text-sm break-all">
+          <p className="font-medium">{url}</p>
+          {data?.redirected && (
+            <p className="text-xs text-muted-foreground mt-1">Redirects to: {data.finalUrl}</p>
+          )}
+        </div>
+
+        <div role="status" aria-live="polite" className="space-y-2">
+          {isPending ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin motion-reduce:animate-none" />
+              Checking this link…
+            </span>
+          ) : ui ? (
+            <>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${ui.tone}`}>
+                <ui.Icon className="h-3.5 w-3.5 shrink-0" />
+                {ui.label}
+              </span>
+              <p className="text-sm text-muted-foreground">{ui.blurb}</p>
+              {data?.reasons?.length ? (
+                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                  {data.reasons.slice(0, 5).map((r: string) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+
+        {needsExtra && (
+          <label className="flex items-start gap-2 text-xs text-destructive">
+            <input
+              type="checkbox"
+              checked={acknowledged}
+              onChange={(e) => setAcknowledged(e.target.checked)}
+              className="mt-0.5 accent-current"
+            />
+            I understand this link may be dangerous and want to open it anyway.
+          </label>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" className="rounded-full" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="rounded-full"
+            variant={needsExtra ? "destructive" : "default"}
+            disabled={isPending || (needsExtra && !acknowledged)}
+            onClick={() => {
+              window.open(url, "_blank", "noopener,noreferrer");
+              onClose();
+            }}
+          >
+            Open link
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Attachment({ msg, scanning }: { msg: Msg; scanning: boolean }) {
+  const [confirming, setConfirming] = useState(false);
+  const { data: url } = useQuery({
+    queryKey: ["circle-file", msg.attachment_path],
+    enabled: !!msg.attachment_path && msg.scan_status === "clean",
+    staleTime: 1000 * 60 * 30,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from("circle-files")
+        .createSignedUrl(msg.attachment_path!, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+  const isImage = (msg.attachment_type ?? "").startsWith("image/");
+  if (!msg.attachment_path) return null;
+  const state = scanState(msg, scanning);
+  if (state === "pending" || state === "scanning") {
+    return (
+      <div className="mt-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+        <p className="truncate">“{msg.attachment_name}”</p>
+        <ScanIndicator state={state} />
+      </div>
+    );
+  }
+  if (state !== "clean") {
+    return (
+      <div className="mt-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        <span>{msg.scan_detail ?? "This file could not be verified and is hidden."}</span>
+        <ScanIndicator state={state} detail={msg.scan_detail} />
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2">
+      {isImage &&
+        (url ? (
+          <img
+            src={url}
+            alt={msg.attachment_name ?? "Shared image"}
+            loading="lazy"
+            className="max-h-64 rounded-lg border border-border object-cover"
+          />
+        ) : (
+          <div className="h-24 w-40 rounded-lg bg-muted/60 animate-pulse motion-reduce:animate-none" />
+        ))}
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="mt-2 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <FileText className="h-4 w-4 shrink-0 text-earth" />
+        <span className="truncate max-w-[14rem]">{msg.attachment_name}</span>
+        <span className="text-xs text-muted-foreground">{prettySize(msg.attachment_size)}</span>
+        <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
+      </button>
+      <ScanIndicator state="clean" />
+      {confirming && (
+        <ConfirmOpen
+          target={{ kind: "file", label: msg.attachment_name ?? "file", sub: prettySize(msg.attachment_size) }}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            if (url) window.open(url, "_blank", "noopener,noreferrer");
+            setConfirming(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CircleChat({ journey, userId, onClose }: { journey: { id: string; title: string }; userId: string | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [anon, setAnon] = useState(true);
+  const [scanningIds, setScanningIds] = useState<string[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ["journey-messages", journey.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("journey_messages")
+        .select("id,body,author_id,is_anonymous,created_at,attachment_path,attachment_name,attachment_type,attachment_size,scan_status,scan_detail")
+        .eq("journey_id", journey.id)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as Msg[];
+    },
+  });
+
+  const { data: reactions = [] } = useQuery({
+    queryKey: ["journey-reactions", journey.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("message_reactions")
+        .select("message_id,user_id,emoji")
+        .eq("journey_id", journey.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: views = [] } = useQuery({
+    queryKey: ["journey-views", journey.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("message_views")
+        .select("message_id,viewer_id")
+        .eq("journey_id", journey.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel(`journey-${journey.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "journey_messages", filter: `journey_id=eq.${journey.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `journey_id=eq.${journey.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["journey-reactions", journey.id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_views", filter: `journey_id=eq.${journey.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["journey-views", journey.id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [journey.id, qc]);
+
+  // Record that this member has seen the messages of others.
+  useEffect(() => {
+    if (!userId || messages.length === 0) return;
+    const seen = new Set(views.filter((v) => v.viewer_id === userId).map((v) => v.message_id));
+    const rows = messages
+      .filter((m) => m.author_id !== userId && !seen.has(m.id))
+      .map((m) => ({ message_id: m.id, journey_id: journey.id, viewer_id: userId }));
+    if (rows.length === 0) return;
+    void supabase
+      .from("message_views")
+      .upsert(rows, { onConflict: "message_id,viewer_id", ignoreDuplicates: true })
+      .then(() => qc.invalidateQueries({ queryKey: ["journey-views", journey.id] }));
+  }, [messages, views, userId, journey.id, qc]);
+
+  const toggleReaction = useMutation({
+    mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) => {
+      if (!userId) throw new Error("Sign in required");
+      const mine = reactions.some((r) => r.message_id === messageId && r.user_id === userId && r.emoji === emoji);
+      if (mine) {
+        const { error } = await supabase
+          .from("message_reactions")
+          .delete()
+          .eq("message_id", messageId)
+          .eq("user_id", userId)
+          .eq("emoji", emoji);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("message_reactions")
+          .insert({ message_id: messageId, journey_id: journey.id, user_id: userId, emoji });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journey-reactions", journey.id] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
+
+  const send = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error("Sign in required");
+      const body = text.trim();
+      if (!body && !file) throw new Error("Write something or attach a file");
+      let attachment: Partial<Msg> = {};
+      if (file) {
+        if (file.size > MAX_FILE_MB * 1024 * 1024) throw new Error(`Files must be under ${MAX_FILE_MB} MB`);
+        const ext = file.name.split(".").pop() ?? "bin";
+        const path = `${journey.id}/${userId}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("circle-files").upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+        if (upErr) throw upErr;
+        attachment = {
+          attachment_path: path,
+          attachment_name: file.name,
+          attachment_type: file.type || "application/octet-stream",
+          attachment_size: file.size,
+        };
+      }
+      const { data: inserted, error } = await supabase
+        .from("journey_messages")
+        .insert({
+          journey_id: journey.id,
+          author_id: userId,
+          body: body || null,
+          is_anonymous: anon,
+          scan_status: file ? "pending" : "clean",
+          ...attachment,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (file && inserted) {
+        setScanningIds((s) => [...s, inserted.id]);
+        try {
+          const result = await scanAttachment({ data: { messageId: inserted.id } });
+          if (result.status === "infected") {
+            throw new Error(`Blocked and quarantined: ${result.reason}`);
+          }
+        } finally {
+          setScanningIds((s) => s.filter((id) => id !== inserted.id));
+        }
+      }
+    },
+    onSuccess: () => {
+      setText(""); setFile(null);
+      if (fileRef.current) fileRef.current.value = "";
+      qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
+    },
+    onError: (e: any) => {
+      qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
+      toast.error(e.message);
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async (m: Msg) => {
+      if (m.attachment_path) await supabase.storage.from("circle-files").remove([m.attachment_path]);
+      const { error } = await supabase.from("journey_messages").delete().eq("id", m.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-5 py-4 border-b border-border">
+          <DialogTitle className="font-serif italic text-xl">{journey.title}</DialogTitle>
+          <p className="text-xs text-muted-foreground">Anonymous by default · shared files stay inside this circle</p>
+        </DialogHeader>
+        <div className="h-[55vh] overflow-y-auto px-5 py-4 space-y-4" aria-live="polite" aria-busy={isLoading}>
+          {isLoading && <p className="text-sm text-muted-foreground">Loading conversation…</p>}
+          {!isLoading && messages.length === 0 && (
+            <p className="text-sm text-muted-foreground">No one has spoken yet. Start the conversation.</p>
+          )}
+          {messages.map((m) => {
+            const mine = m.author_id === userId;
+            const msgReactions = reactions.filter((r) => r.message_id === m.id);
+            const counts = REACTIONS.map((e) => ({
+              emoji: e,
+              count: msgReactions.filter((r) => r.emoji === e).length,
+              mine: msgReactions.some((r) => r.emoji === e && r.user_id === userId),
+            }));
+            const viewCount = views.filter((v) => v.message_id === m.id).length;
+            return (
+              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? "bg-primary/10" : "bg-muted/50"}`}>
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-earth mb-1">
+                    {m.is_anonymous ? "Anonymous sister" : mine ? "You" : "A sister"}
+                  </p>
+                  {m.body && <MessageBody body={m.body} />}
+                  <Attachment msg={m} scanning={scanningIds.includes(m.id)} />
+                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                    {counts.filter((c) => c.count > 0).map((c) => (
+                      <button
+                        key={c.emoji}
+                        type="button"
+                        onClick={() => toggleReaction.mutate({ messageId: m.id, emoji: c.emoji })}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs focus-visible:ring-2 focus-visible:ring-ring ${c.mine ? "border-primary/50 bg-primary/10" : "border-border"}`}
+                        aria-label={`${c.emoji} reaction, ${c.count}`}
+                      >
+                        <span aria-hidden>{c.emoji}</span>
+                        <span>{c.count}</span>
+                      </button>
+                    ))}
+                    <details className="relative">
+                      <summary className="list-none cursor-pointer rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+                        <SmilePlus className="inline h-3.5 w-3.5" aria-label="Add a reaction" />
+                      </summary>
+                      <div className="absolute z-20 mt-1 flex gap-1 rounded-full border border-border bg-popover px-2 py-1 shadow-md">
+                        {REACTIONS.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            onClick={() => toggleReaction.mutate({ messageId: m.id, emoji: e })}
+                            className="text-base hover:scale-110 transition-transform focus-visible:ring-2 focus-visible:ring-ring rounded"
+                            aria-label={`React with ${e}`}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                    {mine && (
+                      <span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground" title="People who viewed this message">
+                        <Eye className="h-3.5 w-3.5" />
+                        {viewCount}
+                      </span>
+                    )}
+                    {mine && (
+                      <button
+                        onClick={() => remove.mutate(m)}
+                        className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring rounded"
+                      >
+                        <Trash2 className="h-3 w-3" /> Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+        <div className="border-t border-border p-4 space-y-2">
+          {file && (
+            <div className="flex items-center gap-2 text-xs rounded-lg border border-border px-3 py-2">
+              <FileText className="h-3.5 w-3.5 text-earth" />
+              <span className="truncate">{file.name}</span>
+              <span className="text-muted-foreground">{prettySize(file.size)}</span>
+              <button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} className="ml-auto" aria-label="Remove attachment">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          <div className="flex items-end gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                const ext = f?.name.split(".").pop()?.toLowerCase() ?? "";
+                if (f && BLOCKED_CLIENT_EXTENSIONS.has(ext)) {
+                  toast.error(`.${ext} files aren't allowed here — executables are the most common way malware spreads.`);
+                  e.target.value = "";
+                  setFile(null);
+                  return;
+                }
+                setFile(f);
+              }}
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+            />
+            <Button type="button" variant="outline" size="icon" className="rounded-full shrink-0" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Share a thought…"
+              rows={1}
+              className="min-h-10 resize-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.mutate(); }
+              }}
+            />
+            <Button onClick={() => send.mutate()} disabled={send.isPending} className="rounded-full shrink-0" aria-label="Send">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={anon} onChange={(e) => setAnon(e.target.checked)} className="accent-primary" />
+            Post anonymously
+          </label>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function Experience() {
   const [q, setQ] = useState("");
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState("");
+  const [openCircle, setOpenCircle] = useState<{ id: string; title: string } | null>(null);
   const qc = useQueryClient();
 
   const { data: userId } = useQuery({
@@ -113,9 +738,16 @@ function Experience() {
                 <div className="flex flex-wrap gap-1.5">{j.tags.map((t) => <Badge key={t} variant="outline">{t}</Badge>)}</div>
                 <p className="text-xs text-muted-foreground">{j.count.toLocaleString()} sisters</p>
               </div>
-              <Button variant={j.joined ? "default" : "outline"} className="rounded-full" onClick={() => toggleJoin.mutate({ id: j.id, joined: j.joined })} disabled={toggleJoin.isPending}>
-                {j.joined ? "Leave" : "Join circle"}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {j.joined && (
+                  <Button variant="default" className="rounded-full" onClick={() => setOpenCircle({ id: j.id, title: j.title })}>
+                    Open circle
+                  </Button>
+                )}
+                <Button variant={j.joined ? "outline" : "default"} className="rounded-full" onClick={() => toggleJoin.mutate({ id: j.id, joined: j.joined })} disabled={toggleJoin.isPending}>
+                  {j.joined ? "Leave" : "Join circle"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -127,6 +759,7 @@ function Experience() {
           </Button>
         </div>
       )}
+      {openCircle && <CircleChat journey={openCircle} userId={userId ?? null} onClose={() => setOpenCircle(null)} />}
     </div>
   );
 }
