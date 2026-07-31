@@ -201,6 +201,62 @@ export type Database = {
           },
         ]
       }
+      journey_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          author_id: string
+          body: string | null
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          journey_id: string
+          scan_detail: string | null
+          scan_status: string
+          scanned_at: string | null
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          author_id: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          journey_id: string
+          scan_detail?: string | null
+          scan_status?: string
+          scanned_at?: string | null
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          author_id?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          journey_id?: string
+          scan_detail?: string | null
+          scan_status?: string
+          scanned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_messages_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journeys: {
         Row: {
           created_at: string
@@ -284,6 +340,87 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          journey_id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          journey_id: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          journey_id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "journey_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_views: {
+        Row: {
+          created_at: string
+          id: string
+          journey_id: string
+          message_id: string
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          journey_id: string
+          message_id: string
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          journey_id?: string
+          message_id?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_views_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_views_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "journey_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_prefs: {
         Row: {
@@ -485,6 +622,50 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      quarantined_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          journey_id: string | null
+          reason: string
+          updated_at: string
+          uploader_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          journey_id?: string | null
+          reason: string
+          updated_at?: string
+          uploader_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          journey_id?: string | null
+          reason?: string
+          updated_at?: string
+          uploader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quarantined_files_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       safe_places: {
         Row: {
@@ -798,6 +979,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_journey_member: {
+        Args: { _journey_id: string; _user_id: string }
         Returns: boolean
       }
     }
