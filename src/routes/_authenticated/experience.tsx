@@ -9,8 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Paperclip, Send, Trash2, X, FileText, Download } from "lucide-react";
-import { ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
+import { Paperclip, Send, Trash2, X, FileText, Download, Eye, ExternalLink, SmilePlus } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldQuestion, Loader2 } from "lucide-react";
 import { scanAttachment } from "@/lib/attachment-scan.functions";
 
 export const Route = createFileRoute("/_authenticated/experience")({
@@ -20,6 +20,11 @@ export const Route = createFileRoute("/_authenticated/experience")({
 
 const PAGE_SIZE = 12;
 const MAX_FILE_MB = 20;
+const REACTIONS = ["❤️", "🫂", "🙏", "💪", "😢", "✨"] as const;
+const BLOCKED_CLIENT_EXTENSIONS = new Set([
+  "exe", "dll", "scr", "com", "bat", "cmd", "msi", "ps1", "vbs", "js", "mjs", "jar", "apk", "sh", "bin", "app",
+]);
+const URL_RE = /(https?:\/\/[^\s<>"')]+)/gi;
 
 type Msg = {
   id: string;
@@ -42,7 +47,122 @@ function prettySize(n?: number | null) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function Attachment({ msg }: { msg: Msg }) {
+type ScanState = "pending" | "scanning" | "clean" | "quarantined" | "error";
+
+function scanState(msg: Msg, scanning: boolean): ScanState {
+  if (scanning) return "scanning";
+  if (msg.scan_status === "pending") return "pending";
+  if (msg.scan_status === "clean") return "clean";
+  if (msg.scan_status === "infected") return "quarantined";
+  return "error";
+}
+
+const SCAN_LABEL: Record<ScanState, string> = {
+  pending: "Pending scan",
+  scanning: "Scanning…",
+  clean: "Cleared",
+  quarantined: "Quarantined",
+  error: "Not verified",
+};
+
+function ScanIndicator({ state, detail }: { state: ScanState; detail?: string | null }) {
+  const tone =
+    state === "clean"
+      ? "border-earth/40 bg-earth/10 text-earth"
+      : state === "quarantined"
+        ? "border-destructive/40 bg-destructive/10 text-destructive"
+        : "border-border bg-muted/50 text-muted-foreground";
+  const Icon =
+    state === "clean" ? ShieldCheck : state === "quarantined" ? ShieldAlert : state === "error" ? ShieldQuestion : Loader2;
+  const spin = state === "scanning" || state === "pending";
+  return (
+    <span
+      className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${tone}`}
+      role="status"
+      aria-live="polite"
+      title={detail ?? SCAN_LABEL[state]}
+    >
+      <Icon className={`h-3 w-3 shrink-0 ${spin ? "animate-spin motion-reduce:animate-none" : ""}`} />
+      {SCAN_LABEL[state]}
+    </span>
+  );
+}
+
+function ConfirmOpen({
+  target,
+  onCancel,
+  onConfirm,
+}: {
+  target: { kind: "file" | "link"; label: string; sub?: string };
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-serif italic text-xl">
+            {target.kind === "file" ? "Download this file?" : "Open this link?"}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          {target.kind === "file"
+            ? "Nothing downloads automatically. This file passed our scan, but open it only if you trust the sender."
+            : "This link was shared by another member and leads outside HerSpace. Open it only if you trust the sender."}
+        </p>
+        <div className="rounded-lg border border-border px-3 py-2 text-sm break-all">
+          <p className="font-medium">{target.label}</p>
+          {target.sub && <p className="text-xs text-muted-foreground">{target.sub}</p>}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" className="rounded-full" onClick={onCancel}>Cancel</Button>
+          <Button className="rounded-full" onClick={onConfirm}>
+            {target.kind === "file" ? "Download" : "Open link"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MessageBody({ body }: { body: string }) {
+  const [pending, setPending] = useState<string | null>(null);
+  const parts = body.split(URL_RE);
+  return (
+    <>
+      <p className="text-sm whitespace-pre-wrap break-words">
+        {parts.map((part, i) =>
+          URL_RE.test(part) && /^https?:\/\//i.test(part) ? (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setPending(part)}
+              className="inline-flex items-center gap-1 underline underline-offset-2 text-earth hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring rounded break-all"
+            >
+              {part}
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </button>
+          ) : (
+            <span key={i}>{part}</span>
+          ),
+        )}
+      </p>
+      {pending && (
+        <ConfirmOpen
+          target={{ kind: "link", label: pending, sub: "External website" }}
+          onCancel={() => setPending(null)}
+          onConfirm={() => {
+            window.open(pending, "_blank", "noopener,noreferrer");
+            setPending(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function Attachment({ msg, scanning }: { msg: Msg; scanning: boolean }) {
+  const [confirming, setConfirming] = useState(false);
   const { data: url } = useQuery({
     queryKey: ["circle-file", msg.attachment_path],
     enabled: !!msg.attachment_path && msg.scan_status === "clean",
@@ -57,49 +177,58 @@ function Attachment({ msg }: { msg: Msg }) {
   });
   const isImage = (msg.attachment_type ?? "").startsWith("image/");
   if (!msg.attachment_path) return null;
-  if (msg.scan_status === "pending") {
+  const state = scanState(msg, scanning);
+  if (state === "pending" || state === "scanning") {
     return (
-      <div className="mt-2 flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
-        Scanning “{msg.attachment_name}” for malware…
+      <div className="mt-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+        <p className="truncate">“{msg.attachment_name}”</p>
+        <ScanIndicator state={state} />
       </div>
     );
   }
-  if (msg.scan_status !== "clean") {
+  if (state !== "clean") {
     return (
-      <div className="mt-2 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-        <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+      <div className="mt-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
         <span>{msg.scan_detail ?? "This file could not be verified and is hidden."}</span>
+        <ScanIndicator state={state} detail={msg.scan_detail} />
       </div>
-    );
-  }
-  if (isImage) {
-    return url ? (
-      <a href={url} target="_blank" rel="noreferrer" className="block mt-2">
-        <img
-          src={url}
-          alt={msg.attachment_name ?? "Shared image"}
-          loading="lazy"
-          className="max-h-64 rounded-lg border border-border object-cover"
-        />
-      </a>
-    ) : (
-      <div className="mt-2 h-24 w-40 rounded-lg bg-muted/60 animate-pulse motion-reduce:animate-none" />
     );
   }
   return (
-    <a
-      href={url ?? "#"}
-      target="_blank"
-      rel="noreferrer"
-      className="mt-2 flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <FileText className="h-4 w-4 shrink-0 text-earth" />
-      <span className="truncate max-w-[14rem]">{msg.attachment_name}</span>
-      <span className="text-xs text-muted-foreground">{prettySize(msg.attachment_size)}</span>
-      <ShieldCheck className="h-3.5 w-3.5 text-earth" aria-label="Scanned and safe" />
-      <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
-    </a>
+    <div className="mt-2">
+      {isImage &&
+        (url ? (
+          <img
+            src={url}
+            alt={msg.attachment_name ?? "Shared image"}
+            loading="lazy"
+            className="max-h-64 rounded-lg border border-border object-cover"
+          />
+        ) : (
+          <div className="h-24 w-40 rounded-lg bg-muted/60 animate-pulse motion-reduce:animate-none" />
+        ))}
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="mt-2 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <FileText className="h-4 w-4 shrink-0 text-earth" />
+        <span className="truncate max-w-[14rem]">{msg.attachment_name}</span>
+        <span className="text-xs text-muted-foreground">{prettySize(msg.attachment_size)}</span>
+        <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
+      </button>
+      <ScanIndicator state="clean" />
+      {confirming && (
+        <ConfirmOpen
+          target={{ kind: "file", label: msg.attachment_name ?? "file", sub: prettySize(msg.attachment_size) }}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            if (url) window.open(url, "_blank", "noopener,noreferrer");
+            setConfirming(false);
+          }}
+        />
+      )}
+    </div>
   );
 }
 
