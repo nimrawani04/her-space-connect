@@ -237,6 +237,7 @@ function CircleChat({ journey, userId, onClose }: { journey: { id: string; title
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [anon, setAnon] = useState(true);
+  const [scanningIds, setScanningIds] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -254,15 +255,82 @@ function CircleChat({ journey, userId, onClose }: { journey: { id: string; title
     },
   });
 
+  const { data: reactions = [] } = useQuery({
+    queryKey: ["journey-reactions", journey.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("message_reactions")
+        .select("message_id,user_id,emoji")
+        .eq("journey_id", journey.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: views = [] } = useQuery({
+    queryKey: ["journey-views", journey.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("message_views")
+        .select("message_id,viewer_id")
+        .eq("journey_id", journey.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   useEffect(() => {
     const ch = supabase
       .channel(`journey-${journey.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "journey_messages", filter: `journey_id=eq.${journey.id}` }, () => {
         qc.invalidateQueries({ queryKey: ["journey-messages", journey.id] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `journey_id=eq.${journey.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["journey-reactions", journey.id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_views", filter: `journey_id=eq.${journey.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["journey-views", journey.id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [journey.id, qc]);
+
+  // Record that this member has seen the messages of others.
+  useEffect(() => {
+    if (!userId || messages.length === 0) return;
+    const seen = new Set(views.filter((v) => v.viewer_id === userId).map((v) => v.message_id));
+    const rows = messages
+      .filter((m) => m.author_id !== userId && !seen.has(m.id))
+      .map((m) => ({ message_id: m.id, journey_id: journey.id, viewer_id: userId }));
+    if (rows.length === 0) return;
+    void supabase
+      .from("message_views")
+      .upsert(rows, { onConflict: "message_id,viewer_id", ignoreDuplicates: true })
+      .then(() => qc.invalidateQueries({ queryKey: ["journey-views", journey.id] }));
+  }, [messages, views, userId, journey.id, qc]);
+
+  const toggleReaction = useMutation({
+    mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) => {
+      if (!userId) throw new Error("Sign in required");
+      const mine = reactions.some((r) => r.message_id === messageId && r.user_id === userId && r.emoji === emoji);
+      if (mine) {
+        const { error } = await supabase
+          .from("message_reactions")
+          .delete()
+          .eq("message_id", messageId)
+          .eq("user_id", userId)
+          .eq("emoji", emoji);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("message_reactions")
+          .insert({ message_id: messageId, journey_id: journey.id, user_id: userId, emoji });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journey-reactions", journey.id] }),
+    onError: (e: any) => toast.error(e.message),
+  });
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
 
@@ -301,9 +369,14 @@ function CircleChat({ journey, userId, onClose }: { journey: { id: string; title
         .single();
       if (error) throw error;
       if (file && inserted) {
-        const result = await scanAttachment({ data: { messageId: inserted.id } });
-        if (result.status === "infected") {
-          throw new Error(`Blocked and quarantined: ${result.reason}`);
+        setScanningIds((s) => [...s, inserted.id]);
+        try {
+          const result = await scanAttachment({ data: { messageId: inserted.id } });
+          if (result.status === "infected") {
+            throw new Error(`Blocked and quarantined: ${result.reason}`);
+          }
+        } finally {
+          setScanningIds((s) => s.filter((id) => id !== inserted.id));
         }
       }
     },
