@@ -415,22 +415,67 @@ function CircleChat({ journey, userId, onClose }: { journey: { id: string; title
           )}
           {messages.map((m) => {
             const mine = m.author_id === userId;
+            const msgReactions = reactions.filter((r) => r.message_id === m.id);
+            const counts = REACTIONS.map((e) => ({
+              emoji: e,
+              count: msgReactions.filter((r) => r.emoji === e).length,
+              mine: msgReactions.some((r) => r.emoji === e && r.user_id === userId),
+            }));
+            const viewCount = views.filter((v) => v.message_id === m.id).length;
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? "bg-primary/10" : "bg-muted/50"}`}>
                   <p className="text-[11px] uppercase tracking-[0.15em] text-earth mb-1">
                     {m.is_anonymous ? "Anonymous sister" : mine ? "You" : "A sister"}
                   </p>
-                  {m.body && <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>}
-                  <Attachment msg={m} />
-                  {mine && (
-                    <button
-                      onClick={() => remove.mutate(m)}
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring rounded"
-                    >
-                      <Trash2 className="h-3 w-3" /> Delete
-                    </button>
-                  )}
+                  {m.body && <MessageBody body={m.body} />}
+                  <Attachment msg={m} scanning={scanningIds.includes(m.id)} />
+                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                    {counts.filter((c) => c.count > 0).map((c) => (
+                      <button
+                        key={c.emoji}
+                        type="button"
+                        onClick={() => toggleReaction.mutate({ messageId: m.id, emoji: c.emoji })}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs focus-visible:ring-2 focus-visible:ring-ring ${c.mine ? "border-primary/50 bg-primary/10" : "border-border"}`}
+                        aria-label={`${c.emoji} reaction, ${c.count}`}
+                      >
+                        <span aria-hidden>{c.emoji}</span>
+                        <span>{c.count}</span>
+                      </button>
+                    ))}
+                    <details className="relative">
+                      <summary className="list-none cursor-pointer rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+                        <SmilePlus className="inline h-3.5 w-3.5" aria-label="Add a reaction" />
+                      </summary>
+                      <div className="absolute z-20 mt-1 flex gap-1 rounded-full border border-border bg-popover px-2 py-1 shadow-md">
+                        {REACTIONS.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            onClick={() => toggleReaction.mutate({ messageId: m.id, emoji: e })}
+                            className="text-base hover:scale-110 transition-transform focus-visible:ring-2 focus-visible:ring-ring rounded"
+                            aria-label={`React with ${e}`}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                    {mine && (
+                      <span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground" title="People who viewed this message">
+                        <Eye className="h-3.5 w-3.5" />
+                        {viewCount}
+                      </span>
+                    )}
+                    {mine && (
+                      <button
+                        onClick={() => remove.mutate(m)}
+                        className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring rounded"
+                      >
+                        <Trash2 className="h-3 w-3" /> Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -453,7 +498,17 @@ function CircleChat({ journey, userId, onClose }: { journey: { id: string; title
               ref={fileRef}
               type="file"
               className="sr-only"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                const ext = f?.name.split(".").pop()?.toLowerCase() ?? "";
+                if (f && BLOCKED_CLIENT_EXTENSIONS.has(ext)) {
+                  toast.error(`.${ext} files aren't allowed here — executables are the most common way malware spreads.`);
+                  e.target.value = "";
+                  setFile(null);
+                  return;
+                }
+                setFile(f);
+              }}
               accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
             />
             <Button type="button" variant="outline" size="icon" className="rounded-full shrink-0" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
