@@ -132,7 +132,7 @@ function MessageBody({ body }: { body: string }) {
     <>
       <p className="text-sm whitespace-pre-wrap break-words">
         {parts.map((part, i) =>
-          URL_RE.test(part) && /^https?:\/\//i.test(part) ? (
+          /^https?:\/\//i.test(part) ? (
             <button
               key={i}
               type="button"
