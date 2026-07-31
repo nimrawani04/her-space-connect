@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Paperclip, Send, Trash2, X, FileText, Download, Eye, ExternalLink, SmilePlus } from "lucide-react";
 import { ShieldCheck, ShieldAlert, ShieldQuestion, Loader2 } from "lucide-react";
 import { scanAttachment } from "@/lib/attachment-scan.functions";
+import { scanLink } from "@/lib/link-scan.functions";
 
 export const Route = createFileRoute("/_authenticated/experience")({
   head: () => ({ meta: [{ title: "Experience Match · HerSpace" }] }),
@@ -148,16 +149,116 @@ function MessageBody({ body }: { body: string }) {
         )}
       </p>
       {pending && (
-        <ConfirmOpen
-          target={{ kind: "link", label: pending, sub: "External website" }}
-          onCancel={() => setPending(null)}
-          onConfirm={() => {
-            window.open(pending, "_blank", "noopener,noreferrer");
-            setPending(null);
-          }}
-        />
+        <LinkScanDialog url={pending} onClose={() => setPending(null)} />
       )}
     </>
+  );
+}
+
+type LinkVerdict = "safe" | "unknown" | "unsafe";
+
+const VERDICT_UI: Record<LinkVerdict, { label: string; tone: string; Icon: typeof ShieldCheck; blurb: string }> = {
+  safe: {
+    label: "Looks safe",
+    tone: "border-earth/40 bg-earth/10 text-earth",
+    Icon: ShieldCheck,
+    blurb: "No risk signals found, but only open links from people you trust.",
+  },
+  unknown: {
+    label: "Unknown",
+    tone: "border-border bg-muted/60 text-muted-foreground",
+    Icon: ShieldQuestion,
+    blurb: "We couldn't verify this destination. Proceed only if you know the sender.",
+  },
+  unsafe: {
+    label: "Unsafe",
+    tone: "border-destructive/40 bg-destructive/10 text-destructive",
+    Icon: ShieldAlert,
+    blurb: "This link shows signs of phishing or malware. We strongly recommend not opening it.",
+  },
+};
+
+function LinkScanDialog({ url, onClose }: { url: string; onClose: () => void }) {
+  const [acknowledged, setAcknowledged] = useState(false);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["link-scan", url],
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+    queryFn: () => scanLink({ data: { url } }),
+  });
+
+  const verdict: LinkVerdict | null = isError ? "unknown" : (data?.verdict as LinkVerdict | undefined) ?? null;
+  const ui = verdict ? VERDICT_UI[verdict] : null;
+  const needsExtra = verdict === "unsafe";
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-serif italic text-xl">Open this link?</DialogTitle>
+        </DialogHeader>
+
+        <div className="rounded-lg border border-border px-3 py-2 text-sm break-all">
+          <p className="font-medium">{url}</p>
+          {data?.redirected && (
+            <p className="text-xs text-muted-foreground mt-1">Redirects to: {data.finalUrl}</p>
+          )}
+        </div>
+
+        <div role="status" aria-live="polite" className="space-y-2">
+          {isPending ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin motion-reduce:animate-none" />
+              Checking this link…
+            </span>
+          ) : ui ? (
+            <>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${ui.tone}`}>
+                <ui.Icon className="h-3.5 w-3.5 shrink-0" />
+                {ui.label}
+              </span>
+              <p className="text-sm text-muted-foreground">{ui.blurb}</p>
+              {data?.reasons?.length ? (
+                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                  {data.reasons.slice(0, 5).map((r: string) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+
+        {needsExtra && (
+          <label className="flex items-start gap-2 text-xs text-destructive">
+            <input
+              type="checkbox"
+              checked={acknowledged}
+              onChange={(e) => setAcknowledged(e.target.checked)}
+              className="mt-0.5 accent-current"
+            />
+            I understand this link may be dangerous and want to open it anyway.
+          </label>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" className="rounded-full" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="rounded-full"
+            variant={needsExtra ? "destructive" : "default"}
+            disabled={isPending || (needsExtra && !acknowledged)}
+            onClick={() => {
+              window.open(url, "_blank", "noopener,noreferrer");
+              onClose();
+            }}
+          >
+            Open link
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
