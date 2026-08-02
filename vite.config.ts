@@ -33,6 +33,15 @@ export default defineConfig({
         manifest: false,
         workbox: {
           globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff2}"],
+          // Heavy, rarely used export libraries (PDF/canvas) stay out of the
+          // install-time precache — they are fetched and runtime-cached on first use.
+          globIgnores: [
+            "**/jspdf*.js",
+            "**/html2canvas*.js",
+            "**/canvg*.js",
+            "**/purify.es-*.js",
+            "**/index.es-*.js",
+          ],
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
           additionalManifestEntries: [
