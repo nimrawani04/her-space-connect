@@ -96,6 +96,7 @@ export function CycleDashboard() {
     const wAvgs = wellnessAverages(wellness);
     const symptomTrends = topSymptomTrends(cycles, wellness);
     const { data: u } = await supabase.auth.getUser();
+    const { buildHealthPdf } = await import("@/lib/pdf-report");
     const blob = buildHealthPdf({
       generatedFor: u.user?.email ?? "you",
       cycleSummary: stats,
