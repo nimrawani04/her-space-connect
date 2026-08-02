@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeSymptoms, simplifyResearch } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,13 +14,40 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertTriangle, FileDown, Printer, Sparkles, ShieldCheck, Stethoscope } from "lucide-react";
-import { PeriodLogger } from "@/components/health/PeriodLogger";
-import { DailyWellness } from "@/components/health/DailyWellness";
-import { CyclePrediction } from "@/components/health/CyclePrediction";
-import { PhaseTimeline } from "@/components/health/PhaseTimeline";
-import { AIInsights } from "@/components/health/AIInsights";
-import { CycleDashboard } from "@/components/health/CycleDashboard";
-import { HealthSettings } from "@/components/health/HealthSettings";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Heavy tab panels load on demand so the Health Hub shell paints immediately.
+const PeriodLogger = lazy(() =>
+  import("@/components/health/PeriodLogger").then((m) => ({ default: m.PeriodLogger })),
+);
+const DailyWellness = lazy(() =>
+  import("@/components/health/DailyWellness").then((m) => ({ default: m.DailyWellness })),
+);
+const CyclePrediction = lazy(() =>
+  import("@/components/health/CyclePrediction").then((m) => ({ default: m.CyclePrediction })),
+);
+const PhaseTimeline = lazy(() =>
+  import("@/components/health/PhaseTimeline").then((m) => ({ default: m.PhaseTimeline })),
+);
+const AIInsights = lazy(() =>
+  import("@/components/health/AIInsights").then((m) => ({ default: m.AIInsights })),
+);
+const CycleDashboard = lazy(() =>
+  import("@/components/health/CycleDashboard").then((m) => ({ default: m.CycleDashboard })),
+);
+const HealthSettings = lazy(() =>
+  import("@/components/health/HealthSettings").then((m) => ({ default: m.HealthSettings })),
+);
+
+function PanelFallback() {
+  return (
+    <div className="space-y-4" aria-busy="true">
+      <Skeleton className="h-8 w-56" />
+      <Skeleton className="h-40 w-full" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/health")({
   head: () => ({ meta: [{ title: "Health Hub · HerSpace" }] }),
@@ -139,20 +166,22 @@ function HealthHub() {
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="period"><PeriodLogger /></TabsContent>
-        <TabsContent value="daily"><DailyWellness /></TabsContent>
-        <TabsContent value="insights"><AIInsights /></TabsContent>
-        <TabsContent value="dashboard"><CycleDashboard /></TabsContent>
-        <TabsContent value="settings"><HealthSettings /></TabsContent>
+        <TabsContent value="period"><Suspense fallback={<PanelFallback />}><PeriodLogger /></Suspense></TabsContent>
+        <TabsContent value="daily"><Suspense fallback={<PanelFallback />}><DailyWellness /></Suspense></TabsContent>
+        <TabsContent value="insights"><Suspense fallback={<PanelFallback />}><AIInsights /></Suspense></TabsContent>
+        <TabsContent value="dashboard"><Suspense fallback={<PanelFallback />}><CycleDashboard /></Suspense></TabsContent>
+        <TabsContent value="settings"><Suspense fallback={<PanelFallback />}><HealthSettings /></Suspense></TabsContent>
         <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
         <TabsContent value="research"><ResearchSimplifier /></TabsContent>
         <TabsContent value="tracker"><CycleTracker /></TabsContent>
         <TabsContent value="hormones">
+          <Suspense fallback={<PanelFallback />}>
           <div className="space-y-6">
             <CyclePrediction />
             <PhaseTimeline />
             <HormoneCycle />
           </div>
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
