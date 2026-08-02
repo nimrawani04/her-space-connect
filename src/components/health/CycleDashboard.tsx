@@ -8,7 +8,6 @@ import { Settings2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { buildHealthPdf } from "@/lib/pdf-report";
 import { summarizeCycles, periodStarts } from "@/lib/cycle-stats";
 import { toast } from "sonner";
 
@@ -97,6 +96,7 @@ export function CycleDashboard() {
     const wAvgs = wellnessAverages(wellness);
     const symptomTrends = topSymptomTrends(cycles, wellness);
     const { data: u } = await supabase.auth.getUser();
+    const { buildHealthPdf } = await import("@/lib/pdf-report");
     const blob = buildHealthPdf({
       generatedFor: u.user?.email ?? "you",
       cycleSummary: stats,

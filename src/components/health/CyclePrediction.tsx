@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Sparkles, AlertCircle, History, Trash2, ChevronDown, CalendarDays, Droplets, Activity, Flower2, Moon, Gauge, GitCompare, X, ArrowRight, FileDown, Info } from "lucide-react";
 import { periodStarts, summarizeCycles } from "@/lib/cycle-stats";
-import { buildPredictionRunPdf } from "@/lib/prediction-pdf";
 
 type PredictResult = Awaited<ReturnType<typeof predictCycle>>;
 type CrampStats = {
@@ -406,6 +405,7 @@ async function exportRunPdf(run: PredictionRun) {
   try {
     const { data: auth } = await supabase.auth.getUser();
     const name = (auth.user?.user_metadata as any)?.full_name || auth.user?.email || "you";
+    const { buildPredictionRunPdf } = await import("@/lib/prediction-pdf");
     const blob = buildPredictionRunPdf(run as any, name);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
