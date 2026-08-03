@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Activity, Users, Sparkles, GraduationCap, Briefcase, ShoppingBag,
-  ShieldCheck, Plane, HeartPulse, BookOpen, LayoutDashboard, LogOut, Palette,
+  ShieldCheck, Plane, HeartPulse, BookOpen, LayoutDashboard, LogOut, Palette, Baby,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,6 +38,7 @@ export const Route = createFileRoute("/_authenticated")({
 const nav = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/health", icon: Activity, label: "Health Hub" },
+  { to: "/pregnancy", icon: Baby, label: "Pregnancy" },
   { to: "/community", icon: Users, label: "Safe Space" },
   { to: "/experience", icon: Sparkles, label: "Experience Match" },
   { to: "/mentorship", icon: GraduationCap, label: "Mentorship" },

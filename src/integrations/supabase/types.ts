@@ -85,6 +85,36 @@ export type Database = {
         }
         Relationships: []
       }
+      contractions: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          intensity: number | null
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds: number
+          id?: string
+          intensity?: number | null
+          started_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          intensity?: number | null
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cycle_entries: {
         Row: {
           blood_color: string | null
@@ -144,6 +174,45 @@ export type Database = {
           period_symptoms?: Json | null
           symptom_severities?: Json | null
           symptoms?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fertility_logs: {
+        Row: {
+          bbt_celsius: number | null
+          cervical_mucus: string | null
+          created_at: string
+          id: string
+          intercourse: boolean
+          log_date: string
+          notes: string | null
+          ovulation_test: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bbt_celsius?: number | null
+          cervical_mucus?: string | null
+          created_at?: string
+          id?: string
+          intercourse?: boolean
+          log_date: string
+          notes?: string | null
+          ovulation_test?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bbt_celsius?: number | null
+          cervical_mucus?: string | null
+          created_at?: string
+          id?: string
+          intercourse?: boolean
+          log_date?: string
+          notes?: string | null
+          ovulation_test?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -278,6 +347,39 @@ export type Database = {
           id?: string
           tags?: string[]
           title?: string
+        }
+        Relationships: []
+      }
+      kick_counts: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          kicks: number
+          started_at: string
+          updated_at: string
+          user_id: string
+          week: number | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          kicks?: number
+          started_at?: string
+          updated_at?: string
+          user_id: string
+          week?: number | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          kicks?: number
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+          week?: number | null
         }
         Relationships: []
       }
@@ -500,6 +602,36 @@ export type Database = {
         }
         Relationships: []
       }
+      preconception_checklist: {
+        Row: {
+          created_at: string
+          done: boolean
+          id: string
+          item_key: string
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          item_key: string
+          note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          item_key?: string
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       prediction_runs: {
         Row: {
           avg_cycle_length: number | null
@@ -568,6 +700,177 @@ export type Database = {
           recent_starts?: Json
           regularity_label?: string | null
           summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pregnancy_appointments: {
+        Row: {
+          appt_date: string
+          appt_time: string | null
+          created_at: string
+          done: boolean
+          id: string
+          kind: string
+          notes: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appt_date: string
+          appt_time?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          kind?: string
+          notes?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appt_date?: string
+          appt_time?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          kind?: string
+          notes?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pregnancy_health_logs: {
+        Row: {
+          blood_sugar: number | null
+          bp_diastolic: number | null
+          bp_systolic: number | null
+          created_at: string
+          exercise: string | null
+          id: string
+          log_date: string
+          mood: string | null
+          notes: string | null
+          sleep_hours: number | null
+          updated_at: string
+          user_id: string
+          water_glasses: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          blood_sugar?: number | null
+          bp_diastolic?: number | null
+          bp_systolic?: number | null
+          created_at?: string
+          exercise?: string | null
+          id?: string
+          log_date: string
+          mood?: string | null
+          notes?: string | null
+          sleep_hours?: number | null
+          updated_at?: string
+          user_id: string
+          water_glasses?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          blood_sugar?: number | null
+          bp_diastolic?: number | null
+          bp_systolic?: number | null
+          created_at?: string
+          exercise?: string | null
+          id?: string
+          log_date?: string
+          mood?: string | null
+          notes?: string | null
+          sleep_hours?: number | null
+          updated_at?: string
+          user_id?: string
+          water_glasses?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      pregnancy_profiles: {
+        Row: {
+          birth_plan: string | null
+          conception_date: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          lmp_date: string | null
+          next_appointment: string | null
+          notes: string | null
+          stage: string
+          test_date: string | null
+          test_result: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_plan?: string | null
+          conception_date?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          lmp_date?: string | null
+          next_appointment?: string | null
+          notes?: string | null
+          stage?: string
+          test_date?: string | null
+          test_result?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_plan?: string | null
+          conception_date?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          lmp_date?: string | null
+          next_appointment?: string | null
+          notes?: string | null
+          stage?: string
+          test_date?: string | null
+          test_result?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pregnancy_records: {
+        Row: {
+          created_at: string
+          id: string
+          record_date: string
+          record_type: string
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          record_date: string
+          record_type?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          record_date?: string
+          record_type?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
