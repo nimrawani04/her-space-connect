@@ -282,3 +282,59 @@ export const generateHealthInsights = createServerFn({ method: "POST" })
 }`,
     });
   });
+// ---------------- Pregnancy companion ----------------
+
+const companionInput = z.object({
+  week: z.number().int().min(1).max(42),
+  trimester: z.number().int().min(1).max(3),
+  dueDate: z.string().max(20).optional(),
+  recentLogs: z.string().max(4000).optional(),
+  question: z.string().trim().max(1000).optional(),
+});
+
+const companionSchema = z.object({
+  greeting: z.string(),
+  babyUpdate: z.string(),
+  bodyUpdate: z.string(),
+  todaysTip: z.string(),
+  nutritionFocus: z.array(z.string()).max(4),
+  watchFor: z.array(z.string()).max(4),
+  answer: z.string().optional(),
+  askYourClinician: z.array(z.string()).max(4),
+  disclaimer: z.string(),
+});
+
+const COMPANION_SYSTEM = `You are the HerSpace Pregnancy Companion: a warm, calm, evidence-based prenatal guide.
+Speak directly to the pregnant person in second person, like a knowledgeable friend who is also a midwife.
+Ground every message in the given gestational week. Example tone: "You're 18 weeks pregnant. Your baby can now hear sounds. Today, try talking or reading aloud - it can be a lovely bonding activity."
+Never diagnose, never prescribe doses, never contradict a clinician. If a question touches bleeding, reduced movements, severe pain, vision changes or high blood pressure, tell the user to contact their maternity unit now.
+If a question is provided, answer it plainly in "answer" (2-4 sentences, practical, culturally neutral).
+Always end with an educational-not-medical-advice disclaimer.`;
+
+export const pregnancyCompanion = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => companionInput.parse(d))
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("AI is not configured");
+    return await generateJson({
+      key,
+      system: COMPANION_SYSTEM,
+      prompt: `Gestational week: ${data.week} (trimester ${data.trimester}).
+Estimated due date: ${data.dueDate ?? "unknown"}.
+Recent self-logged data: ${data.recentLogs ?? "none logged yet"}.
+${data.question ? `Her question: "${data.question}"` : "No specific question — give this week's companion update."}
+Return the structured companion update.`,
+      schema: companionSchema,
+      schemaHint: `{
+  "greeting": string,
+  "babyUpdate": string,
+  "bodyUpdate": string,
+  "todaysTip": string,
+  "nutritionFocus": string[] (max 4),
+  "watchFor": string[] (max 4),
+  "answer": string (only when a question was asked),
+  "askYourClinician": string[] (max 4),
+  "disclaimer": string
+}`,
+    });
+  });
