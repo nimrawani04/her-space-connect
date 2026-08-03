@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWellnessRouteImport } from './routes/_authenticated/wellness'
 import { Route as AuthenticatedTravelRouteImport } from './routes/_authenticated/travel'
 import { Route as AuthenticatedSafetyRouteImport } from './routes/_authenticated/safety'
+import { Route as AuthenticatedPregnancyRouteImport } from './routes/_authenticated/pregnancy'
 import { Route as AuthenticatedMentorshipRouteImport } from './routes/_authenticated/mentorship'
 import { Route as AuthenticatedMarketplaceRouteImport } from './routes/_authenticated/marketplace'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
@@ -59,6 +60,11 @@ const AuthenticatedTravelRoute = AuthenticatedTravelRouteImport.update({
 const AuthenticatedSafetyRoute = AuthenticatedSafetyRouteImport.update({
   id: '/safety',
   path: '/safety',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPregnancyRoute = AuthenticatedPregnancyRouteImport.update({
+  id: '/pregnancy',
+  path: '/pregnancy',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMentorshipRoute = AuthenticatedMentorshipRouteImport.update({
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof AuthenticatedLibraryRoute
   '/marketplace': typeof AuthenticatedMarketplaceRoute
   '/mentorship': typeof AuthenticatedMentorshipRoute
+  '/pregnancy': typeof AuthenticatedPregnancyRoute
   '/safety': typeof AuthenticatedSafetyRoute
   '/travel': typeof AuthenticatedTravelRouteWithChildren
   '/wellness': typeof AuthenticatedWellnessRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/library': typeof AuthenticatedLibraryRoute
   '/marketplace': typeof AuthenticatedMarketplaceRoute
   '/mentorship': typeof AuthenticatedMentorshipRoute
+  '/pregnancy': typeof AuthenticatedPregnancyRoute
   '/safety': typeof AuthenticatedSafetyRoute
   '/travel': typeof AuthenticatedTravelRouteWithChildren
   '/wellness': typeof AuthenticatedWellnessRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/marketplace': typeof AuthenticatedMarketplaceRoute
   '/_authenticated/mentorship': typeof AuthenticatedMentorshipRoute
+  '/_authenticated/pregnancy': typeof AuthenticatedPregnancyRoute
   '/_authenticated/safety': typeof AuthenticatedSafetyRoute
   '/_authenticated/travel': typeof AuthenticatedTravelRouteWithChildren
   '/_authenticated/wellness': typeof AuthenticatedWellnessRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/marketplace'
     | '/mentorship'
+    | '/pregnancy'
     | '/safety'
     | '/travel'
     | '/wellness'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/marketplace'
     | '/mentorship'
+    | '/pregnancy'
     | '/safety'
     | '/travel'
     | '/wellness'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/_authenticated/library'
     | '/_authenticated/marketplace'
     | '/_authenticated/mentorship'
+    | '/_authenticated/pregnancy'
     | '/_authenticated/safety'
     | '/_authenticated/travel'
     | '/_authenticated/wellness'
@@ -285,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/safety'
       fullPath: '/safety'
       preLoaderRoute: typeof AuthenticatedSafetyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pregnancy': {
+      id: '/_authenticated/pregnancy'
+      path: '/pregnancy'
+      fullPath: '/pregnancy'
+      preLoaderRoute: typeof AuthenticatedPregnancyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mentorship': {
@@ -380,6 +399,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedMarketplaceRoute: typeof AuthenticatedMarketplaceRoute
   AuthenticatedMentorshipRoute: typeof AuthenticatedMentorshipRoute
+  AuthenticatedPregnancyRoute: typeof AuthenticatedPregnancyRoute
   AuthenticatedSafetyRoute: typeof AuthenticatedSafetyRoute
   AuthenticatedTravelRoute: typeof AuthenticatedTravelRouteWithChildren
   AuthenticatedWellnessRoute: typeof AuthenticatedWellnessRoute
@@ -395,6 +415,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedMarketplaceRoute: AuthenticatedMarketplaceRoute,
   AuthenticatedMentorshipRoute: AuthenticatedMentorshipRoute,
+  AuthenticatedPregnancyRoute: AuthenticatedPregnancyRoute,
   AuthenticatedSafetyRoute: AuthenticatedSafetyRoute,
   AuthenticatedTravelRoute: AuthenticatedTravelRouteWithChildren,
   AuthenticatedWellnessRoute: AuthenticatedWellnessRoute,
