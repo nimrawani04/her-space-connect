@@ -755,6 +755,7 @@ export type Database = {
           mood: string | null
           notes: string | null
           sleep_hours: number | null
+          symptoms: Json
           updated_at: string
           user_id: string
           water_glasses: number | null
@@ -771,6 +772,7 @@ export type Database = {
           mood?: string | null
           notes?: string | null
           sleep_hours?: number | null
+          symptoms?: Json
           updated_at?: string
           user_id: string
           water_glasses?: number | null
@@ -787,6 +789,7 @@ export type Database = {
           mood?: string | null
           notes?: string | null
           sleep_hours?: number | null
+          symptoms?: Json
           updated_at?: string
           user_id?: string
           water_glasses?: number | null
