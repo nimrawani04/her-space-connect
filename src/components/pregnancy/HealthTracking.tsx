@@ -7,18 +7,21 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { todayISO } from "@/lib/pregnancy";
+import { gestationalAge, todayISO } from "@/lib/pregnancy";
+import { Download } from "lucide-react";
 
 type HealthRow = {
   log_date: string; weight_kg: number | null; bp_systolic: number | null; bp_diastolic: number | null;
   blood_sugar: number | null; water_glasses: number | null; sleep_hours: number | null;
   mood: string | null; exercise: string | null; notes: string | null;
+  symptoms: Record<string, number>;
 };
 type Appt = { id: string; title: string; appt_date: string; appt_time: string | null; kind: string; notes: string | null; done: boolean };
 type Record_ = { id: string; record_type: string; title: string; record_date: string; summary: string | null };
 
 const MOODS = ["great", "good", "okay", "low", "anxious", "exhausted"];
 const KINDS = ["checkup", "ultrasound", "lab", "medication", "class"];
+const SYMPTOMS = ["nausea", "headache", "back pain", "pelvic pain", "swelling", "heartburn", "dizziness", "fatigue"];
 
 export function HealthTracking() {
   const [date, setDate] = useState(todayISO());
@@ -27,6 +30,7 @@ export function HealthTracking() {
   const [appts, setAppts] = useState<Appt[]>([]);
   const [records, setRecords] = useState<Record_[]>([]);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [aTitle, setATitle] = useState("");
   const [aDate, setADate] = useState(todayISO());
@@ -58,6 +62,13 @@ export function HealthTracking() {
   }
   const num = (v: string) => (v === "" ? null : Number(v));
 
+  function setSymptom(symptom: string, severity: number) {
+    const symptoms = { ...(form.symptoms ?? {}) };
+    if (symptoms[symptom] === severity) delete symptoms[symptom];
+    else symptoms[symptom] = severity;
+    set("symptoms", symptoms);
+  }
+
   async function saveLog() {
     setBusy(true);
     const { data: u } = await supabase.auth.getUser();
@@ -67,6 +78,7 @@ export function HealthTracking() {
       weight_kg: form.weight_kg ?? null, bp_systolic: form.bp_systolic ?? null, bp_diastolic: form.bp_diastolic ?? null,
       blood_sugar: form.blood_sugar ?? null, water_glasses: form.water_glasses ?? null, sleep_hours: form.sleep_hours ?? null,
       mood: form.mood ?? null, exercise: form.exercise ?? null, notes: form.notes ?? null,
+      symptoms: form.symptoms ?? {},
     }, { onConflict: "user_id,log_date" });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
@@ -99,10 +111,61 @@ export function HealthTracking() {
   const weights = rows.filter((r) => r.weight_kg != null).slice(0, 12).reverse();
   const upcoming = appts.filter((a) => !a.done && a.appt_date >= todayISO());
 
+  async function exportWeeklySummary() {
+    const selected = new Date(`${date}T12:00:00`);
+    const start = new Date(selected);
+    start.setDate(selected.getDate() - ((selected.getDay() + 6) % 7));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const weekStart = start.toISOString().slice(0, 10);
+    const weekEnd = end.toISOString().slice(0, 10);
+    const weekRows = rows.filter((row) => row.log_date >= weekStart && row.log_date <= weekEnd);
+    if (!weekRows.length) { toast.error("Log at least one day in this week before exporting."); return; }
+
+    setExporting(true);
+    try {
+      const [{ data: user }, { data: profile }, { data: pregnancy }, { buildPregnancyWeeklyPdf }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("profiles").select("display_name").maybeSingle(),
+        supabase.from("pregnancy_profiles").select("lmp_date, due_date").maybeSingle(),
+        import("@/lib/pregnancy-report"),
+      ]);
+      const name = profile?.display_name ?? user.user?.user_metadata?.full_name ?? "HerSpace member";
+      const age = pregnancy?.lmp_date ? gestationalAge(pregnancy.lmp_date, weekEnd) : null;
+      const blob = buildPregnancyWeeklyPdf({
+        patientName: String(name),
+        weekStart,
+        weekEnd,
+        gestationalAge: age ? `${age.weeks} weeks ${age.days} days gestation at week end` : "Gestational age not set",
+        dueDate: pregnancy?.due_date ?? null,
+        rows: weekRows.map((row) => ({ ...row, symptoms: row.symptoms ?? {} })),
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `herspace-pregnancy-week-${weekStart}.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success("Weekly pregnancy summary downloaded.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create the report.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader><CardTitle className="font-serif italic text-2xl">Daily health tracking</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle className="font-serif italic text-2xl">Daily health tracking</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Select any date to export its Monday–Sunday clinician summary.</p>
+          </div>
+          <Button variant="outline" onClick={exportWeeklySummary} disabled={exporting}>
+            <Download className="h-4 w-4" /> {exporting ? "Preparing…" : "Weekly PDF"}
+          </Button>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-3 gap-4">
             <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
@@ -122,6 +185,30 @@ export function HealthTracking() {
               ))}
             </div>
           </div>
+          <div>
+            <Label>Symptoms and severity</Label>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {SYMPTOMS.map((symptom) => (
+                <div key={symptom} className="rounded-md border border-border p-2">
+                  <p className="mb-2 text-sm font-medium capitalize">{symptom}</p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {[1, 2, 3].map((severity) => (
+                      <Button
+                        key={severity}
+                        type="button"
+                        size="sm"
+                        variant={form.symptoms?.[symptom] === severity ? "default" : "outline"}
+                        onClick={() => setSymptom(symptom, severity)}
+                        aria-label={`${symptom}, severity ${severity} of 3`}
+                      >
+                        {severity}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div><Label>Notes</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} maxLength={1000} /></div>
           <Button className="rounded-full" onClick={saveLog} disabled={busy}>{busy ? "Saving…" : "Save entry"}</Button>
 
@@ -134,9 +221,10 @@ export function HealthTracking() {
               <p className="text-sm font-medium mb-2">Weight trend</p>
               <div className="flex items-end gap-1 h-24">
                 {weights.map((w) => {
-                  const vals = weights.map((x) => x.weight_kg!);
+                  const vals = weights.flatMap((x) => x.weight_kg == null ? [] : [x.weight_kg]);
                   const min = Math.min(...vals) - 1, max = Math.max(...vals) + 1;
-                  const h = ((w.weight_kg! - min) / (max - min || 1)) * 100;
+                  const weight = w.weight_kg ?? min;
+                  const h = ((weight - min) / (max - min || 1)) * 100;
                   return <div key={w.log_date} className="flex-1 bg-primary/70 rounded-t" style={{ height: `${Math.max(6, h)}%` }} title={`${w.log_date}: ${w.weight_kg} kg`} />;
                 })}
               </div>
