@@ -256,9 +256,37 @@ html:not(.bg-plain) body {
   100% { transform: translateX(100%); }
 }
 
+@keyframes profession-form {
+  0%, 28% { opacity: 1; transform: translate(var(--profession-x), var(--profession-y)) scale(1); }
+  68%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.35); }
+}
+
+@keyframes woman-reveal {
+  0%, 55% { opacity: 0; transform: translate(-50%, -50%) scale(0.65); }
+  78%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes startup-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.profession-mark {
+  animation: profession-form 2.25s ease-in-out forwards;
+}
+.profession-mark:nth-child(1) { --profession-x: -126px; --profession-y: -72px; }
+.profession-mark:nth-child(2) { --profession-x: 78px; --profession-y: -72px; }
+.profession-mark:nth-child(3) { --profession-x: -126px; --profession-y: 30px; }
+.profession-mark:nth-child(4) { --profession-x: 78px; --profession-y: 30px; }
+.woman-mark { animation: woman-reveal 2.25s ease-in-out forwards; }
+.startup-progress { animation: startup-progress 2.35s ease-out forwards; }
+
 /* Accessibility: stop the shimmer sweep for users who prefer reduced motion.
    The skeleton bars remain visible as static placeholders. */
 @media (prefers-reduced-motion: reduce) {
+  .profession-mark { display: none; }
+  .woman-mark { animation: none; opacity: 1; }
+  .startup-progress { animation: none; transform: none; }
   [class*="animate-"][class*="shimmer"] {
     animation: none !important;
   }
