@@ -28,8 +28,8 @@ export function AppStartupLoader() {
     <div className="startup-loader fixed inset-0 z-[100] grid place-items-center bg-background" role="status" aria-live="polite" aria-label="HerSpace is loading">
       <div className="flex w-full max-w-sm flex-col items-center px-6 text-center">
         <div className="relative h-40 w-64" aria-hidden="true">
-          {PROFESSIONS.map(({ label, Icon }, index) => (
-            <div key={label} className="profession-mark absolute left-1/2 top-1/2 grid h-12 w-12 place-items-center rounded-full border border-border bg-card text-primary shadow-sm" style={{ "--profession-index": index } as React.CSSProperties}>
+          {PROFESSIONS.map(({ label, Icon }) => (
+            <div key={label} className="profession-mark absolute left-1/2 top-1/2 grid h-12 w-12 place-items-center rounded-full border border-border bg-card text-primary shadow-sm">
               <Icon className="h-6 w-6" />
             </div>
           ))}
