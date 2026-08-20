@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Code2, HardHat, Palette, Stethoscope } from "lucide-react";
 
 const PROFESSIONS = [
@@ -31,7 +31,7 @@ export function AppStartupLoader() {
             <div
               key={label}
               className="profession-transition absolute inset-0 grid place-items-center text-primary"
-              style={{ "--profession-delay": delay } as React.CSSProperties}
+              style={{ "--profession-delay": delay } as CSSProperties}
             >
               <Icon className="h-14 w-14" strokeWidth={1.5} />
             </div>
