@@ -8,6 +8,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "The global women-only digital ecosystem. AI health insights, anonymous community, mentorship, careers, safety network, and mental wellness — built for privacy and trust." },
       { property: "og:title", content: "HerSpace" },
       { property: "og:description", content: "A quiet room for your health, shared with those you trust." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Index,
