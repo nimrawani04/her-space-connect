@@ -256,37 +256,28 @@ html:not(.bg-plain) body {
   100% { transform: translateX(100%); }
 }
 
-@keyframes profession-form {
-  0%, 28% { opacity: 1; transform: translate(var(--profession-x), var(--profession-y)) scale(1); }
-  68%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.35); }
+@keyframes profession-transition {
+  0% { opacity: 0; transform: scale(0.72) rotate(-10deg); filter: blur(4px); }
+  18%, 68% { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+  100% { opacity: 0; transform: scale(1.2) rotate(8deg); filter: blur(4px); }
 }
 
 @keyframes woman-reveal {
-  0%, 55% { opacity: 0; transform: translate(-50%, -50%) scale(0.65); }
-  78%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  0%, 78% { opacity: 0; transform: scale(0.7); filter: blur(5px); }
+  90%, 100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
-@keyframes startup-progress {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+.profession-transition {
+  opacity: 0;
+  animation: profession-transition 720ms ease-in-out var(--profession-delay) both;
 }
-
-.profession-mark {
-  animation: profession-form 2.25s ease-in-out forwards;
-}
-.profession-mark:nth-child(1) { --profession-x: -126px; --profession-y: -72px; }
-.profession-mark:nth-child(2) { --profession-x: 78px; --profession-y: -72px; }
-.profession-mark:nth-child(3) { --profession-x: -126px; --profession-y: 30px; }
-.profession-mark:nth-child(4) { --profession-x: 78px; --profession-y: 30px; }
-.woman-mark { animation: woman-reveal 2.25s ease-in-out forwards; }
-.startup-progress { animation: startup-progress 2.35s ease-out forwards; }
+.woman-reveal { animation: woman-reveal 3.2s ease-out forwards; }
 
 /* Accessibility: stop the shimmer sweep for users who prefer reduced motion.
    The skeleton bars remain visible as static placeholders. */
 @media (prefers-reduced-motion: reduce) {
-  .profession-mark { display: none; }
-  .woman-mark { animation: none; opacity: 1; }
-  .startup-progress { animation: none; transform: none; }
+  .profession-transition { display: none; }
+  .woman-reveal { animation: none; opacity: 1; transform: none; filter: none; }
   [class*="animate-"][class*="shimmer"] {
     animation: none !important;
   }
