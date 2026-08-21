@@ -206,6 +206,22 @@ function Travel() {
 
   const inbox = (myConnections ?? []).filter((c: any) => c.to_user === meId && c.status === "pending");
 
+  // Contacts are stored separately; access rules only return the ones I'm allowed to see.
+  const { data: contactRows } = useQuery({
+    queryKey: ["travel_request_contacts", meId],
+    enabled: !!meId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("travel_request_contacts").select("request_id,contact");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const contactByRequest = useMemo(() => {
+    const m = new Map<string, string>();
+    (contactRows ?? []).forEach((c: any) => m.set(c.request_id, c.contact));
+    return m;
+  }, [contactRows]);
+
   // Connection request dialog state
   const [connectFor, setConnectFor] = useState<any | null>(null);
   const [connectMsg, setConnectMsg] = useState("");
