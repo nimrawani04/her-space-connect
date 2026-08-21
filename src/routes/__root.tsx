@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { ThemeProvider } from "@/components/theme-provider";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { AppStartupLoader } from "@/components/AppStartupLoader";
@@ -138,6 +139,7 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!hasSupabaseBrowserConfig()) return;
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
