@@ -128,10 +128,12 @@ function TravelInbox() {
     return m;
   }, [requesters]);
   const requestMap = useMemo(() => {
+    const contactByRequest = new Map<string, string>();
+    (contacts ?? []).forEach((c: any) => contactByRequest.set(c.request_id, c.contact));
     const m = new Map<string, any>();
-    (requests ?? []).forEach((r: any) => m.set(r.id, r));
+    (requests ?? []).forEach((r: any) => m.set(r.id, { ...r, contact: contactByRequest.get(r.id) ?? null }));
     return m;
-  }, [requests]);
+  }, [requests, contacts]);
 
   const respond = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "accepted" | "declined" }) => {
