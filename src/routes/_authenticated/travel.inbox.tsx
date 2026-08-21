@@ -101,8 +101,22 @@ function TravelInbox() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("travel_requests")
-        .select("id,city,country,need,contact,created_at")
+        .select("id,city,country,need,created_at")
         .in("id", requestIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Contact details live in a separate, access-controlled table.
+  const { data: contacts } = useQuery({
+    queryKey: ["travel_request_contacts_by_ids", requestIds],
+    enabled: requestIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("travel_request_contacts")
+        .select("request_id,contact")
+        .in("request_id", requestIds);
       if (error) throw error;
       return data ?? [];
     },
@@ -114,10 +128,12 @@ function TravelInbox() {
     return m;
   }, [requesters]);
   const requestMap = useMemo(() => {
+    const contactByRequest = new Map<string, string>();
+    (contacts ?? []).forEach((c: any) => contactByRequest.set(c.request_id, c.contact));
     const m = new Map<string, any>();
-    (requests ?? []).forEach((r: any) => m.set(r.id, r));
+    (requests ?? []).forEach((r: any) => m.set(r.id, { ...r, contact: contactByRequest.get(r.id) ?? null }));
     return m;
-  }, [requests]);
+  }, [requests, contacts]);
 
   const respond = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "accepted" | "declined" }) => {

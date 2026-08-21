@@ -102,9 +102,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     async function loadFromProfile(uid: string) {
       const { data } = await supabase
-        .from("profiles")
+        .from("profile_settings")
         .select("theme_mode, accent_color, background_style")
-        .eq("id", uid)
+        .eq("user_id", uid)
         .maybeSingle();
       if (cancelled || !data) return;
       const remoteMode = (data.theme_mode as Mode | null) ?? null;
@@ -147,7 +147,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   async function persist(patch: { theme_mode?: Mode; accent_color?: string | null; background_style?: Background }) {
     if (!userId || !hasSupabaseBrowserConfig()) return;
-    await supabase.from("profiles").update(patch).eq("id", userId);
+    await supabase.from("profile_settings").upsert({ user_id: userId, ...patch }, { onConflict: "user_id" });
   }
 
   useEffect(() => {

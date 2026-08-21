@@ -878,52 +878,70 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
+      profile_settings: {
         Row: {
           accent_color: string | null
-          avatar_url: string | null
           background_style: string | null
-          bio: string | null
           calendar_overlay: Json | null
+          created_at: string
+          theme_mode: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          background_style?: string | null
+          calendar_overlay?: Json | null
+          created_at?: string
+          theme_mode?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          background_style?: string | null
+          calendar_overlay?: Json | null
+          created_at?: string
+          theme_mode?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
           city: string | null
           country: string | null
           created_at: string
           display_name: string | null
           id: string
           is_verified: boolean
-          theme_mode: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
-          accent_color?: string | null
           avatar_url?: string | null
-          background_style?: string | null
           bio?: string | null
-          calendar_overlay?: Json | null
           city?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
           id: string
           is_verified?: boolean
-          theme_mode?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
-          accent_color?: string | null
           avatar_url?: string | null
-          background_style?: string | null
           bio?: string | null
-          calendar_overlay?: Json | null
           city?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
           is_verified?: boolean
-          theme_mode?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -1027,6 +1045,32 @@ export type Database = {
         }
         Relationships: []
       }
+      safety_alert_reporters: {
+        Row: {
+          alert_id: string
+          created_at: string
+          reporter_id: string
+        }
+        Insert: {
+          alert_id: string
+          created_at?: string
+          reporter_id: string
+        }
+        Update: {
+          alert_id?: string
+          created_at?: string
+          reporter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_alert_reporters_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: true
+            referencedRelation: "safety_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       safety_alerts: {
         Row: {
           alert_type: string
@@ -1037,7 +1081,6 @@ export type Database = {
           id: string
           is_verified: boolean
           location: string | null
-          reporter_id: string
           severity: string
         }
         Insert: {
@@ -1049,7 +1092,6 @@ export type Database = {
           id?: string
           is_verified?: boolean
           location?: string | null
-          reporter_id: string
           severity?: string
         }
         Update: {
@@ -1061,7 +1103,6 @@ export type Database = {
           id?: string
           is_verified?: boolean
           location?: string | null
-          reporter_id?: string
           severity?: string
         }
         Relationships: []
@@ -1173,10 +1214,35 @@ export type Database = {
         }
         Relationships: []
       }
+      travel_request_contacts: {
+        Row: {
+          contact: string
+          created_at: string
+          request_id: string
+        }
+        Insert: {
+          contact: string
+          created_at?: string
+          request_id: string
+        }
+        Update: {
+          contact?: string
+          created_at?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_request_contacts_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "travel_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       travel_requests: {
         Row: {
           city: string
-          contact: string
           country: string
           created_at: string
           id: string
@@ -1185,7 +1251,6 @@ export type Database = {
         }
         Insert: {
           city: string
-          contact: string
           country: string
           created_at?: string
           id?: string
@@ -1194,7 +1259,6 @@ export type Database = {
         }
         Update: {
           city?: string
-          contact?: string
           country?: string
           created_at?: string
           id?: string
@@ -1280,17 +1344,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_journey_member: {
-        Args: { _journey_id: string; _user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "admin" | "moderator" | "mentor" | "member"

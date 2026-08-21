@@ -132,7 +132,7 @@ function Alerts() {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
     const { error } = await supabase.from("safety_alerts").insert({
-      reporter_id: u.user.id, alert_type: alertType, city, country, description, severity,
+      alert_type: alertType, city, country, description, severity,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Reported. A moderator will verify.");
