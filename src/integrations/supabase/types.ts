@@ -1141,6 +1141,13 @@ export type Database = {
             referencedRelation: "travel_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "travel_connections_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "travel_requests_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       travel_hosts: {
@@ -1277,20 +1284,105 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          country: string | null
+          display_name: string | null
+          id: string | null
+          is_verified: boolean | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      safety_alerts_public: {
+        Row: {
+          alert_type: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_verified: boolean | null
+          location: string | null
+          severity: string | null
+        }
+        Insert: {
+          alert_type?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          location?: string | null
+          severity?: string | null
+        }
+        Update: {
+          alert_type?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          location?: string | null
+          severity?: string | null
+        }
+        Relationships: []
+      }
+      travel_requests_public: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string | null
+          id: string | null
+          need: string | null
+          user_id: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string | null
+          need?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string | null
+          need?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_journey_member: {
-        Args: { _journey_id: string; _user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "admin" | "moderator" | "mentor" | "member"
