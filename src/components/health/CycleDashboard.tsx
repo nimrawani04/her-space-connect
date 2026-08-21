@@ -43,7 +43,7 @@ export function CycleDashboard() {
     (async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) { setOverlayLoaded(true); return; }
-      const { data } = await supabase.from("profiles").select("calendar_overlay").eq("id", u.user.id).maybeSingle();
+      const { data } = await supabase.from("profile_settings").select("calendar_overlay").eq("user_id", u.user.id).maybeSingle();
       const remote = (data as any)?.calendar_overlay;
       if (remote && typeof remote === "object") {
         const merged: OverlaySettings = {
@@ -63,7 +63,9 @@ export function CycleDashboard() {
     (async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
-      await supabase.from("profiles").update({ calendar_overlay: overlay as any }).eq("id", u.user.id);
+      await supabase
+        .from("profile_settings")
+        .upsert({ user_id: u.user.id, calendar_overlay: overlay as any }, { onConflict: "user_id" });
     })();
   }, [overlay, overlayLoaded]);
 

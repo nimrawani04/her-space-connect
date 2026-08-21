@@ -38,7 +38,7 @@ const travelRequestsQueryOptions = (filters: { city: string; country: string; ne
     queryFn: async () => {
       let q = supabase
         .from("travel_requests")
-        .select("id,city,country,need,contact,created_at,user_id")
+        .select("id,city,country,need,created_at,user_id")
         .order("created_at", { ascending: false });
       if (filters.city.trim()) q = q.ilike("city", `%${filters.city.trim()}%`);
       if (filters.country.trim()) q = q.ilike("country", `%${filters.country.trim()}%`);
@@ -138,14 +138,24 @@ function Travel() {
         throw new Error("City, country, need and contact are required");
       if (req.need.length > 500) throw new Error("Keep your need under 500 characters");
       if (req.contact.length > 200) throw new Error("Contact too long");
-      const { error } = await supabase.from("travel_requests").insert({
-        user_id: uid,
-        city: req.city.trim(),
-        country: req.country.trim(),
-        need: req.need.trim(),
-        contact: req.contact.trim(),
-      });
+      const { data: inserted, error } = await supabase
+        .from("travel_requests")
+        .insert({
+          user_id: uid,
+          city: req.city.trim(),
+          country: req.country.trim(),
+          need: req.need.trim(),
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      const { error: contactError } = await supabase
+        .from("travel_request_contacts")
+        .insert({ request_id: inserted.id, contact: req.contact.trim() });
+      if (contactError) {
+        await supabase.from("travel_requests").delete().eq("id", inserted.id);
+        throw contactError;
+      }
     },
     onSuccess: () => {
       setReq({ city: "", country: "", need: "", contact: "" });
@@ -195,6 +205,22 @@ function Travel() {
   }, [myConnections, meId]);
 
   const inbox = (myConnections ?? []).filter((c: any) => c.to_user === meId && c.status === "pending");
+
+  // Contacts are stored separately; access rules only return the ones I'm allowed to see.
+  const { data: contactRows } = useQuery({
+    queryKey: ["travel_request_contacts", meId],
+    enabled: !!meId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("travel_request_contacts").select("request_id,contact");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const contactByRequest = useMemo(() => {
+    const m = new Map<string, string>();
+    (contactRows ?? []).forEach((c: any) => m.set(c.request_id, c.contact));
+    return m;
+  }, [contactRows]);
 
   // Connection request dialog state
   const [connectFor, setConnectFor] = useState<any | null>(null);
@@ -404,7 +430,7 @@ function Travel() {
                       mine || revealed[r.id] ? (
                         <>
                           <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
-                          <p className="font-medium break-words">{r.contact}</p>
+                          <p className="font-medium break-words">{contactByRequest.get(r.id) ?? "Hidden"}</p>
                           {!mine && <p className="text-[11px] text-muted-foreground">Start with a voice or video call before meeting. Never share your home address.</p>}
                         </>
                       ) : (
