@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 
 type Mode = "light" | "dark" | "system";
 export type Background = "plain" | "warm" | "sage" | "dusk" | "grain" | "gradient";
@@ -96,6 +97,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Sync with the signed-in user's profile so theme follows across devices.
   useEffect(() => {
+    if (!hasSupabaseBrowserConfig()) return;
     let cancelled = false;
 
     async function loadFromProfile(uid: string) {
@@ -144,7 +146,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function persist(patch: { theme_mode?: Mode; accent_color?: string | null; background_style?: Background }) {
-    if (!userId) return;
+    if (!userId || !hasSupabaseBrowserConfig()) return;
     await supabase.from("profiles").update(patch).eq("id", userId);
   }
 
