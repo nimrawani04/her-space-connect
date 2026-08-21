@@ -430,7 +430,7 @@ function Travel() {
                       mine || revealed[r.id] ? (
                         <>
                           <p className="text-xs uppercase tracking-wider text-muted-foreground">Reach her</p>
-                          <p className="font-medium break-words">{r.contact}</p>
+                          <p className="font-medium break-words">{contactByRequest.get(r.id) ?? "Hidden"}</p>
                           {!mine && <p className="text-[11px] text-muted-foreground">Start with a voice or video call before meeting. Never share your home address.</p>}
                         </>
                       ) : (
