@@ -1,254 +1,410 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Menu, X, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "HerSpace — A quiet room for your health, shared with those you trust" },
-      { name: "description", content: "The global women-only digital ecosystem. AI health insights, anonymous community, mentorship, careers, safety network, and mental wellness — built for privacy and trust." },
+      { title: "HerSpace" },
+      {
+        name: "description",
+        content:
+          "HerSpace is a private, women-only digital ecosystem — AI health intelligence, a verified safety network, sisterhood, mentorship and growth in one trusted space.",
+      },
       { property: "og:title", content: "HerSpace" },
-      { property: "og:description", content: "A quiet room for your health, shared with those you trust." },
+      {
+        property: "og:description",
+        content: "A quiet room for your health, shared with those you trust.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
+      {
+        rel: "stylesheet",
+        href: "https://db.onlinewebfonts.com/c/ca3d10781128664daddf89bf2e2d1305?family=Graphik+LCG+Regular+Regular",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500&display=swap",
+      },
     ],
   }),
-  component: Index,
+  component: App,
 });
 
-function Index() {
-  return <Landing />;
-}
-
-const modules = [
-  { tag: "01", title: "Health Hub", blurb: "AI symptom assistant, hormone tracking, research simplifier." },
-  { tag: "02", title: "Safe Space", blurb: "Anonymous community, moderated by women." },
-  { tag: "03", title: "Experience Match", blurb: "Find women who've lived what you're living." },
-  { tag: "04", title: "Mentorship", blurb: "1:1 sessions with verified women leaders." },
-  { tag: "05", title: "Careers", blurb: "Internships, scholarships, grants, fellowships." },
-  { tag: "06", title: "Marketplace", blurb: "Hire women — tutors, designers, devs, consultants." },
-  { tag: "07", title: "Safety Network", blurb: "Safe-places map, female pros, real-time alerts." },
-  { tag: "08", title: "Travel Sisterhood", blurb: "Verified locals for women on the move." },
-  { tag: "09", title: "Mental Wellness", blurb: "AI journal, mood tracking, support circles." },
-  { tag: "10", title: "Stories", blurb: "Blogs, journeys, and research, by us — for us." },
+const NAV = [
+  { n: "01.", label: "HEALTH", delay: 350 },
+  { n: "02.", label: "SAFETY", delay: 450 },
+  { n: "03.", label: "COMMUNITY", delay: 550 },
+  { n: "04.", label: "GROWTH", delay: 650 },
 ];
 
-function Landing() {
+function NavItem({ n, label, delay }: { n: string; label: string; delay: number }) {
   return (
-    <div className="min-h-screen text-foreground font-sans selection:bg-earth/10 selection:text-earth">
-      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-          <Link to="/" className="font-serif text-2xl italic tracking-tight text-foreground">HerSpace</Link>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#pillars" className="text-sm font-medium text-muted-foreground hover:text-earth transition-colors">Ecosystem</a>
-            <a href="#dashboard" className="text-sm font-medium text-muted-foreground hover:text-earth transition-colors">Dashboard</a>
-            <a href="#stories" className="text-sm font-medium text-muted-foreground hover:text-earth transition-colors">Stories</a>
-            <Link to="/auth" className="text-sm font-medium text-foreground border-l border-border pl-8">Sign in</Link>
-            <Link to="/auth" search={{ mode: "signup" }} className="text-sm font-medium bg-foreground text-background px-4 py-2 rounded-full hover:opacity-90 transition-opacity">
-              Join HerSpace
-            </Link>
-          </div>
-          <div className="md:hidden flex items-center gap-3">
-            <Link to="/auth" className="text-sm font-medium text-foreground">Sign in</Link>
-            <Link to="/auth" search={{ mode: "signup" }} className="text-sm font-medium bg-foreground text-background px-4 py-2 rounded-full">Join</Link>
-          </div>
-        </div>
-      </nav>
-
-      <section className="pt-16 sm:pt-24 pb-16 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif italic leading-[1.05] text-foreground text-balance mb-6 sm:mb-8">
-              A quiet room for your health, shared with those you trust.
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-[56ch] text-pretty leading-relaxed">
-              The global digital ecosystem for women. From AI-led hormone insights to a verified safety network, HerSpace is built for privacy, clarity, and sisterhood.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/auth" search={{ mode: "signup" }} className="bg-earth text-earth-foreground px-6 py-3 rounded-full text-base font-medium hover:brightness-110 transition-all">
-                Join HerSpace
-              </Link>
-              <a href="#pillars" className="px-6 py-3 rounded-full text-base font-medium border border-border hover:bg-muted transition-colors">
-                Explore the ecosystem
-              </a>
-            </div>
-          </div>
-
-          <div className="mt-16 flex flex-wrap items-center gap-x-12 gap-y-6 py-8 border-y border-border">
-            <TrustDot color="bg-[oklch(0.55_0.13_140)]" label="Verified women-only" />
-            <TrustDot color="bg-earth" label="Zero-knowledge privacy" />
-            <TrustDot color="bg-muted-foreground" label="Safety-first protocols" />
-          </div>
-        </div>
-      </section>
-
-      <section id="pillars" className="py-16 sm:py-24 bg-sand/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between mb-10 sm:mb-16 gap-4">
-            <h2 className="text-3xl md:text-4xl font-serif italic text-foreground">Ten pillars of support.</h2>
-            <span className="hidden md:block text-xs uppercase tracking-[0.2em] text-muted-foreground">One ecosystem</span>
-          </div>
-
-          <div className="grid grid-cols-12 gap-4 sm:gap-6">
-            <PillarCard tag="01" eyebrow="Intelligence" title="Clinical clarity, privately yours" body="A sovereign AI symptom assistant and research simplifier — never sold, never trained on you." className="col-span-12 md:col-span-7 bg-card min-h-[260px]" big />
-            <PillarCard tag="02" eyebrow="Cycle" title="Rhythms & hormones" body="Predictive tracking that respects your autonomy." className="col-span-12 md:col-span-5 bg-foreground text-background" dark />
-            <PillarCard tag="03" eyebrow="Safety" title="Safety Network" body="Verified safe-places map, female pros, real-time alerts." className="col-span-6 md:col-span-4 bg-card border-t-4 border-sage/60" />
-            <PillarCard tag="04" eyebrow="Growth" title="Mentorship & Careers" body="Direct access to women leaders who share your lived experience." className="col-span-12 md:col-span-8 bg-muted" />
-            <SmallCard title="Travel Sisterhood" body="Global connections for solo voyagers." />
-            <SmallCard title="Research Library" body="Peer-reviewed knowledge for women." />
-            <SmallCard title="Women's Marketplace" body="Hire women — every craft." />
-            <SmallCard title="Mental Wellness" body="AI journal & mood tracking." />
-          </div>
-        </div>
-      </section>
-
-      <section id="dashboard" className="py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid md:grid-cols-2 gap-12 md:gap-20 items-center">
-          <div>
-            <h2 className="text-3xl sm:text-4xl font-serif italic mb-6">Your morning at a glance.</h2>
-            <p className="text-muted-foreground mb-8 max-w-[48ch] text-pretty">
-              The HerSpace dashboard isn't another feed to scroll. It's a mirror for your health, a prompt for your mind, and a doorway to your community.
-            </p>
-            <ul className="space-y-6">
-              <DashItem n={1} title="Cycle insight" body="Energy levels peaking. Ideal time for collaborative work." />
-              <DashItem n={2} title="Journal prompt" body="What boundary served you best yesterday?" />
-              <DashItem n={3} title="Sister nearby" body="3 verified members responded to your travel question." />
-            </ul>
-          </div>
-
-          <div className="relative">
-            <div className="bg-card rounded-3xl ring-1 ring-border shadow-2xl p-6 md:p-8 md:rotate-2">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-lg font-semibold">Good morning, Elena</h3>
-                  <p className="text-xs text-muted-foreground">Friday, October 24</p>
-                </div>
-                <div className="size-10 rounded-full bg-sand ring-1 ring-border" />
-              </div>
-              <div className="grid gap-4">
-                <div className="p-4 rounded-2xl bg-muted">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Today's cycle</span>
-                    <span className="text-[10px] font-semibold text-earth uppercase tracking-widest">Follicular</span>
-                  </div>
-                  <div className="h-2 bg-background rounded-full"><div className="w-3/4 h-full bg-earth rounded-full" /></div>
-                </div>
-                <div className="p-4 rounded-2xl ring-1 ring-sage/30 bg-sage/5">
-                  <span className="text-[10px] font-semibold text-sage uppercase tracking-widest">Community feed</span>
-                  <p className="text-sm text-foreground italic mt-2 font-serif">"Looking for a female-led pediatric practice in Lisbon — just moved here."</p>
-                  <p className="text-[10px] text-sage mt-3">3 sisters nearby responded</p>
-                </div>
-                <div className="p-4 rounded-2xl border border-dashed border-border">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Mentorship suggestion</span>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs font-medium">Sarah M. · Product Design</span>
-                    <button className="text-[10px] bg-foreground text-background px-3 py-1 rounded-full">Connect</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="absolute inset-0 bg-earth/10 -z-10 rounded-3xl -rotate-2" />
-          </div>
-        </div>
-      </section>
-
-      <section id="stories" className="py-16 sm:py-24 bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="text-3xl sm:text-4xl font-serif italic mb-10 sm:mb-16">Stories from the ecosystem.</h2>
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-            <Story quote="I finally feel like my health data is mine again. No ads, no selling my cycle trends — just clinical support in a room that feels like home." attr="Lara, New York" />
-            <Story quote="The Safety Network helped me when I was stranded in Bogotá. A map of verified safe spots run by other women is a game changer." attr="Maya, London" />
-          </div>
-        </div>
-      </section>
-
-      <footer className="pt-16 sm:pt-24 pb-12 bg-foreground text-background/70">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row justify-between gap-10 md:gap-12 mb-12 sm:mb-16">
-            <div className="max-w-xs">
-              <span className="font-serif text-3xl italic text-background block mb-6">HerSpace</span>
-              <p className="text-sm leading-relaxed">A global collective and digital harbor for every woman's journey.</p>
-            </div>
-            <div className="flex flex-wrap gap-10 sm:gap-20">
-              <FooterCol title="Ecosystem" links={["Health Hub", "Safe Space", "Safety Network", "Mentorship"]} />
-              <FooterCol title="Trust" links={["Privacy manifesto", "Verification", "Community rules", "Contact"]} />
-            </div>
-          </div>
-          <div className="pt-8 border-t border-background/10 flex flex-col md:flex-row justify-between gap-6">
-            <p className="text-[10px] uppercase tracking-wider leading-loose max-w-[60ch]">
-              HerSpace is not a medical provider. The AI assistant is an educational tool and does not replace professional medical advice, diagnosis, treatment, or emergency services.
-            </p>
-            <p className="text-[10px]">© {new Date().getFullYear()} HerSpace</p>
-          </div>
-        </div>
-      </footer>
+    <div className="flex items-center gap-[3px] anim-fade-up" style={{ animationDelay: `${delay}ms` }}>
+      <span className="font-manrope text-[#AFDDFF]/80 text-[13px] leading-[15.6px]">{n}</span>
+      <span className="font-manrope text-white text-[13px] leading-[15.6px] cursor-pointer hover:text-[#AFDDFF] transition-colors">
+        {label}
+      </span>
     </div>
   );
 }
 
-function TrustDot({ color, label }: { color: string; label: string }) {
+function TrustRows() {
   return (
-    <div className="flex items-center gap-3">
-      <div className={`size-2 rounded-full ${color}`} />
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-[0.18em]">{label}</span>
-    </div>
+    <>
+      <div className="flex items-center gap-[10px] mb-3">
+        <ShieldCheck className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
+        <span className="font-manrope text-white text-[13px] leading-[15.6px]">PRIVATE BY DESIGN</span>
+        <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ VERIFIED ]</span>
+      </div>
+      <div className="flex items-center gap-[8px]">
+        <span className="font-manrope text-white text-[13px] leading-[15.6px]">STATUS:</span>
+        <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px]">
+          WOMEN_ONLY
+        </span>
+      </div>
+    </>
   );
 }
 
-function PillarCard({ tag, eyebrow, title, body, className, big, dark }: { tag: string; eyebrow: string; title: string; body: string; className?: string; big?: boolean; dark?: boolean }) {
-  const eyebrowColor = dark ? "text-background/60" : "text-earth";
-  const bodyColor = dark ? "text-background/70" : "text-muted-foreground";
+function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <div className={`p-8 rounded-3xl ring-1 ring-border flex flex-col justify-between ${className ?? ""}`}>
-      <div>
-        <span className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${eyebrowColor} mb-3 block`}>{tag}. {eyebrow}</span>
-        <h3 className={`${big ? "text-3xl" : "text-2xl"} font-serif italic mb-3`}>{title}</h3>
-        <p className={`${bodyColor} max-w-[42ch] text-sm leading-relaxed`}>{body}</p>
+    <div
+      className={`fixed inset-0 z-50 lg:hidden transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+        open ? "visible" : "invisible"
+      }`}
+    >
+      <div
+        onClick={onClose}
+        className={`absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <div
+        className={`relative h-full flex flex-col px-5 pt-24 pb-10 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+          open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
+        }`}
+      >
+        <button
+          aria-label="Close menu"
+          onClick={onClose}
+          className="absolute top-5 right-5 w-[40px] h-[40px] flex items-center justify-center"
+        >
+          <X className="w-[22px] h-[22px] text-white" strokeWidth={1.5} />
+        </button>
+
+        <div className="flex flex-col gap-8">
+          {NAV.map((item, i) => (
+            <div
+              key={item.label}
+              className={`flex items-center gap-3 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+                open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-6"
+              }`}
+              style={{ transitionDelay: open ? `${150 + i * 75}ms` : "0ms" }}
+            >
+              <span className="font-manrope text-[#AFDDFF]/80 text-[14px] leading-[1]">{item.n}</span>
+              <span className="font-manrope text-white text-[28px] leading-[1.2] tracking-tight">{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className={`mt-auto pt-10 border-t border-white/10 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+            open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+          style={{ transitionDelay: open ? "450ms" : "0ms" }}
+        >
+          <TrustRows />
+        </div>
       </div>
     </div>
   );
 }
 
-function SmallCard({ title, body }: { title: string; body: string }) {
+const verticalPositions = ["12.6%", "37.5%", "61.9%", "86.2%"];
+const horizontalPositions = ["32.7%", "71.4%"];
+const vDelays = [600, 700, 800, 900];
+const hDelays = [800, 950];
+const plusDelays = [1000, 1080, 1160, 1240, 1320, 1400, 1480, 1560];
+
+function GridLines() {
+  const marks: { left: string; top: string }[] = [];
+  horizontalPositions.forEach((top) => verticalPositions.forEach((left) => marks.push({ left, top })));
+
   return (
-    <div className="col-span-6 md:col-span-3 p-6 rounded-2xl ring-1 ring-border bg-card/60">
-      <h4 className="text-sm font-semibold mb-2">{title}</h4>
-      <p className="text-xs text-muted-foreground">{body}</p>
+    <div className="absolute inset-0 pointer-events-none">
+      {verticalPositions.map((left, i) => (
+        <div
+          key={`v${left}`}
+          className="absolute top-0 h-full w-px bg-white/[0.04] anim-grid-v"
+          style={{ left, animationDelay: `${vDelays[i]}ms` }}
+        />
+      ))}
+      {horizontalPositions.map((top, i) => (
+        <div
+          key={`h${top}`}
+          className="absolute left-0 w-full h-px bg-white/[0.04] anim-grid-h"
+          style={{ top, animationDelay: `${hDelays[i]}ms` }}
+        />
+      ))}
+      {marks.map((m, i) => (
+        <div
+          key={`p${i}`}
+          className="absolute anim-fade-in"
+          style={{ left: m.left, top: m.top, animationDelay: `${plusDelays[i]}ms` }}
+        >
+          <div className="absolute w-[10px] h-px bg-white/70 -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute w-px h-[10px] bg-white/70 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+      ))}
     </div>
   );
 }
 
-function DashItem({ n, title, body }: { n: number; title: string; body: string }) {
+function ConnectorLine({
+  x1,
+  y1,
+  x2,
+  y2,
+  delay,
+}: {
+  x1: string;
+  y1: string;
+  x2: string;
+  y2: string;
+  delay: number;
+}) {
   return (
-    <li className="flex gap-4">
-      <div className="size-6 rounded-full bg-sand grid place-items-center flex-shrink-0">
-        <span className="text-[10px] font-bold text-earth">{n}</span>
+    <svg
+      className="absolute inset-0 w-full h-full pointer-events-none anim-fade-in"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke="rgba(255,255,255,0.25)"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function NodeLabel({
+  top,
+  left,
+  anim,
+  delay,
+  title,
+  body,
+  maxW,
+}: {
+  top: string;
+  left: string;
+  anim: string;
+  delay: number;
+  title: string;
+  body: string;
+  maxW: string;
+}) {
+  return (
+    <div className={`absolute ${anim}`} style={{ top, left, animationDelay: `${delay}ms` }}>
+      <p className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">{title}</p>
+      <p className={`font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] ${maxW}`}>{body}</p>
+    </div>
+  );
+}
+
+function CentralNodes() {
+  return (
+    <div className="absolute inset-0 pointer-events-none hidden md:block">
+      <ConnectorLine x1="38%" y1="14%" x2="52%" y2="14%" delay={1200} />
+      <ConnectorLine x1="52%" y1="14%" x2="60%" y2="27%" delay={1400} />
+      <ConnectorLine x1="32%" y1="58%" x2="20%" y2="74%" delay={1500} />
+      <ConnectorLine x1="20%" y1="74%" x2="6%" y2="74%" delay={1700} />
+      <ConnectorLine x1="78%" y1="53%" x2="63%" y2="53%" delay={1800} />
+      <ConnectorLine x1="63%" y1="53%" x2="50%" y2="63%" delay={2000} />
+
+      <div
+        className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
+        style={{ top: "27%", left: "60%", animationDelay: "1500ms" }}
+      />
+      <div
+        className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
+        style={{ top: "58%", left: "32%", animationDelay: "1800ms" }}
+      />
+      <div
+        className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
+        style={{ top: "63%", left: "50%", animationDelay: "2100ms" }}
+      />
+
+      <NodeLabel
+        top="11%"
+        left="26%"
+        anim="anim-slide-left"
+        delay={1100}
+        title="[ INTELLIGENCE ]"
+        body="Sovereign AI health intelligence translating symptoms and research into private, understandable insights."
+        maxW="max-w-[160px]"
+      />
+      <NodeLabel
+        top="76%"
+        left="3%"
+        anim="anim-slide-left"
+        delay={1400}
+        title="[ SAFETY_NETWORK ]"
+        body="Verified safe places, trusted women professionals, and real-time safety connections wherever you go."
+        maxW="max-w-[160px]"
+      />
+      <NodeLabel
+        top="50%"
+        left="78%"
+        anim="anim-slide-right"
+        delay={1700}
+        title="[ SISTERHOOD ]"
+        body="A trusted network for mentorship, travel, careers, knowledge, and meaningful connection."
+        maxW="max-w-[180px]"
+      />
+    </div>
+  );
+}
+
+function BottomRow({ onJoin, onExplore }: { onJoin: () => void; onExplore: () => void }) {
+  return (
+    <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0">
+      <button
+        onClick={onJoin}
+        className="bg-[#AFDDFF] px-[16px] md:px-[20px] py-[10px] md:py-[12px] flex items-center gap-[10px] hover:bg-[#c8e8ff] transition-colors anim-fade-up"
+        style={{ animationDelay: "900ms" }}
+      >
+        <span className="text-black text-[16px] leading-none">&#10022;</span>
+        <span className="font-manrope text-black text-[12px] md:text-[13px] leading-[15.6px] uppercase tracking-wide">
+          JOIN HERSPACE
+        </span>
+      </button>
+
+      <div
+        className="relative max-w-[280px] hidden sm:block anim-slide-right"
+        style={{ animationDelay: "1100ms" }}
+      >
+        <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] px-[6px] py-[2px] inline-block mb-[10px]">
+          WOMEN-ONLY — BUILT FOR TRUST
+        </span>
+        <div className="relative p-[20px]">
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 280 168"
+            preserveAspectRatio="none"
+          >
+            <polygon
+              points="0.5,0.5 279.5,0.5 279.5,167.5 30,167.5 0.5,137.5"
+              fill="none"
+              stroke="#AFDDFF"
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+          <p className="relative font-manrope text-white text-[13px] leading-[18px] mb-[18px]">
+            A private digital ecosystem for women — connecting health intelligence, safety, community, and growth in
+            one trusted space.
+          </p>
+          <span
+            onClick={onExplore}
+            className="relative font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px] cursor-pointer hover:underline"
+          >
+            EXPLORE HERSPACE
+          </span>
+        </div>
       </div>
-      <div>
-        <h4 className="font-medium text-sm">{title}</h4>
-        <p className="text-xs text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+function App() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
+  return (
+    <section className="relative w-full h-screen overflow-hidden bg-black">
+      <video
+        className="absolute inset-0 w-full h-full object-cover anim-fade-in"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+
+      <div className="relative z-10 w-full h-full">
+        <nav className="absolute top-0 left-0 w-full flex items-center px-5 md:px-[35px] py-5 md:py-[27px] z-20">
+          <div className="flex items-center gap-[40px]">
+            <span
+              className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap anim-fade-up"
+              style={{ animationDelay: "200ms" }}
+            >
+              HerSpace
+            </span>
+            <div className="hidden lg:flex items-center gap-[40px]">
+              {NAV.map((item) => (
+                <NavItem key={item.label} n={item.n} label={item.label} delay={item.delay} />
+              ))}
+            </div>
+          </div>
+
+          <div
+            className="hidden lg:flex items-center gap-[12px] ml-auto anim-slide-right"
+            style={{ animationDelay: "600ms" }}
+          >
+            <ShieldCheck className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
+            <span className="font-manrope text-white text-[13px] leading-[15.6px]">PRIVATE BY DESIGN</span>
+            <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ VERIFIED ]</span>
+            <span className="font-manrope text-white text-[13px] leading-[15.6px] ml-[20px]">STATUS:</span>
+            <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px]">
+              WOMEN_ONLY
+            </span>
+          </div>
+
+          <button
+            aria-label="Toggle menu"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="lg:hidden ml-auto relative w-[40px] h-[40px] flex items-center justify-center anim-fade-in"
+            style={{ animationDelay: "400ms" }}
+          >
+            <Menu
+              className={`absolute w-[22px] h-[22px] text-white transition-all duration-300 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+                menuOpen ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"
+              }`}
+              strokeWidth={1.5}
+            />
+            <X
+              className={`absolute w-[22px] h-[22px] text-white transition-all duration-300 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+                menuOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"
+              }`}
+              strokeWidth={1.5}
+            />
+          </button>
+        </nav>
+
+        <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+
+        <h1
+          className="font-graphik text-white font-normal leading-[1em] absolute anim-fade-up text-[32px] sm:text-[48px] md:text-[68px] top-[140px] sm:top-[160px] md:top-[178px] left-5 md:left-[35px] max-w-[300px] sm:max-w-[420px] md:max-w-[554px]"
+          style={{ animationDelay: "400ms" }}
+        >
+          A quiet room for your health.
+        </h1>
+
+        <GridLines />
+        <CentralNodes />
+        <BottomRow
+          onJoin={() => navigate({ to: "/auth", search: { mode: "signup" } })}
+          onExplore={() => navigate({ to: "/auth" })}
+        />
       </div>
-    </li>
-  );
-}
-
-function Story({ quote, attr }: { quote: string; attr: string }) {
-  return (
-    <div className="space-y-4">
-      <p className="text-xl font-serif italic text-foreground leading-snug">"{quote}"</p>
-      <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">{attr}</p>
-    </div>
-  );
-}
-
-function FooterCol({ title, links }: { title: string; links: string[] }) {
-  return (
-    <div className="space-y-4">
-      <h5 className="text-xs font-semibold text-background uppercase tracking-widest">{title}</h5>
-      <ul className="space-y-2 text-sm">
-        {links.map((l) => (
-          <li key={l}><a href="#" className="hover:text-background transition-colors">{l}</a></li>
-        ))}
-      </ul>
-    </div>
+    </section>
   );
 }
