@@ -31,7 +31,12 @@ function AuthCallback() {
     const go = (to: "/dashboard" | "/auth") => {
       if (done) return;
       done = true;
-      navigate({ to });
+      if (to === "/dashboard") {
+        sessionStorage.removeItem("herspace:post-auth-path");
+        window.location.replace(to);
+        return;
+      }
+      navigate({ to, replace: true });
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {

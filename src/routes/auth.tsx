@@ -86,16 +86,19 @@ function AuthPage() {
 
   async function handleGoogle() {
     setLoading(true);
+    sessionStorage.setItem("herspace:post-auth-path", "/dashboard");
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth/callback`,
+      redirect_uri: window.location.origin,
+      extraParams: { prompt: "select_account" },
     });
     if (result.error) {
+      sessionStorage.removeItem("herspace:post-auth-path");
       toast.error("Google sign-in failed.");
       setLoading(false);
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    window.location.replace("/dashboard");
   }
 
   return (
