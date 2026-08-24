@@ -39,9 +39,13 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
-    });
+    if (!hasSupabaseBrowserConfig()) return;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) navigate({ to: "/dashboard" });
+      })
+      .catch(() => {});
   }, [navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
