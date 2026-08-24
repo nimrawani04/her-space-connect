@@ -140,10 +140,25 @@ function RootComponent() {
 
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) return;
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    const finishPendingSignIn = async () => {
+      const destination = sessionStorage.getItem("herspace:post-auth-path");
+      if (destination !== "/dashboard") return;
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      sessionStorage.removeItem("herspace:post-auth-path");
+      window.location.replace(destination);
+    };
+
+    void finishPendingSignIn();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (event === "SIGNED_IN" && session && sessionStorage.getItem("herspace:post-auth-path") === "/dashboard") {
+        sessionStorage.removeItem("herspace:post-auth-path");
+        window.location.replace("/dashboard");
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
