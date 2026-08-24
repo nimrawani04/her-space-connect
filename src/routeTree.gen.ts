@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedWellnessRouteImport } from './routes/_authenticated/wellness'
 import { Route as AuthenticatedTravelRouteImport } from './routes/_authenticated/travel'
 import { Route as AuthenticatedSafetyRouteImport } from './routes/_authenticated/safety'
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedWellnessRoute = AuthenticatedWellnessRouteImport.update({
   id: '/wellness',
@@ -123,7 +129,7 @@ const AuthenticatedSettingsAppearanceRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/careers': typeof AuthenticatedCareersRoute
   '/community': typeof AuthenticatedCommunityRoute
@@ -137,12 +143,13 @@ export interface FileRoutesByFullPath {
   '/safety': typeof AuthenticatedSafetyRoute
   '/travel': typeof AuthenticatedTravelRouteWithChildren
   '/wellness': typeof AuthenticatedWellnessRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/travel/inbox': typeof AuthenticatedTravelInboxRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/careers': typeof AuthenticatedCareersRoute
   '/community': typeof AuthenticatedCommunityRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/safety': typeof AuthenticatedSafetyRoute
   '/travel': typeof AuthenticatedTravelRouteWithChildren
   '/wellness': typeof AuthenticatedWellnessRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/travel/inbox': typeof AuthenticatedTravelInboxRoute
 }
@@ -163,7 +171,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/careers': typeof AuthenticatedCareersRoute
   '/_authenticated/community': typeof AuthenticatedCommunityRoute
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/_authenticated/safety': typeof AuthenticatedSafetyRoute
   '/_authenticated/travel': typeof AuthenticatedTravelRouteWithChildren
   '/_authenticated/wellness': typeof AuthenticatedWellnessRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/travel/inbox': typeof AuthenticatedTravelInboxRoute
 }
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/travel'
     | '/wellness'
+    | '/auth/callback'
     | '/settings/appearance'
     | '/travel/inbox'
   fileRoutesByTo: FileRoutesByTo
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/travel'
     | '/wellness'
+    | '/auth/callback'
     | '/settings/appearance'
     | '/travel/inbox'
   id:
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/_authenticated/safety'
     | '/_authenticated/travel'
     | '/_authenticated/wellness'
+    | '/auth/callback'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/travel/inbox'
   fileRoutesById: FileRoutesById
@@ -244,7 +256,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
@@ -277,6 +289,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/wellness': {
       id: '/_authenticated/wellness'
@@ -425,10 +444,20 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
