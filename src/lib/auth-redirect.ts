@@ -22,6 +22,13 @@ export function getAuthDestination() {
   );
 }
 
+export function hasPendingAuthDestination() {
+  return Boolean(
+    safeDestination(localStorage.getItem(AUTH_DESTINATION_KEY)) ??
+      safeDestination(sessionStorage.getItem(AUTH_DESTINATION_KEY)),
+  );
+}
+
 export function clearAuthDestination() {
   localStorage.removeItem(AUTH_DESTINATION_KEY);
   sessionStorage.removeItem(AUTH_DESTINATION_KEY);
