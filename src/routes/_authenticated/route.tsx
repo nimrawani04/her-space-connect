@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect, useNavigate, useRouterState, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouterState, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -24,6 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarSignedUrl, initials } from "@/lib/avatar";
+import { performSignOut } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -53,7 +54,6 @@ const nav = [
 ] as const;
 
 function AuthedShell() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [name, setName] = useState<string>("Sister");
@@ -78,10 +78,10 @@ function AuthedShell() {
   }, []);
 
   async function signOut() {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    await performSignOut(async () => {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    });
   }
 
   return (

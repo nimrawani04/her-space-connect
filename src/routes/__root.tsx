@@ -17,7 +17,7 @@ import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { ThemeProvider } from "@/components/theme-provider";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { AppStartupLoader } from "@/components/AppStartupLoader";
-import { completeAuthRedirect, hasPendingAuthDestination } from "@/lib/auth-redirect";
+import { clearAuthDestination, completeAuthRedirect, hasPendingAuthDestination } from "@/lib/auth-redirect";
 
 function NotFoundComponent() {
   return (
@@ -144,7 +144,15 @@ function RootComponent() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+        clearAuthDestination();
+        if (!window.location.pathname.startsWith("/auth")) {
+          window.location.replace("/auth");
+        }
+        return;
+      }
+      queryClient.invalidateQueries();
       if (
         event === "SIGNED_IN" &&
         session &&
