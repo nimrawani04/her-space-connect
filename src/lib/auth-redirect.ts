@@ -51,3 +51,28 @@ export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
 
   return null;
 }
+const SIGN_IN_PATH = "/auth";
+
+/**
+ * Consistent logout: clears any pending post-auth destination, ends the
+ * Supabase session (locally even if the network call fails), clears cached
+ * data, then hard-redirects to the sign-in page — never the homepage.
+ */
+export async function performSignOut(clearCache?: () => void | Promise<void>) {
+  clearAuthDestination();
+  try {
+    await clearCache?.();
+  } catch {
+    /* cache teardown must never block sign-out */
+  }
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      /* ignore — we still force the redirect below */
+    }
+  }
+  window.location.replace(SIGN_IN_PATH);
+}
