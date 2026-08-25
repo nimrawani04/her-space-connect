@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect, useNavigate, useRouterState, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouterState, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -54,7 +54,6 @@ const nav = [
 ] as const;
 
 function AuthedShell() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [name, setName] = useState<string>("Sister");
