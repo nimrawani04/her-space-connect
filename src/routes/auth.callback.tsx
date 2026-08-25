@@ -2,6 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
+import {
+  completeAuthRedirect,
+  waitForAuthenticatedUser,
+} from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/auth/callback")({
   ssr: false,
@@ -27,35 +31,18 @@ function AuthCallback() {
       return;
     }
 
-    let done = false;
-    const go = (to: "/dashboard" | "/auth") => {
-      if (done) return;
-      done = true;
-      if (to === "/dashboard") {
-        sessionStorage.removeItem("herspace:post-auth-path");
-        window.location.replace(to);
+    let cancelled = false;
+    void waitForAuthenticatedUser().then((user) => {
+      if (cancelled) return;
+      if (user) {
+        completeAuthRedirect();
         return;
       }
-      navigate({ to, replace: true });
-    };
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) go("/dashboard");
+      navigate({ to: "/auth", replace: true });
     });
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (data.session) go("/dashboard");
-      })
-      .catch(() => {});
-
-    // Give the OAuth handoff a moment before falling back to the sign-in page.
-    const timer = window.setTimeout(() => go("/auth"), 6000);
-
     return () => {
-      window.clearTimeout(timer);
-      sub.subscription.unsubscribe();
+      cancelled = true;
     };
   }, [navigate]);
 
