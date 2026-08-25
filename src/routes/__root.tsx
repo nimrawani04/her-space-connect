@@ -17,7 +17,7 @@ import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { ThemeProvider } from "@/components/theme-provider";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { AppStartupLoader } from "@/components/AppStartupLoader";
-import { completeAuthRedirect, hasPendingAuthDestination } from "@/lib/auth-redirect";
+import { clearAuthDestination, completeAuthRedirect, hasPendingAuthDestination } from "@/lib/auth-redirect";
 
 function NotFoundComponent() {
   return (

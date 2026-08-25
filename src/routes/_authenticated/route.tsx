@@ -24,6 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarSignedUrl, initials } from "@/lib/avatar";
+import { performSignOut } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -78,10 +79,10 @@ function AuthedShell() {
   }, []);
 
   async function signOut() {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    await performSignOut(async () => {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    });
   }
 
   return (
