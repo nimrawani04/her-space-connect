@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
   completeAuthRedirect,
