@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import {
+  completeAuthRedirect,
+  rememberAuthDestination,
+  waitForAuthenticatedUser,
+} from "@/lib/auth-redirect";
 
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup"]).optional(),
@@ -86,19 +91,24 @@ function AuthPage() {
 
   async function handleGoogle() {
     setLoading(true);
-    sessionStorage.setItem("herspace:post-auth-path", "/dashboard");
+    rememberAuthDestination("/dashboard");
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/auth/callback`,
       extraParams: { prompt: "select_account" },
     });
     if (result.error) {
-      sessionStorage.removeItem("herspace:post-auth-path");
       toast.error("Google sign-in failed.");
       setLoading(false);
       return;
     }
     if (result.redirected) return;
-    window.location.replace("/dashboard");
+    const user = await waitForAuthenticatedUser();
+    if (user) {
+      completeAuthRedirect();
+      return;
+    }
+    toast.error("Your sign-in completed, but the session could not be confirmed. Please try again.");
+    setLoading(false);
   }
 
   return (
