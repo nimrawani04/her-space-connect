@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 
 const AUTH_DESTINATION_KEY = "herspace:post-auth-path";
 const DEFAULT_AUTH_DESTINATION = "/dashboard";
@@ -41,11 +42,14 @@ export function completeAuthRedirect() {
 }
 
 export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
+  if (!hasSupabaseBrowserConfig()) return null;
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) return data.user;
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) return data.user;
+    } catch {}
     await new Promise((resolve) => window.setTimeout(resolve, 200));
   }
 
@@ -60,18 +64,22 @@ const SIGN_IN_PATH = "/auth";
  */
 export async function performSignOut(clearCache?: () => void | Promise<void>) {
   clearAuthDestination();
+  localStorage.removeItem("herspace_demo_user");
+  sessionStorage.removeItem("herspace_demo_user");
   try {
     await clearCache?.();
   } catch {
     /* cache teardown must never block sign-out */
   }
-  try {
-    await supabase.auth.signOut();
-  } catch {
+  if (hasSupabaseBrowserConfig()) {
     try {
-      await supabase.auth.signOut({ scope: "local" });
+      await supabase.auth.signOut();
     } catch {
-      /* ignore — we still force the redirect below */
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        /* ignore — we still force the redirect below */
+      }
     }
   }
   window.location.replace(SIGN_IN_PATH);

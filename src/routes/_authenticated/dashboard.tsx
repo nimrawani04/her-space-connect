@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,13 +17,26 @@ function Dashboard() {
 
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) {
-        const { data: p } = await supabase.from("profiles").select("display_name").eq("id", u.user.id).maybeSingle();
-        setName(p?.display_name ?? u.user.email?.split("@")[0] ?? "Sister");
+      if (hasSupabaseBrowserConfig()) {
+        try {
+          const { data: u } = await supabase.auth.getUser();
+          if (u?.user) {
+            const { data: p } = await supabase.from("profiles").select("display_name").eq("id", u.user.id).maybeSingle();
+            setName(p?.display_name ?? u.user.email?.split("@")[0] ?? "Sister");
+          }
+          const { count } = await supabase.from("community_posts").select("id", { count: "exact", head: true });
+          setPostCount(count ?? 0);
+          return;
+        } catch {}
       }
-      const { count } = await supabase.from("community_posts").select("id", { count: "exact", head: true });
-      setPostCount(count ?? 0);
+      const demoUserStr = localStorage.getItem("herspace_demo_user");
+      if (demoUserStr) {
+        try {
+          const demoUser = JSON.parse(demoUserStr);
+          setName(demoUser.name || demoUser.email?.split("@")[0] || "Sister");
+        } catch {}
+      }
+      setPostCount(12);
     })();
   }, []);
 
