@@ -25,20 +25,28 @@ function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!hasSupabaseBrowserConfig()) {
-      navigate({ to: "/auth" });
-      return;
-    }
-
     let cancelled = false;
-    void waitForAuthenticatedUser().then((user) => {
-      if (cancelled) return;
-      if (user) {
+
+    const runAuthCheck = async () => {
+      if (hasSupabaseBrowserConfig()) {
+        const user = await waitForAuthenticatedUser();
+        if (cancelled) return;
+        if (user) {
+          completeAuthRedirect();
+          return;
+        }
+      }
+
+      const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
+      if (demoUser) {
         completeAuthRedirect();
         return;
       }
+
       navigate({ to: "/auth", replace: true });
-    });
+    };
+
+    void runAuthCheck();
 
     return () => {
       cancelled = true;

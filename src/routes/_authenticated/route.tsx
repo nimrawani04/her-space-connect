@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, useRouterState, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
   SidebarProvider,
   Sidebar,
@@ -29,11 +30,35 @@ import { performSignOut } from "@/lib/auth-redirect";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) throw redirect({ to: "/auth" });
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+    if (hasSupabaseBrowserConfig()) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          const { data, error } = await supabase.auth.getUser();
+          if (data?.user && !error) return { user: data.user };
+        }
+      } catch {
+        // Fall back to demo user check
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      const demoUserStr = localStorage.getItem("herspace_demo_user");
+      if (demoUserStr) {
+        try {
+          const demoUser = JSON.parse(demoUserStr);
+          return {
+            user: {
+              id: "demo-user-id",
+              email: demoUser.email || "demo@herspace.app",
+              user_metadata: { full_name: demoUser.name || "Sister" },
+            },
+          };
+        } catch {}
+      }
+    }
+
+    throw redirect({ to: "/auth" });
   },
   component: AuthedShell,
 });
@@ -62,17 +87,30 @@ function AuthedShell() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("display_name, avatar_url")
-        .eq("id", u.user.id)
-        .maybeSingle();
-      if (cancelled) return;
-      const n = p?.display_name ?? u.user.user_metadata?.full_name ?? u.user.email?.split("@")[0] ?? "Sister";
-      setName(String(n));
-      setAvatarUrl(await getAvatarSignedUrl(p?.avatar_url));
+      if (hasSupabaseBrowserConfig()) {
+        try {
+          const { data: u } = await supabase.auth.getUser();
+          if (u?.user) {
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("display_name, avatar_url")
+              .eq("id", u.user.id)
+              .maybeSingle();
+            if (cancelled) return;
+            const n = p?.display_name ?? u.user.user_metadata?.full_name ?? u.user.email?.split("@")[0] ?? "Sister";
+            setName(String(n));
+            setAvatarUrl(await getAvatarSignedUrl(p?.avatar_url));
+            return;
+          }
+        } catch {}
+      }
+      const demoUserStr = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
+      if (demoUserStr) {
+        try {
+          const demoUser = JSON.parse(demoUserStr);
+          if (!cancelled) setName(demoUser.name || "Sister");
+        } catch {}
+      }
     })();
     return () => { cancelled = true; };
   }, []);
