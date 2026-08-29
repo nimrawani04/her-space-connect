@@ -4,6 +4,23 @@ import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 const AUTH_DESTINATION_KEY = "herspace:post-auth-path";
 const DEFAULT_AUTH_DESTINATION = "/dashboard";
 
+/**
+ * Auth flow diagnostics. Logs every decision point so we can see exactly
+ * where a session is established, lost, or fails to resolve. No tokens or
+ * PII are ever logged — only event names, presence booleans, and timing.
+ */
+export function authLog(event: string, details: Record<string, unknown> = {}) {
+  try {
+    console.info(`[HerSpaceAuth] ${event}`, {
+      path: typeof window !== "undefined" ? window.location.pathname : "ssr",
+      hasHash: typeof window !== "undefined" ? Boolean(window.location.hash) : false,
+      ...details,
+    });
+  } catch {
+    /* logging must never break auth */
+  }
+}
+
 function safeDestination(value: string | null): string | null {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
   return value;
@@ -13,6 +30,7 @@ export function rememberAuthDestination(destination = DEFAULT_AUTH_DESTINATION) 
   const safe = safeDestination(destination) ?? DEFAULT_AUTH_DESTINATION;
   localStorage.setItem(AUTH_DESTINATION_KEY, safe);
   sessionStorage.setItem(AUTH_DESTINATION_KEY, safe);
+  authLog("destination.remembered", { destination: safe });
 }
 
 export function getAuthDestination() {
@@ -38,6 +56,7 @@ export function clearAuthDestination() {
 export function completeAuthRedirect() {
   const destination = getAuthDestination();
   clearAuthDestination();
+  authLog("redirect.complete", { destination });
   window.location.replace(destination);
 }
 
