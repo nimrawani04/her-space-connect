@@ -109,31 +109,22 @@ function AuthPage() {
   async function handleGoogle() {
     setLoading(true);
     rememberAuthDestination("/dashboard");
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/auth/callback`,
+        extraParams: { prompt: "select_account" },
+      });
 
-    if (hasSupabaseBrowserConfig()) {
-      try {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
-            queryParams: { prompt: "select_account" },
-          },
-        });
-        if (!error) return;
-      } catch (err) {
-        console.warn("Supabase OAuth direct call failed, falling back to local demo sign in:", err);
-      }
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+
+      const user = await waitForAuthenticatedUser();
+      if (!user) throw new Error("Your Google session could not be confirmed. Please try again.");
+      completeAuthRedirect();
+    } catch (err) {
+      setLoading(false);
+      toast.error(err instanceof Error ? err.message : "Google sign-in failed. Please try again.");
     }
-
-    localStorage.setItem(
-      "herspace_demo_user",
-      JSON.stringify({
-        email: "google.user@herspace.app",
-        name: "Google Sister",
-      })
-    );
-    toast.success("Signed in with Google.");
-    completeAuthRedirect();
   }
 
   function handleDemoSignIn() {
