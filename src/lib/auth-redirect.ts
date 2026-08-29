@@ -44,7 +44,7 @@ export function getAuthDestination() {
 export function hasPendingAuthDestination() {
   return Boolean(
     safeDestination(localStorage.getItem(AUTH_DESTINATION_KEY)) ??
-      safeDestination(sessionStorage.getItem(AUTH_DESTINATION_KEY)),
+    safeDestination(sessionStorage.getItem(AUTH_DESTINATION_KEY)),
   );
 }
 
@@ -67,12 +67,12 @@ export function completeAuthRedirect() {
  * history immediately.
  */
 export async function consumeOAuthFragmentSession() {
-  if (!hasSupabaseBrowserConfig() || !window.location.hash) return null;
+  if (!hasSupabaseBrowserConfig()) return null;
 
   const params = new URLSearchParams(window.location.hash.slice(1));
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
-  if (!accessToken || !refreshToken) return null;
+  if (!accessToken || !refreshToken) return consumeOAuthCodeSession();
 
   window.history.replaceState(
     window.history.state,
@@ -88,6 +88,31 @@ export async function consumeOAuthFragmentSession() {
   return data.user;
 }
 
+/**
+ * Some OAuth providers return an authorization code in the query string
+ * instead of tokens in the fragment. Exchange it before the auth guard runs.
+ */
+export async function consumeOAuthCodeSession() {
+  if (!hasSupabaseBrowserConfig()) return null;
+
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  if (!code) return null;
+
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) throw error;
+
+  url.searchParams.delete("code");
+  url.searchParams.delete("state");
+  window.history.replaceState(
+    window.history.state,
+    document.title,
+    `${url.pathname}${url.search}${url.hash}`,
+  );
+
+  return data.user;
+}
+
 export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
   if (!hasSupabaseBrowserConfig()) return null;
   const deadline = Date.now() + timeoutMs;
@@ -99,7 +124,9 @@ export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
 
       const { data } = await supabase.auth.getUser();
       if (data?.user) return data.user;
-    } catch {}
+    } catch {
+      /* keep polling until Supabase finishes restoring the browser session */
+    }
     await new Promise((resolve) => window.setTimeout(resolve, 200));
   }
 
