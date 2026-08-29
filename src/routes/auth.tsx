@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -127,13 +126,19 @@ function AuthPage() {
     setLoading(true);
     rememberAuthDestination("/dashboard");
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth`,
-        extraParams: { prompt: "select_account" },
+      if (!hasSupabaseBrowserConfig()) {
+        throw new Error("Google sign-in needs Supabase to be configured.");
+      }
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: { prompt: "select_account" },
+        },
       });
 
-      if (result.error) throw result.error;
-      if (result.redirected) return;
+      if (error) throw error;
 
       const user = await waitForAuthenticatedUser();
       if (!user) throw new Error("Your Google session could not be confirmed. Please try again.");
