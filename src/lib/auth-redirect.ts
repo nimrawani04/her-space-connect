@@ -41,6 +41,34 @@ export function completeAuthRedirect() {
   window.location.replace(destination);
 }
 
+/**
+ * Full-page OAuth can return credentials in the URL fragment. Fragments are
+ * never sent to the server, so establish the browser session before the
+ * protected route guard runs, then remove the credentials from browser
+ * history immediately.
+ */
+export async function consumeOAuthFragmentSession() {
+  if (!hasSupabaseBrowserConfig() || !window.location.hash) return null;
+
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+  if (!accessToken || !refreshToken) return null;
+
+  window.history.replaceState(
+    window.history.state,
+    document.title,
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  const { data, error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) throw error;
+  return data.user;
+}
+
 export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
   if (!hasSupabaseBrowserConfig()) return null;
   const deadline = Date.now() + timeoutMs;
