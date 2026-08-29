@@ -17,7 +17,12 @@ import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { ThemeProvider } from "@/components/theme-provider";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { AppStartupLoader } from "@/components/AppStartupLoader";
-import { clearAuthDestination, completeAuthRedirect, hasPendingAuthDestination } from "@/lib/auth-redirect";
+import {
+  clearAuthDestination,
+  completeAuthRedirect,
+  hasPendingAuthDestination,
+  waitForAuthenticatedUser,
+} from "@/lib/auth-redirect";
 
 function NotFoundComponent() {
   return (
@@ -141,6 +146,7 @@ function RootComponent() {
 
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) return;
+    let redirecting = false;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
@@ -157,9 +163,16 @@ function RootComponent() {
         event === "SIGNED_IN" &&
         session &&
         hasPendingAuthDestination() &&
-        window.location.pathname !== "/dashboard"
+        window.location.pathname !== "/dashboard" &&
+        !redirecting
       ) {
-        completeAuthRedirect();
+        redirecting = true;
+        window.setTimeout(() => {
+          void waitForAuthenticatedUser().then((user) => {
+            if (user) completeAuthRedirect();
+            else redirecting = false;
+          });
+        }, 0);
       }
     });
     return () => sub.subscription.unsubscribe();
