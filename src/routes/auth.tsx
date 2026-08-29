@@ -46,11 +46,10 @@ function AuthPage() {
 
   useEffect(() => {
     if (hasSupabaseBrowserConfig()) {
-      supabase.auth
-        .getSession()
-        .then(({ data }) => {
-          if (data?.session) navigate({ to: "/dashboard" });
-        })
+        waitForAuthenticatedUser(2_000)
+          .then((user) => {
+            if (user) completeAuthRedirect();
+          })
         .catch(() => {});
     } else {
       const demoUser = localStorage.getItem("herspace_demo_user");
