@@ -25,18 +25,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarSignedUrl, initials } from "@/lib/avatar";
-import { performSignOut } from "@/lib/auth-redirect";
+import { performSignOut, waitForAuthenticatedUser } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     if (hasSupabaseBrowserConfig()) {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData?.session) {
-          const { data, error } = await supabase.auth.getUser();
-          if (data?.user && !error) return { user: data.user };
-        }
+        const user = await waitForAuthenticatedUser();
+        if (user) return { user };
       } catch {
         // Fall back to demo user check
       }

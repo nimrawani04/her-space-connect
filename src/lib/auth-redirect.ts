@@ -47,6 +47,9 @@ export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
 
   while (Date.now() < deadline) {
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.user) return sessionData.session.user;
+
       const { data } = await supabase.auth.getUser();
       if (data?.user) return data.user;
     } catch {}
