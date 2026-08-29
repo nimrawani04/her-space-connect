@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
   completeAuthRedirect,
+  consumeOAuthFragmentSession,
   waitForAuthenticatedUser,
 } from "@/lib/auth-redirect";
 
@@ -29,11 +30,16 @@ function AuthCallback() {
 
     const runAuthCheck = async () => {
       if (hasSupabaseBrowserConfig()) {
-        const user = await waitForAuthenticatedUser();
-        if (cancelled) return;
-        if (user) {
-          completeAuthRedirect();
-          return;
+        try {
+          const fragmentUser = await consumeOAuthFragmentSession();
+          const user = fragmentUser ?? (await waitForAuthenticatedUser());
+          if (cancelled) return;
+          if (user) {
+            completeAuthRedirect();
+            return;
+          }
+        } catch {
+          if (cancelled) return;
         }
       }
 
