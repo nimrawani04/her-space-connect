@@ -69,16 +69,23 @@ export function completeAuthRedirect() {
 export async function consumeOAuthFragmentSession() {
   if (!hasSupabaseBrowserConfig()) return null;
 
-  const params = new URLSearchParams(window.location.hash.slice(1));
+  const params = new URLSearchParams(
+    window.location.hash ? window.location.hash.slice(1) : window.location.search,
+  );
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
   if (!accessToken || !refreshToken) return consumeOAuthCodeSession();
 
-  window.history.replaceState(
-    window.history.state,
-    document.title,
-    `${window.location.pathname}${window.location.search}`,
-  );
+  const url = new URL(window.location.href);
+  url.searchParams.delete("access_token");
+  url.searchParams.delete("refresh_token");
+  url.searchParams.delete("expires_at");
+  url.searchParams.delete("expires_in");
+  url.searchParams.delete("provider_token");
+  url.searchParams.delete("refresh_token");
+  url.searchParams.delete("state");
+
+  window.history.replaceState(window.history.state, document.title, `${url.pathname}${url.search}`);
 
   const { data, error } = await supabase.auth.setSession({
     access_token: accessToken,
