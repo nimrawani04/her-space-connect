@@ -191,3 +191,67 @@ export async function performSignOut(clearCache?: () => void | Promise<void>) {
   }
   window.location.replace(SIGN_IN_PATH);
 }
+
+/**
+ * Guard-side session resolution.
+ *
+ * A protected route must never redirect to /auth while Supabase is still
+ * restoring the session from storage (that is the loop users saw right after
+ * Google sign-in). So:
+ *  - fast path: an already-restored session resolves immediately;
+ *  - handoff path: if an OAuth response is in the URL, or a post-auth
+ *    destination is pending, wait up to `handoffTimeoutMs` for the session;
+ *  - cold path: otherwise wait only a short grace period, then fall back to
+ *    the sign-in page.
+ */
+export function hasOAuthResponseInUrl() {
+  if (typeof window === "undefined") return false;
+  const hash = window.location.hash ?? "";
+  const search = window.location.search ?? "";
+  return (
+    hash.includes("access_token") ||
+    hash.includes("refresh_token") ||
+    new URLSearchParams(search).has("code")
+  );
+}
+
+export async function resolveGuardUser(options: {
+  handoffTimeoutMs?: number;
+  graceMs?: number;
+} = {}) {
+  const { handoffTimeoutMs = 10_000, graceMs = 1_500 } = options;
+
+  if (!hasSupabaseBrowserConfig()) {
+    authLog("guard.config-missing");
+    return null;
+  }
+
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) {
+      authLog("guard.session-fast-path");
+      return data.session.user;
+    }
+  } catch {
+    /* fall through to the polling paths */
+  }
+
+  const inHandoff = hasOAuthResponseInUrl() || hasPendingAuthDestination();
+  authLog("guard.session-pending", { inHandoff });
+
+  if (inHandoff) {
+    try {
+      const fragmentUser = await consumeOAuthFragmentSession();
+      if (fragmentUser) {
+        authLog("guard.session-from-oauth-response");
+        return fragmentUser;
+      }
+    } catch {
+      /* the guard still polls below before giving up */
+    }
+  }
+
+  const user = await waitForAuthenticatedUser(inHandoff ? handoffTimeoutMs : graceMs);
+  if (!user) authLog("guard.session-unresolved", { inHandoff });
+  return user;
+}
