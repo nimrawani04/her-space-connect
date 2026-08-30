@@ -25,14 +25,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarSignedUrl, initials } from "@/lib/avatar";
-import { authLog, performSignOut, waitForAuthenticatedUser } from "@/lib/auth-redirect";
+import { authLog, performSignOut, resolveGuardUser } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     if (hasSupabaseBrowserConfig()) {
       try {
-        const user = await waitForAuthenticatedUser();
+        const user = await resolveGuardUser();
         if (user) {
           authLog("guard.session-confirmed");
           return { user };
@@ -41,6 +41,7 @@ export const Route = createFileRoute("/_authenticated")({
         authLog("guard.session-check-failed");
       }
     }
+
 
     if (typeof window !== "undefined") {
       const demoUserStr = localStorage.getItem("herspace_demo_user");
