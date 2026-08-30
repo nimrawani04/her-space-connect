@@ -25,7 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarSignedUrl, initials } from "@/lib/avatar";
-import { performSignOut, waitForAuthenticatedUser } from "@/lib/auth-redirect";
+import { authLog, performSignOut, waitForAuthenticatedUser } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -33,9 +33,12 @@ export const Route = createFileRoute("/_authenticated")({
     if (hasSupabaseBrowserConfig()) {
       try {
         const user = await waitForAuthenticatedUser();
-        if (user) return { user };
+        if (user) {
+          authLog("guard.session-confirmed");
+          return { user };
+        }
       } catch {
-        // Fall back to demo user check
+        authLog("guard.session-check-failed");
       }
     }
 
@@ -55,6 +58,7 @@ export const Route = createFileRoute("/_authenticated")({
       }
     }
 
+    authLog("guard.redirect-to-auth");
     throw redirect({ to: "/auth" });
   },
   component: AuthedShell,

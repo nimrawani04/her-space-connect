@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
+  authLog,
   completeAuthRedirect,
   consumeOAuthFragmentSession,
   waitForAuthenticatedUser,
@@ -29,17 +30,23 @@ function AuthCallback() {
     let cancelled = false;
 
     const runAuthCheck = async () => {
+      authLog("callback.started");
       if (hasSupabaseBrowserConfig()) {
         try {
           const fragmentUser = await consumeOAuthFragmentSession();
           const user = fragmentUser ?? (await waitForAuthenticatedUser());
           if (cancelled) return;
           if (user) {
+            authLog("callback.session-confirmed");
             completeAuthRedirect();
             return;
           }
-        } catch {
+          authLog("callback.session-missing");
+        } catch (error) {
           if (cancelled) return;
+          authLog("callback.failed", {
+            reason: error instanceof Error ? error.message : "unknown",
+          });
         }
       }
 
@@ -49,6 +56,7 @@ function AuthCallback() {
         return;
       }
 
+      authLog("callback.redirect-to-auth");
       navigate({ to: "/auth", replace: true });
     };
 
