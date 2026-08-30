@@ -67,14 +67,22 @@ export function completeAuthRedirect() {
  * history immediately.
  */
 export async function consumeOAuthFragmentSession() {
-  if (!hasSupabaseBrowserConfig()) return null;
+  if (!hasSupabaseBrowserConfig()) {
+    authLog("callback.config-missing");
+    return null;
+  }
 
   const params = new URLSearchParams(
     window.location.hash ? window.location.hash.slice(1) : window.location.search,
   );
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
-  if (!accessToken || !refreshToken) return consumeOAuthCodeSession();
+  if (!accessToken || !refreshToken) {
+    authLog("callback.no-token-fragment", { hasCode: params.has("code") });
+    return consumeOAuthCodeSession();
+  }
+
+  authLog("callback.token-fragment-found");
 
   const url = new URL(window.location.href);
   url.searchParams.delete("access_token");
@@ -91,7 +99,11 @@ export async function consumeOAuthFragmentSession() {
     access_token: accessToken,
     refresh_token: refreshToken,
   });
-  if (error) throw error;
+  if (error) {
+    authLog("callback.set-session-failed", { reason: error.message });
+    throw error;
+  }
+  authLog("callback.set-session-complete", { hasUser: Boolean(data.user) });
   return data.user;
 }
 
@@ -121,22 +133,33 @@ export async function consumeOAuthCodeSession() {
 }
 
 export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
-  if (!hasSupabaseBrowserConfig()) return null;
+  if (!hasSupabaseBrowserConfig()) {
+    authLog("session.wait-config-missing");
+    return null;
+  }
   const deadline = Date.now() + timeoutMs;
+  const startedAt = Date.now();
 
   while (Date.now() < deadline) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData.session?.user) return sessionData.session.user;
+      if (sessionData.session?.user) {
+        authLog("session.found", { source: "session", elapsedMs: Date.now() - startedAt });
+        return sessionData.session.user;
+      }
 
       const { data } = await supabase.auth.getUser();
-      if (data?.user) return data.user;
+      if (data?.user) {
+        authLog("session.found", { source: "user", elapsedMs: Date.now() - startedAt });
+        return data.user;
+      }
     } catch {
       /* keep polling until Supabase finishes restoring the browser session */
     }
     await new Promise((resolve) => window.setTimeout(resolve, 200));
   }
 
+  authLog("session.wait-timeout", { elapsedMs: Date.now() - startedAt });
   return null;
 }
 const SIGN_IN_PATH = "/auth";
