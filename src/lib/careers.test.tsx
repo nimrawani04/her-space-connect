@@ -111,7 +111,7 @@ vi.mock("@tanstack/react-router", async () => {
 // ---- Helpers -------------------------------------------------------------
 
 async function renderCareers() {
-  const { Careers } = await import("./careers");
+  const { Careers } = await import("@/routes/_authenticated/careers");
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
