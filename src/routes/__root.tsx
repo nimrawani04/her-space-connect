@@ -175,6 +175,9 @@ function RootComponent() {
 
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) return;
+    // Don't interfere with the callback page - it handles its own redirect
+    if (window.location.pathname === "/auth/callback") return;
+
     let redirecting = false;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
@@ -192,10 +195,14 @@ function RootComponent() {
         window.location.pathname === "/" ||
         window.location.pathname === "/auth" ||
         window.location.pathname.startsWith("/auth/");
+      
+      // If we have a pending destination and we're signed in, redirect there
+      const hasPending = hasPendingAuthDestination();
+      
       if (
         event === "SIGNED_IN" &&
         session &&
-        isUnauthedPage &&
+        (isUnauthedPage || hasPending) &&
         !redirecting
       ) {
         redirecting = true;

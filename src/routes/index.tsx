@@ -339,20 +339,28 @@ function App() {
         if (hasOAuthResponseInUrl()) {
           try {
             user = await consumeOAuthFragmentSession();
-          } catch {}
+            authLog("home-page.oauth-fragment-consumed", { hasUser: Boolean(user) });
+          } catch (error) {
+            authLog("home-page.oauth-error", {
+              reason: error instanceof Error ? error.message : "unknown",
+            });
+          }
         }
         if (!user) {
           try {
             user = await waitForAuthenticatedUser(1_000);
+            authLog("home-page.wait-completed", { hasUser: Boolean(user) });
           } catch {}
         }
         if (!cancelled && user) {
+          authLog("home-page.redirecting-to-dashboard");
           completeAuthRedirect();
         }
       })();
     } else {
       const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
       if (demoUser) {
+        authLog("home-page.demo-user-redirect");
         navigate({ to: "/dashboard" });
       }
     }

@@ -57,23 +57,27 @@ function AuthPage() {
         let user = null;
         try {
           user = await consumeOAuthFragmentSession();
+          authLog("auth-page.fragment-consumed", { hasUser: Boolean(user) });
         } catch {
           /* ignore fragment errors, continue to wait for session */
         }
         if (!user) {
           try {
             user = await waitForAuthenticatedUser(3_000);
+            authLog("auth-page.wait-completed", { hasUser: Boolean(user) });
           } catch {
             /* no active session */
           }
         }
         if (!cancelled && user) {
+          authLog("auth-page.redirecting-to-dashboard");
           completeAuthRedirect();
         }
       })();
     } else {
       const demoUser = localStorage.getItem("herspace_demo_user");
       if (demoUser) {
+        authLog("auth-page.demo-user-redirect");
         navigate({ to: "/dashboard" });
       }
     }
