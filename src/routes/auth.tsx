@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,21 +132,17 @@ function AuthPage() {
         throw new Error("Google sign-in needs Supabase to be configured.");
       }
 
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth/callback`,
-        extraParams: { prompt: "select_account" },
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: { prompt: "select_account" },
+        },
       });
 
-      if (result.error) throw result.error;
-      if (result.redirected) {
-        authLog("google.full-page-redirect-started");
-        return;
-      }
+      if (error) throw error;
 
-      const user = await waitForAuthenticatedUser();
-      if (!user) throw new Error("Your Google session could not be confirmed. Please try again.");
-      authLog("google.popup-session-confirmed");
-      completeAuthRedirect();
+      authLog("google.full-page-redirect-started");
     } catch (err) {
       authLog("google.sign-in-failed", {
         reason: err instanceof Error ? err.message : "unknown",
