@@ -354,8 +354,8 @@ function App() {
           } catch {}
         }
         if (!cancelled && user) {
-          authLog("home-page.redirecting-to-dashboard");
-          completeAuthRedirect();
+          authLog("home-page.forcing-dashboard");
+          window.location.replace("/dashboard");
         }
       })();
     } else {

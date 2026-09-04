@@ -70,8 +70,8 @@ function AuthPage() {
           }
         }
         if (!cancelled && user) {
-          authLog("auth-page.redirecting-to-dashboard");
-          completeAuthRedirect();
+          authLog("auth-page.forcing-dashboard");
+          window.location.replace("/dashboard");
         }
       })();
     } else {

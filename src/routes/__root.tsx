@@ -202,6 +202,7 @@ function RootComponent() {
       });
       
       router.invalidate();
+      
       if (event === "SIGNED_OUT") {
         queryClient.clear();
         clearAuthDestination();
@@ -210,41 +211,28 @@ function RootComponent() {
         }
         return;
       }
+      
       queryClient.invalidateQueries();
+      
       const isUnauthedPage =
         window.location.pathname === "/" ||
         window.location.pathname === "/auth" ||
         window.location.pathname.startsWith("/auth/");
       
-      // If we have a pending destination and we're signed in, redirect there
-      const hasPending = hasPendingAuthDestination();
-      
       authLog("root.checking-redirect", {
         event,
         isUnauthedPage,
-        hasPending,
         currentPath: window.location.pathname,
         redirecting,
       });
       
-      if (
-        event === "SIGNED_IN" &&
-        session &&
-        (isUnauthedPage || hasPending) &&
-        !redirecting
-      ) {
+      // If signed in and on an unauthed page, redirect to dashboard
+      if (event === "SIGNED_IN" && session && isUnauthedPage && !redirecting) {
         redirecting = true;
-        authLog("root.will-redirect", { hasPending, isUnauthedPage });
+        authLog("root.forcing-dashboard-redirect");
         window.setTimeout(() => {
-          void waitForAuthenticatedUser().then((user) => {
-            if (user) {
-              authLog("root.calling-complete-redirect");
-              completeAuthRedirect();
-            } else {
-              redirecting = false;
-            }
-          });
-        }, 0);
+          window.location.replace("/dashboard");
+        }, 100);
       }
     });
     return () => sub.subscription.unsubscribe();
