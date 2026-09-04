@@ -1,147 +1,165 @@
 # Google OAuth Setup Guide for HerSpace
 
-## Problem: "Unable to exchange external code" Error
+## Problem: OAuth Tokens Not Being Received
 
-If you're seeing this error after Google sign-in, it means the OAuth redirect URLs are not correctly configured.
+If you're seeing logs like `callback.no-token-fragment` and being redirected back to auth, the issue is that Google OAuth redirect URLs are not configured correctly.
 
-## Solution: Configure Google Cloud Console
+## CRITICAL: The Correct Redirect URLs
 
-### Step 1: Access Google Cloud Console
+You need **EXACTLY** these two URLs in your Google Cloud Console OAuth client:
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select your project (or create a new one)
-3. Enable the **Google+ API** or **Google People API**
-
-### Step 2: Create/Edit OAuth 2.0 Client
-
-1. Go to **APIs & Services** → **Credentials**
-2. Click **+ CREATE CREDENTIALS** → **OAuth client ID**
-   - Or edit your existing OAuth 2.0 Client ID
-3. Select **Application type**: Web application
-4. Give it a name (e.g., "HerSpace Web App")
-
-### Step 3: Configure Authorized Redirect URIs
-
-Add **EXACTLY** these URLs (no trailing slashes):
-
-#### Production URLs (Required):
+### Primary URL (MOST IMPORTANT):
 ```
 https://foteraufomwdujwappjt.supabase.co/auth/v1/callback
+```
+
+### Secondary URL (Your App):
+```
 https://her-space-connect.vercel.app/auth/callback
 ```
 
-#### Local Development URLs (Optional):
+## Step-by-Step Fix
+
+### 1. Open Google Cloud Console
+Go to: https://console.cloud.google.com/apis/credentials
+
+### 2. Select Your Project
+Make sure you're in the correct Google Cloud project
+
+### 3. Find Your OAuth 2.0 Client ID
+- Look for "OAuth 2.0 Client IDs" section
+- Click on your client ID (usually named "Web client" or similar)
+
+### 4. Configure Authorized Redirect URIs
+
+**CRITICAL: You must add BOTH URLs exactly as shown:**
+
+Click "ADD URI" and paste:
 ```
-http://localhost:5173/auth/callback
-http://localhost:3000/auth/callback
+https://foteraufomwdujwappjt.supabase.co/auth/v1/callback
 ```
 
-### Step 4: Copy Credentials
+Click "ADD URI" again and paste:
+```
+https://her-space-connect.vercel.app/auth/callback
+```
 
-1. After saving, you'll see your **Client ID** and **Client Secret**
-2. Copy both - you'll need them for Supabase
+**Common mistakes to avoid:**
+- ❌ `http://` instead of `https://`
+- ❌ Trailing slash: `https://example.com/callback/`
+- ❌ Missing the Supabase URL (most common!)
+- ❌ Wrong Supabase project URL
+- ❌ Typo in the domain name
 
-### Step 5: Configure Supabase
+### 5. Save Changes
+Click "SAVE" at the bottom of the page
 
-1. Go to [Supabase Dashboard](https://app.supabase.com/project/foteraufomwdujwappjt)
-2. Navigate to **Authentication** → **Providers**
-3. Find **Google** and click to expand
-4. Enable the provider
-5. Paste your **Client ID** from Google Cloud Console
-6. Paste your **Client Secret** from Google Cloud Console
-7. Verify the **Redirect URL** shown is:
+### 6. Verify Supabase Settings
+
+Go to your Supabase Dashboard:
+https://app.supabase.com/project/foteraufomwdujwappjt/auth/providers
+
+1. Find **Google** provider
+2. Make sure it's **Enabled** (toggle should be ON)
+3. Verify your **Client ID** matches Google Cloud Console
+4. Verify your **Client Secret** matches Google Cloud Console
+5. The callback URL shown should be:
    ```
    https://foteraufomwdujwappjt.supabase.co/auth/v1/callback
    ```
-8. Click **Save**
 
-## Important Notes
+### 7. Test the Configuration
 
-### URL Format Requirements
-- ❌ **Wrong**: `https://example.com/callback/` (trailing slash)
-- ✅ **Correct**: `https://example.com/callback`
+After saving:
+1. **Wait 5 minutes** for Google's changes to propagate
+2. **Clear your browser cache completely**
+   - Chrome: Ctrl+Shift+Delete → "All time" → Check "Cookies" and "Cached images"
+3. Go to your app in **incognito/private mode**
+4. Try signing in with Google
 
-### The Two URLs Explained
-1. **Supabase URL** (`https://foteraufomwdujwappjt.supabase.co/auth/v1/callback`)
-   - This is where Google sends the OAuth code
-   - Supabase exchanges it for tokens
-   - **MUST be in Google Cloud Console**
+## How to Verify It's Working
 
-2. **App URL** (`https://her-space-connect.vercel.app/auth/callback`)
-   - This is where your app handles the authenticated session
-   - Supabase redirects here after exchanging tokens
+Open browser console (F12) and watch for these logs:
 
-### Common Mistakes
+✅ **Success logs:**
+```
+[HerSpaceAuth] google.sign-in-started
+[HerSpaceAuth] callback.started
+[HerSpaceAuth] callback.oauth-consumed { hasUser: true }
+[HerSpaceAuth] callback.success-redirecting-to-dashboard
+```
 
-1. **Forgetting the Supabase callback URL**
-   - You need BOTH URLs in Google Cloud Console
-   - The Supabase URL is the most critical one
+❌ **Failure logs (what you're seeing now):**
+```
+[HerSpaceAuth] callback.no-token-fragment
+[HerSpaceAuth] session.wait-timeout
+```
 
-2. **Typos in URLs**
-   - Double-check spelling
-   - Check protocol (https vs http)
-   - Remove trailing slashes
+## Still Not Working?
 
-3. **Credentials not matching**
-   - Client ID and Secret in Supabase must match Google Cloud Console exactly
+### Double-Check These:
 
-4. **Changes not propagated**
-   - Google Cloud Console changes can take 5-10 minutes
-   - Clear browser cookies and try again
+1. **Exact URL Match**
+   - The Supabase callback URL in Google Console must be EXACTLY:
+     `https://foteraufomwdujwappjt.supabase.co/auth/v1/callback`
+   - Not `auth/callback` or `/callback` or any variation
 
-## Testing the Setup
+2. **Both URLs Added**
+   - You need BOTH the Supabase URL AND your app URL
+   - Google redirects to Supabase first, then Supabase redirects to your app
 
-1. **Clear browser cookies** for your domain
-2. Go to your app: `https://her-space-connect.vercel.app/auth`
-3. Click **Continue with Google**
-4. Select your Google account
-5. You should be redirected to `/dashboard`
+3. **Wait for Propagation**
+   - Google Cloud changes can take 5-10 minutes
+   - Try again after waiting
 
-## Troubleshooting
-
-### Still getting "Unable to exchange external code"?
-
-1. **Verify Google Cloud Console**
-   ```bash
-   # Check these URLs are EXACTLY in your OAuth client:
-   https://foteraufomwdujwappjt.supabase.co/auth/v1/callback
-   https://her-space-connect.vercel.app/auth/callback
+4. **Clear Everything**
+   ```
+   - Clear browser cookies for her-space-connect.vercel.app
+   - Clear browser cookies for accounts.google.com
+   - Clear browser cache
+   - Try in incognito mode
    ```
 
-2. **Verify Supabase Dashboard**
-   - Google provider is enabled
-   - Client ID matches Google Cloud Console
-   - Client Secret matches Google Cloud Console
-
-3. **Check redirect URL in error message**
-   - Look at the URL bar when error occurs
-   - Does it show your Vercel domain or Supabase domain?
-
-4. **Try incognito/private browsing**
-   - Rules out cookie/cache issues
-
-### Getting different errors?
-
-Check the browser console (F12) for detailed error messages. The app logs all auth events with `[HerSpaceAuth]` prefix.
+5. **Check OAuth Consent Screen**
+   - Go to "OAuth consent screen" in Google Cloud Console
+   - Make sure your app is not in "Testing" mode with limited users
+   - Or add your email to the test users list
 
 ## For Local Development
 
-If developing locally, add these to Google Cloud Console:
-
+If testing locally, also add:
 ```
 http://localhost:5173/auth/callback
 http://localhost:3000/auth/callback
 ```
 
-Make sure your `.env` file has:
+And your `.env` should have:
 ```
 VITE_SUPABASE_URL=https://foteraufomwdujwappjt.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key_here
 ```
 
-## Need Help?
+## The Flow Explained
 
-1. Check browser console for `[HerSpaceAuth]` logs
-2. Check Supabase Dashboard → Authentication → Logs
-3. Verify all URLs match exactly (no typos)
-4. Wait 10 minutes after making changes in Google Cloud Console
+This is what should happen:
+
+1. User clicks "Continue with Google"
+2. App redirects to Google sign-in
+3. User signs in with Google
+4. **Google redirects to**: `https://foteraufomwdujwappjt.supabase.co/auth/v1/callback?code=xxx`
+5. Supabase exchanges the code for tokens
+6. **Supabase redirects to**: `https://her-space-connect.vercel.app/auth/callback#access_token=xxx`
+7. Your app saves the session
+8. Your app redirects to `/dashboard`
+
+If step 4 fails (wrong URL in Google Console), the entire flow breaks.
+
+## Debug: What URL is Google Using?
+
+After signing in with Google, if you get an error, look at the URL in your browser. If you see something like:
+
+```
+https://accounts.google.com/...redirect_uri_mismatch...
+```
+
+That confirms the redirect URL mismatch. The error page will show which URL Google tried to use and which URLs are registered.
