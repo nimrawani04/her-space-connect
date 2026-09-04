@@ -195,8 +195,7 @@ function RootComponent() {
       if (
         event === "SIGNED_IN" &&
         session &&
-        (hasPendingAuthDestination() || isUnauthedPage) &&
-        window.location.pathname !== "/dashboard" &&
+        isUnauthedPage &&
         !redirecting
       ) {
         redirecting = true;

@@ -31,40 +31,51 @@ function AuthCallback() {
 
     const runAuthCheck = async () => {
       authLog("callback.started");
-      if (hasSupabaseBrowserConfig()) {
-        let user = null;
-        try {
-          user = await consumeOAuthFragmentSession();
-        } catch (error) {
-          authLog("callback.fragment-error", {
-            reason: error instanceof Error ? error.message : "unknown",
-          });
-        }
-
-        if (!user) {
-          try {
-            user = await waitForAuthenticatedUser(8_000);
-          } catch {
-            /* ignore wait errors */
-          }
-        }
-
-        if (cancelled) return;
-        if (user) {
-          authLog("callback.session-confirmed");
-          completeAuthRedirect();
-          return;
-        }
-        authLog("callback.session-missing");
-      }
-
+      
+      // First check for demo user
       const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
       if (demoUser) {
+        authLog("callback.demo-user-found");
         completeAuthRedirect();
         return;
       }
 
-      authLog("callback.redirect-to-auth");
+      if (!hasSupabaseBrowserConfig()) {
+        authLog("callback.config-missing");
+        navigate({ to: "/auth", replace: true });
+        return;
+      }
+
+      let user = null;
+      try {
+        user = await consumeOAuthFragmentSession();
+        authLog("callback.fragment-consumed", { hasUser: Boolean(user) });
+      } catch (error) {
+        authLog("callback.fragment-error", {
+          reason: error instanceof Error ? error.message : "unknown",
+        });
+      }
+
+      if (!user) {
+        try {
+          user = await waitForAuthenticatedUser(10_000);
+          authLog("callback.wait-completed", { hasUser: Boolean(user) });
+        } catch (error) {
+          authLog("callback.wait-error", {
+            reason: error instanceof Error ? error.message : "unknown",
+          });
+        }
+      }
+
+      if (cancelled) return;
+      
+      if (user) {
+        authLog("callback.session-confirmed");
+        completeAuthRedirect();
+        return;
+      }
+      
+      authLog("callback.session-missing");
       navigate({ to: "/auth", replace: true });
     };
 
