@@ -20,7 +20,10 @@ import { AppStartupLoader } from "@/components/AppStartupLoader";
 import {
   clearAuthDestination,
   completeAuthRedirect,
+  consumeOAuthFragmentSession,
+  hasOAuthResponseInUrl,
   hasPendingAuthDestination,
+  rememberAuthDestination,
   waitForAuthenticatedUser,
 } from "@/lib/auth-redirect";
 
@@ -90,7 +93,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "HerSpace — A trusted space for women's health, safety & sisterhood" },
-      { name: "description", content: "HerSpace is a women-only digital ecosystem for AI health insights, anonymous community, mentorship, careers, safety network, and mental wellness." },
+      {
+        name: "description",
+        content:
+          "HerSpace is a women-only digital ecosystem for AI health insights, anonymous community, mentorship, careers, safety network, and mental wellness.",
+      },
       { name: "author", content: "HerSpace" },
       { name: "theme-color", content: "#e9b4c4" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -98,7 +105,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "HerSpace" },
       { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:title", content: "HerSpace — A trusted space for women" },
-      { property: "og:description", content: "Health, safety, mentorship and sisterhood — built for privacy and trust." },
+      {
+        property: "og:description",
+        content: "Health, safety, mentorship and sisterhood — built for privacy and trust.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@HerSpace" },
@@ -143,6 +153,25 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!hasSupabaseBrowserConfig() || !hasOAuthResponseInUrl()) return;
+    if (window.location.pathname === "/auth/callback") return;
+
+    let cancelled = false;
+    rememberAuthDestination("/dashboard");
+    void consumeOAuthFragmentSession()
+      .then((user) => {
+        if (!cancelled && user) completeAuthRedirect();
+      })
+      .catch(() => {
+        /* Route-level auth handling can still recover if this fallback misses. */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) return;
