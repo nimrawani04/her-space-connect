@@ -3,9 +3,13 @@ ALTER TABLE public.journey_messages
   ADD COLUMN IF NOT EXISTS scan_detail TEXT,
   ADD COLUMN IF NOT EXISTS scanned_at TIMESTAMPTZ;
 
-ALTER TABLE public.journey_messages
-  ADD CONSTRAINT journey_messages_scan_status_check
-  CHECK (scan_status IN ('pending','clean','infected','error'));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'journey_messages_scan_status_check') THEN
+    ALTER TABLE public.journey_messages
+      ADD CONSTRAINT journey_messages_scan_status_check
+      CHECK (scan_status IN ('pending','clean','infected','error'));
+  END IF;
+END $$;
 
 UPDATE public.journey_messages SET scan_status = 'clean' WHERE attachment_path IS NULL;
 
