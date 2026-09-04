@@ -109,6 +109,11 @@ function AuthCallback() {
       
       if (user) {
         authLog("callback.session-confirmed");
+        const savedDestination = localStorage.getItem("herspace:post-auth-path");
+        authLog("callback.about-to-redirect", { 
+          savedDestination, 
+          willRedirectTo: savedDestination || "/dashboard" 
+        });
         completeAuthRedirect();
         return;
       }

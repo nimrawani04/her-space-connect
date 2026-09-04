@@ -57,6 +57,14 @@ export function completeAuthRedirect() {
   const destination = getAuthDestination();
   clearAuthDestination();
   authLog("redirect.complete", { destination });
+  
+  // Extra safety: ensure we're going to dashboard
+  if (!destination || destination === "/auth" || destination === "/") {
+    console.warn("[HerSpaceAuth] Invalid destination, forcing /dashboard", { destination });
+    window.location.replace("/dashboard");
+    return;
+  }
+  
   window.location.replace(destination);
 }
 

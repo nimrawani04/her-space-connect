@@ -139,8 +139,14 @@ function AuthPage() {
 
   async function handleGoogle() {
     setLoading(true);
-    rememberAuthDestination("/dashboard");
-    authLog("google.sign-in-started", { callback: "/auth/callback" });
+    const targetDestination = "/dashboard";
+    rememberAuthDestination(targetDestination);
+    authLog("google.sign-in-started", { 
+      callback: "/auth/callback",
+      savedDestination: targetDestination,
+      currentPath: window.location.pathname,
+    });
+    
     try {
       if (!hasSupabaseBrowserConfig()) {
         throw new Error("Google sign-in needs Supabase to be configured.");
