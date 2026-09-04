@@ -159,10 +159,19 @@ function RootComponent() {
     if (window.location.pathname === "/auth/callback") return;
 
     let cancelled = false;
-    rememberAuthDestination("/dashboard");
+    const targetDest = "/dashboard";
+    rememberAuthDestination(targetDest);
+    authLog("root.oauth-fragment-detected", { 
+      path: window.location.pathname, 
+      savedDestination: targetDest 
+    });
+    
     void consumeOAuthFragmentSession()
       .then((user) => {
-        if (!cancelled && user) completeAuthRedirect();
+        if (!cancelled && user) {
+          authLog("root.oauth-success-redirecting", { destination: targetDest });
+          completeAuthRedirect();
+        }
       })
       .catch(() => {
         /* Route-level auth handling can still recover if this fallback misses. */
@@ -176,11 +185,21 @@ function RootComponent() {
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) return;
     // Don't interfere with the callback page - it handles its own redirect
-    if (window.location.pathname === "/auth/callback") return;
+    if (window.location.pathname === "/auth/callback") {
+      authLog("root.auth-listener-skipped", { reason: "on-callback-page" });
+      return;
+    }
 
     let redirecting = false;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      
+      authLog("root.auth-state-change", { 
+        event, 
+        path: window.location.pathname, 
+        hasSession: Boolean(session) 
+      });
+      
       router.invalidate();
       if (event === "SIGNED_OUT") {
         queryClient.clear();
@@ -199,6 +218,14 @@ function RootComponent() {
       // If we have a pending destination and we're signed in, redirect there
       const hasPending = hasPendingAuthDestination();
       
+      authLog("root.checking-redirect", {
+        event,
+        isUnauthedPage,
+        hasPending,
+        currentPath: window.location.pathname,
+        redirecting,
+      });
+      
       if (
         event === "SIGNED_IN" &&
         session &&
@@ -206,10 +233,15 @@ function RootComponent() {
         !redirecting
       ) {
         redirecting = true;
+        authLog("root.will-redirect", { hasPending, isUnauthedPage });
         window.setTimeout(() => {
           void waitForAuthenticatedUser().then((user) => {
-            if (user) completeAuthRedirect();
-            else redirecting = false;
+            if (user) {
+              authLog("root.calling-complete-redirect");
+              completeAuthRedirect();
+            } else {
+              redirecting = false;
+            }
           });
         }, 0);
       }
