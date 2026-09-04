@@ -118,7 +118,11 @@ function AuthPage() {
             password: parsed.data.password,
           });
           if (error) throw error;
+          toast.success("Signed in successfully.");
         }
+        // Force redirect to dashboard
+        authLog("auth-page.email-signin-success");
+        window.location.href = "/dashboard";
       } else {
         localStorage.setItem(
           "herspace_demo_user",
@@ -128,11 +132,10 @@ function AuthPage() {
           }),
         );
         toast.success(mode === "signup" ? "Welcome to HerSpace!" : "Signed in successfully.");
+        navigate({ to: "/dashboard" });
       }
-      navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
       setLoading(false);
     }
   }
