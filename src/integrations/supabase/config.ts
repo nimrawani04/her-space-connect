@@ -4,8 +4,13 @@
  * lazy client and sending the whole route to the error boundary.
  */
 export function hasSupabaseBrowserConfig(): boolean {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
   return Boolean(
-    import.meta.env.VITE_SUPABASE_URL &&
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    url &&
+    key &&
+    key !== "replace_with_your_supabase_publishable_or_anon_key" &&
+    key !== "your_supabase_publishable_or_anon_key",
   );
 }
