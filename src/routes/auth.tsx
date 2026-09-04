@@ -53,14 +53,24 @@ function AuthPage() {
     let cancelled = false;
 
     if (hasSupabaseBrowserConfig()) {
-      consumeOAuthFragmentSession()
-        .then((callbackUser) => callbackUser ?? waitForAuthenticatedUser())
-        .then((user) => {
-          if (!cancelled && user) completeAuthRedirect();
-        })
-        .catch(() => {
-          /* stay on the sign-in form if there is no usable OAuth response */
-        });
+      (async () => {
+        let user = null;
+        try {
+          user = await consumeOAuthFragmentSession();
+        } catch {
+          /* ignore fragment errors, continue to wait for session */
+        }
+        if (!user) {
+          try {
+            user = await waitForAuthenticatedUser(3_000);
+          } catch {
+            /* no active session */
+          }
+        }
+        if (!cancelled && user) {
+          completeAuthRedirect();
+        }
+      })();
     } else {
       const demoUser = localStorage.getItem("herspace_demo_user");
       if (demoUser) {
@@ -135,7 +145,7 @@ function AuthPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: { prompt: "select_account" },
         },
       });

@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Menu, X, ShieldCheck } from "lucide-react";
+import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
+import {
+  completeAuthRedirect,
+  consumeOAuthFragmentSession,
+  hasOAuthResponseInUrl,
+  waitForAuthenticatedUser,
+} from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -323,6 +330,36 @@ function BottomRow({ onJoin, onExplore }: { onJoin: () => void; onExplore: () =>
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    if (hasSupabaseBrowserConfig()) {
+      (async () => {
+        let user = null;
+        if (hasOAuthResponseInUrl()) {
+          try {
+            user = await consumeOAuthFragmentSession();
+          } catch {}
+        }
+        if (!user) {
+          try {
+            user = await waitForAuthenticatedUser(1_000);
+          } catch {}
+        }
+        if (!cancelled && user) {
+          completeAuthRedirect();
+        }
+      })();
+    } else {
+      const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
+      if (demoUser) {
+        navigate({ to: "/dashboard" });
+      }
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   return (
     <section className="relative w-full h-screen overflow-hidden bg-black">

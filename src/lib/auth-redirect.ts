@@ -95,16 +95,28 @@ export async function consumeOAuthFragmentSession() {
 
   window.history.replaceState(window.history.state, document.title, `${url.pathname}${url.search}`);
 
-  const { data, error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-  if (error) {
-    authLog("callback.set-session-failed", { reason: error.message });
-    throw error;
+  try {
+    const { data, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) {
+      authLog("callback.set-session-failed", { reason: error.message });
+      const currentSession = await supabase.auth.getSession();
+      if (currentSession.data.session?.user) {
+        return currentSession.data.session.user;
+      }
+      throw error;
+    }
+    authLog("callback.set-session-complete", { hasUser: Boolean(data.user) });
+    return data.user;
+  } catch (err) {
+    const currentSession = await supabase.auth.getSession();
+    if (currentSession.data.session?.user) {
+      return currentSession.data.session.user;
+    }
+    throw err;
   }
-  authLog("callback.set-session-complete", { hasUser: Boolean(data.user) });
-  return data.user;
 }
 
 /**
@@ -118,18 +130,57 @@ export async function consumeOAuthCodeSession() {
   const code = url.searchParams.get("code");
   if (!code) return null;
 
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) throw error;
+  try {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      authLog("callback.exchange-code-error", { reason: error.message });
+      const currentSession = await supabase.auth.getSession();
+      if (currentSession.data.session?.user) {
+        authLog("callback.session-recovered-after-code-error");
+        url.searchParams.delete("code");
+        url.searchParams.delete("state");
+        window.history.replaceState(
+          window.history.state,
+          document.title,
+          `${url.pathname}${url.search}${url.hash}`,
+        );
+        return currentSession.data.session.user;
+      }
+      const currentUser = await supabase.auth.getUser();
+      if (currentUser.data?.user) {
+        authLog("callback.user-recovered-after-code-error");
+        url.searchParams.delete("code");
+        url.searchParams.delete("state");
+        window.history.replaceState(
+          window.history.state,
+          document.title,
+          `${url.pathname}${url.search}${url.hash}`,
+        );
+        return currentUser.data.user;
+      }
+      throw error;
+    }
 
-  url.searchParams.delete("code");
-  url.searchParams.delete("state");
-  window.history.replaceState(
-    window.history.state,
-    document.title,
-    `${url.pathname}${url.search}${url.hash}`,
-  );
+    url.searchParams.delete("code");
+    url.searchParams.delete("state");
+    window.history.replaceState(
+      window.history.state,
+      document.title,
+      `${url.pathname}${url.search}${url.hash}`,
+    );
 
-  return data.user;
+    return data.user;
+  } catch (err) {
+    const currentSession = await supabase.auth.getSession();
+    if (currentSession.data.session?.user) {
+      return currentSession.data.session.user;
+    }
+    const currentUser = await supabase.auth.getUser();
+    if (currentUser.data?.user) {
+      return currentUser.data.user;
+    }
+    throw err;
+  }
 }
 
 export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
