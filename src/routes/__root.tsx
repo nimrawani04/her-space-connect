@@ -188,10 +188,14 @@ function RootComponent() {
         return;
       }
       queryClient.invalidateQueries();
+      const isUnauthedPage =
+        window.location.pathname === "/" ||
+        window.location.pathname === "/auth" ||
+        window.location.pathname.startsWith("/auth/");
       if (
         event === "SIGNED_IN" &&
         session &&
-        hasPendingAuthDestination() &&
+        (hasPendingAuthDestination() || isUnauthedPage) &&
         window.location.pathname !== "/dashboard" &&
         !redirecting
       ) {

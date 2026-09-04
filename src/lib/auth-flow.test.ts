@@ -37,6 +37,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 const {
   completeAuthRedirect,
   consumeOAuthFragmentSession,
+  consumeOAuthCodeSession,
   rememberAuthDestination,
   resolveGuardUser,
   hasPendingAuthDestination,
@@ -115,5 +116,13 @@ describe("Google sign-in end-to-end handoff", () => {
     window.history.replaceState({}, "", "/dashboard");
     const guardUser = await resolveGuardUser({ graceMs: 300 });
     expect(guardUser).toBeNull();
+  });
+
+  it("recovers user session if code is already used but session is active", async () => {
+    authState.session = { user: { id: "user-1" } };
+    window.history.replaceState({}, "", "/auth/callback?code=already-used-code");
+
+    const user = await consumeOAuthCodeSession();
+    expect(user).toEqual({ id: "user-1" });
   });
 });

@@ -32,22 +32,30 @@ function AuthCallback() {
     const runAuthCheck = async () => {
       authLog("callback.started");
       if (hasSupabaseBrowserConfig()) {
+        let user = null;
         try {
-          const fragmentUser = await consumeOAuthFragmentSession();
-          const user = fragmentUser ?? (await waitForAuthenticatedUser());
-          if (cancelled) return;
-          if (user) {
-            authLog("callback.session-confirmed");
-            completeAuthRedirect();
-            return;
-          }
-          authLog("callback.session-missing");
+          user = await consumeOAuthFragmentSession();
         } catch (error) {
-          if (cancelled) return;
-          authLog("callback.failed", {
+          authLog("callback.fragment-error", {
             reason: error instanceof Error ? error.message : "unknown",
           });
         }
+
+        if (!user) {
+          try {
+            user = await waitForAuthenticatedUser(8_000);
+          } catch {
+            /* ignore wait errors */
+          }
+        }
+
+        if (cancelled) return;
+        if (user) {
+          authLog("callback.session-confirmed");
+          completeAuthRedirect();
+          return;
+        }
+        authLog("callback.session-missing");
       }
 
       const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
