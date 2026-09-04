@@ -32,7 +32,7 @@ function AuthCallback() {
     let cancelled = false;
 
     const runAuthCheck = async () => {
-      authLog("callback.started");
+      authLog("callback.started", { url: window.location.href });
       
       // Check for OAuth errors in URL (both query params and hash)
       const params = new URLSearchParams(window.location.search);
@@ -48,58 +48,56 @@ function AuthCallback() {
         let message = "Google sign-in failed. ";
         
         if (errorDescription?.includes("exchange external code")) {
-          message += "OAuth configuration issue detected. Please check:\n\n";
-          message += "1. Google Cloud Console has the correct redirect URL:\n";
-          message += "   https://foteraufomwdujwappjt.supabase.co/auth/v1/callback\n\n";
-          message += "2. Google OAuth is enabled in Supabase Dashboard\n\n";
-          message += "3. Client ID and Secret are correctly configured";
+          message += "OAuth configuration issue. Please verify Google Cloud Console redirect URLs.";
         } else {
-          message += errorDescription || "Please try again or contact support.";
+          message += errorDescription || "Please try again.";
         }
         
         setErrorMsg(message);
         toast.error("Sign-in failed", {
-          description: errorDescription?.includes("exchange external code") 
-            ? "OAuth configuration error. Check console for details."
-            : errorDescription || "Please try again.",
+          description: errorDescription || "Please try again.",
         });
         
         setTimeout(() => {
           if (!cancelled) navigate({ to: "/auth", replace: true });
-        }, 5000);
+        }, 3000);
         return;
       }
       
-      // First check for demo user
+      // Check for demo user first
       const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
       if (demoUser) {
-        authLog("callback.demo-user-found");
-        completeAuthRedirect();
+        authLog("callback.demo-user-redirect");
+        window.location.replace("/dashboard");
         return;
       }
 
       if (!hasSupabaseBrowserConfig()) {
-        authLog("callback.config-missing");
+        authLog("callback.no-supabase-config");
         navigate({ to: "/auth", replace: true });
         return;
       }
 
+      // Try to get the session
       let user = null;
       try {
+        authLog("callback.consuming-oauth-session");
         user = await consumeOAuthFragmentSession();
-        authLog("callback.fragment-consumed", { hasUser: Boolean(user) });
+        authLog("callback.oauth-consumed", { hasUser: Boolean(user) });
       } catch (error) {
-        authLog("callback.fragment-error", {
+        authLog("callback.oauth-error-caught", {
           reason: error instanceof Error ? error.message : "unknown",
         });
       }
 
+      // Wait for session if not immediately available
       if (!user) {
         try {
+          authLog("callback.waiting-for-session");
           user = await waitForAuthenticatedUser(10_000);
-          authLog("callback.wait-completed", { hasUser: Boolean(user) });
+          authLog("callback.session-wait-complete", { hasUser: Boolean(user) });
         } catch (error) {
-          authLog("callback.wait-error", {
+          authLog("callback.session-wait-failed", {
             reason: error instanceof Error ? error.message : "unknown",
           });
         }
@@ -107,22 +105,23 @@ function AuthCallback() {
 
       if (cancelled) return;
       
+      // If we have a user, redirect to dashboard
       if (user) {
-        authLog("callback.session-confirmed");
-        const savedDestination = localStorage.getItem("herspace:post-auth-path");
-        authLog("callback.about-to-redirect", { 
-          savedDestination, 
-          willRedirectTo: savedDestination || "/dashboard" 
-        });
-        completeAuthRedirect();
+        authLog("callback.success-redirecting-to-dashboard");
+        // Force redirect to dashboard immediately
+        window.location.replace("/dashboard");
         return;
       }
       
-      authLog("callback.session-missing");
+      // No user found after all attempts
+      authLog("callback.no-session-found");
       toast.error("Sign-in incomplete", {
         description: "Could not complete sign-in. Please try again.",
       });
-      navigate({ to: "/auth", replace: true });
+      
+      setTimeout(() => {
+        if (!cancelled) navigate({ to: "/auth", replace: true });
+      }, 1000);
     };
 
     void runAuthCheck();
@@ -137,7 +136,7 @@ function AuthCallback() {
       <main className="min-h-dvh flex items-center justify-center p-6">
         <div className="max-w-lg space-y-4 text-center">
           <h1 className="font-serif italic text-3xl text-destructive">Sign-in Error</h1>
-          <div className="text-sm text-muted-foreground whitespace-pre-line bg-muted p-4 rounded-lg text-left">
+          <div className="text-sm text-muted-foreground whitespace-pre-line bg-muted p-4 rounded-lg text-left font-mono text-xs">
             {errorMsg}
           </div>
           <p className="text-xs text-muted-foreground">Redirecting back to sign in...</p>
