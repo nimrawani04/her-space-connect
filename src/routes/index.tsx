@@ -278,10 +278,10 @@ function CentralNodes() {
 
 function BottomRow({ onJoin, onExplore }: { onJoin: () => void; onExplore: () => void }) {
   return (
-    <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0">
+    <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0 z-10">
       <button
         onClick={onJoin}
-        className="bg-[#AFDDFF] px-[16px] md:px-[20px] py-[10px] md:py-[12px] flex items-center gap-[10px] hover:bg-[#c8e8ff] transition-colors anim-fade-up"
+        className="bg-[#AFDDFF] px-[16px] md:px-[20px] py-[10px] md:py-[12px] flex items-center gap-[10px] hover:bg-[#c8e8ff] transition-colors anim-fade-up relative z-10 cursor-pointer"
         style={{ animationDelay: "900ms" }}
       >
         <span className="text-black text-[16px] leading-none">&#10022;</span>
@@ -291,13 +291,13 @@ function BottomRow({ onJoin, onExplore }: { onJoin: () => void; onExplore: () =>
       </button>
 
       <div
-        className="relative max-w-[280px] hidden sm:block anim-slide-right"
+        className="relative max-w-[280px] hidden sm:block anim-slide-right z-10"
         style={{ animationDelay: "1100ms" }}
       >
         <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] px-[6px] py-[2px] inline-block mb-[10px]">
           WOMEN-ONLY — BUILT FOR TRUST
         </span>
-        <div className="relative p-[20px]">
+        <div className="relative p-[20px] z-10">
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
             viewBox="0 0 280 168"
@@ -317,7 +317,7 @@ function BottomRow({ onJoin, onExplore }: { onJoin: () => void; onExplore: () =>
           </p>
           <span
             onClick={onExplore}
-            className="relative font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px] cursor-pointer hover:underline"
+            className="relative font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px] cursor-pointer hover:underline z-10"
           >
             EXPLORE HERSPACE
           </span>
