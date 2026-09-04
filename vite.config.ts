@@ -18,7 +18,9 @@ const CACHEABLE_TABLES = [
 ];
 
 export default defineConfig({
-  nitro: false,
+  nitro: {
+    preset: "vercel",
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
