@@ -18,6 +18,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { AppStartupLoader } from "@/components/AppStartupLoader";
 import {
+  authLog,
   clearAuthDestination,
   completeAuthRedirect,
   consumeOAuthFragmentSession,

@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Menu, X, ShieldCheck } from "lucide-react";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
+  authLog,
   completeAuthRedirect,
   consumeOAuthFragmentSession,
   hasOAuthResponseInUrl,
