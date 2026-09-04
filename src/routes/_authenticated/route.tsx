@@ -30,24 +30,30 @@ import { authLog, performSignOut, resolveGuardUser } from "@/lib/auth-redirect";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    authLog("guard.started", { path: typeof window !== "undefined" ? window.location.pathname : "ssr" });
+    
     if (hasSupabaseBrowserConfig()) {
       try {
-        const user = await resolveGuardUser();
+        authLog("guard.checking-session");
+        const user = await resolveGuardUser({ handoffTimeoutMs: 15_000, graceMs: 3_000 });
         if (user) {
-          authLog("guard.session-confirmed");
+          authLog("guard.session-confirmed", { userId: user.id });
           return { user };
         }
-      } catch {
-        authLog("guard.session-check-failed");
+        authLog("guard.no-user-from-resolve");
+      } catch (error) {
+        authLog("guard.session-check-failed", { 
+          reason: error instanceof Error ? error.message : "unknown" 
+        });
       }
     }
-
 
     if (typeof window !== "undefined") {
       const demoUserStr = localStorage.getItem("herspace_demo_user");
       if (demoUserStr) {
         try {
           const demoUser = JSON.parse(demoUserStr);
+          authLog("guard.demo-user-allowed");
           return {
             user: {
               id: "demo-user-id",
@@ -59,7 +65,10 @@ export const Route = createFileRoute("/_authenticated")({
       }
     }
 
-    authLog("guard.redirect-to-auth");
+    authLog("guard.redirect-to-auth", { 
+      reason: "no-session-found",
+      path: typeof window !== "undefined" ? window.location.pathname : "ssr"
+    });
     throw redirect({ to: "/auth" });
   },
   component: AuthedShell,

@@ -105,9 +105,12 @@ function AuthCallback() {
 
       if (cancelled) return;
       
-      // If we have a user, redirect to dashboard
+      // If we have a user, wait a moment for session to fully establish, then redirect
       if (user) {
         authLog("callback.success-redirecting-to-dashboard");
+        // Small delay to ensure session is fully written to storage
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (cancelled) return;
         // Force redirect to dashboard immediately
         window.location.replace("/dashboard");
         return;
