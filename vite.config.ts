@@ -43,7 +43,7 @@ export default defineConfig({
             "**/index.es-*.js",
           ],
           navigateFallback: "/",
-          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/auth\/callback/],
           additionalManifestEntries: [
             { url: "/", revision: null },
             { url: "/dashboard", revision: Date.now().toString() },
