@@ -32,7 +32,8 @@ function AuthCallback() {
     let cancelled = false;
 
     const runAuthCheck = async () => {
-      authLog("callback.started", { url: window.location.href });
+      const currentUrl = window.location.href;
+      authLog("callback.started", { url: currentUrl });
       
       // Check for OAuth errors in URL (both query params and hash)
       const params = new URLSearchParams(window.location.search);
@@ -68,7 +69,7 @@ function AuthCallback() {
       const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
       if (demoUser) {
         authLog("callback.demo-user-redirect");
-        window.location.replace("/dashboard");
+        window.location.href = "/dashboard";
         return;
       }
 
@@ -94,7 +95,7 @@ function AuthCallback() {
       if (!user) {
         try {
           authLog("callback.waiting-for-session");
-          user = await waitForAuthenticatedUser(10_000);
+          user = await waitForAuthenticatedUser(12_000);
           authLog("callback.session-wait-complete", { hasUser: Boolean(user) });
         } catch (error) {
           authLog("callback.session-wait-failed", {
@@ -107,17 +108,19 @@ function AuthCallback() {
       
       // If we have a user, wait a moment for session to fully establish, then redirect
       if (user) {
-        authLog("callback.success-redirecting-to-dashboard");
+        authLog("callback.user-found-redirecting", { userId: user.id });
         // Small delay to ensure session is fully written to storage
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
         if (cancelled) return;
-        // Force redirect to dashboard immediately
-        window.location.replace("/dashboard");
+        
+        authLog("callback.redirecting-now");
+        // Use href instead of replace for more reliable redirect
+        window.location.href = "/dashboard";
         return;
       }
       
       // No user found after all attempts
-      authLog("callback.no-session-found");
+      authLog("callback.no-session-found-redirecting-to-auth");
       toast.error("Sign-in incomplete", {
         description: "Could not complete sign-in. Please try again.",
       });
@@ -153,6 +156,7 @@ function AuthCallback() {
       <div className="space-y-3">
         <h1 className="font-serif italic text-3xl">One moment…</h1>
         <p className="text-sm text-muted-foreground">Finishing your secure sign-in.</p>
+        <p className="text-xs text-muted-foreground mt-4">Redirecting to dashboard...</p>
       </div>
     </main>
   );
