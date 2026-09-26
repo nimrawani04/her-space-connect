@@ -201,9 +201,26 @@ function RootComponent() {
       if (event === "SIGNED_OUT") {
         queryClient.clear();
         clearAuthDestination();
-        if (!window.location.pathname.startsWith("/auth")) {
-          window.location.replace("/auth");
-        }
+        // Verify before bouncing: a spurious SIGNED_OUT (stale tab, failed
+        // background refresh) must not log out a session that still restores.
+        void supabase.auth
+          .getSession()
+          .then(({ data }) => {
+            const demoUser =
+              typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
+            if (
+              !data.session &&
+              !demoUser &&
+              !window.location.pathname.startsWith("/auth")
+            ) {
+              window.location.replace("/auth");
+            }
+          })
+          .catch(() => {
+            if (!window.location.pathname.startsWith("/auth")) {
+              window.location.replace("/auth");
+            }
+          });
         return;
       }
       
