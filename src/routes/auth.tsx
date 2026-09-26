@@ -438,6 +438,15 @@ function AuthPage() {
                 {mode === "signin" ? "Join now" : "Sign in"}
               </button>
             </p>
+            <p className="font-manrope text-[11px] text-center text-white/40">
+              <Link to="/privacy" className="hover:text-[#AFDDFF] hover:underline">
+                Privacy
+              </Link>
+              <span className="mx-2">·</span>
+              <Link to="/terms" className="hover:text-[#AFDDFF] hover:underline">
+                Terms
+              </Link>
+            </p>
           </div>
         </div>
       </div>
