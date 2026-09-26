@@ -185,15 +185,10 @@ function RootComponent() {
 
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) return;
-    // Don't interfere with the callback page - it handles its own redirect
-    if (window.location.pathname === "/auth/callback") {
-      authLog("root.auth-listener-skipped", { reason: "on-callback-page" });
-      return;
-    }
 
     let redirecting = false;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED" && event !== "INITIAL_SESSION") return;
       
       authLog("root.auth-state-change", { 
         event, 
@@ -217,7 +212,8 @@ function RootComponent() {
       const isUnauthedPage =
         window.location.pathname === "/" ||
         window.location.pathname === "/auth" ||
-        window.location.pathname.startsWith("/auth/");
+        window.location.pathname === "/auth/" ||
+        window.location.pathname === "/auth/callback";
       
       authLog("root.checking-redirect", {
         event,
@@ -227,10 +223,11 @@ function RootComponent() {
       });
       
       // If signed in and on an unauthed page, redirect to dashboard
-      if (event === "SIGNED_IN" && session && isUnauthedPage && !redirecting) {
+      if ((event === "SIGNED_IN" || (event === "INITIAL_SESSION" && window.location.pathname === "/auth")) && session?.user && isUnauthedPage && !redirecting) {
         redirecting = true;
         authLog("root.forcing-dashboard-redirect");
         window.setTimeout(() => {
+          clearAuthDestination();
           window.location.replace("/dashboard");
         }, 100);
       }

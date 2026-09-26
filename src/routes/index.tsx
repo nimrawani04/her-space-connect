@@ -349,12 +349,13 @@ function App() {
         }
         if (!user) {
           try {
-            user = await waitForAuthenticatedUser(1_000);
+            user = await waitForAuthenticatedUser(3_000);
             authLog("home-page.wait-completed", { hasUser: Boolean(user) });
           } catch {}
         }
         if (!cancelled && user) {
           authLog("home-page.forcing-dashboard");
+          clearAuthDestination();
           window.location.replace("/dashboard");
         }
       })();
