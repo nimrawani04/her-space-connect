@@ -1,0 +1,42 @@
+# HerSpace
+
+> A private, women-only digital ecosystem — AI health intelligence, a verified
+> safety network, sisterhood, mentorship, careers, and mental wellness in one
+> trusted space.
+
+HerSpace: https://her-space-connect.vercel.app/
+
+## Core
+
+- [Home](https://her-space-connect.vercel.app/): what HerSpace is and who it is for.
+- [Sign in / Join](https://her-space-connect.vercel.app/auth): create an account or sign in, including Google sign-in and guest demo access.
+- [Privacy Policy](https://her-space-connect.vercel.app/privacy): what data is collected, Google sign-in scopes (openid, email, profile), and deletion rights.
+- [Terms of Service](https://her-space-connect.vercel.app/terms): women-only verification, acceptable use, and the no-medical-advice disclaimer.
+
+## Inside (members only)
+
+- Health Hub: cycle tracking, symptom assistant, AI insights, research summaries.
+- Pregnancy: planning, week-by-week journey, health logs, AI companion.
+- Safe Space: anonymous community posts across health, relationships, career, family.
+- Mentorship, Careers, Marketplace, Safety Network, Travel Sisterhood, Mental Wellness, Library.
+
+## Frequently asked questions
+
+### Is HerSpace really women-only?
+Yes. Accounts are verified to keep the space women-only; misrepresentation may lead to removal.
+
+### Is HerSpace free?
+HerSpace offers free access including an instant guest/demo mode. Accounts can be created with email or Google sign-in.
+
+### What data does HerSpace collect?
+Account data (name, email, profile photo), health data you choose to log, and technical data to operate the service. Health journal content is never used for advertising and personal data is never sold.
+
+### Does HerSpace replace a doctor?
+No. HerSpace content, including AI-generated insights, is educational only and does not replace professional medical advice, diagnosis, or emergency services.
+
+### How do I join HerSpace?
+Visit https://her-space-connect.vercel.app/auth and create an account with email or Google, or explore instantly with guest demo access.
+
+## Contact
+
+- Support: via the in-app channels or the support email listed on the Google OAuth consent screen.

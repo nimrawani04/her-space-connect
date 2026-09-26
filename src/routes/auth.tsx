@@ -38,11 +38,12 @@ export const Route = createFileRoute("/auth")({
         content:
           "Sign in to HerSpace — a women-only ecosystem for health, safety, mentorship, and sisterhood.",
       },
+      { property: "og:url", content: "https://her-space-connect.vercel.app/auth" },
     ],
+    links: [{ rel: "canonical", href: "https://her-space-connect.vercel.app/auth" }],
   }),
   component: AuthLayout,
 });
-
 function AuthLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname === "/auth/callback" || pathname.startsWith("/auth/callback/")) {

@@ -8,7 +8,9 @@ export const Route = createFileRoute("/terms")({
         name: "description",
         content: "The terms governing your use of HerSpace.",
       },
+      { property: "og:url", content: "https://her-space-connect.vercel.app/terms" },
     ],
+    links: [{ rel: "canonical", href: "https://her-space-connect.vercel.app/terms" }],
   }),
   component: Terms,
 });
