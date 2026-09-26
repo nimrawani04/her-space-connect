@@ -8,7 +8,9 @@ export const Route = createFileRoute("/privacy")({
         name: "description",
         content: "How HerSpace collects, uses, and protects your data.",
       },
+      { property: "og:url", content: "https://her-space-connect.vercel.app/privacy" },
     ],
+    links: [{ rel: "canonical", href: "https://her-space-connect.vercel.app/privacy" }],
   }),
   component: Privacy,
 });

@@ -93,6 +93,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "google-site-verification",
+        content: "oGOJ0z1wlskakHu98YcZhqSidKaPJ_ccEi6oRgJ9G2M",
+      },
       { title: "HerSpace — A trusted space for women's health, safety & sisterhood" },
       {
         name: "description",
@@ -106,12 +110,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "HerSpace" },
       { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:title", content: "HerSpace — A trusted space for women" },
+      { property: "og:site_name", content: "HerSpace" },
+      { property: "og:locale", content: "en_US" },
       {
         property: "og:description",
         content: "Health, safety, mentorship and sisterhood — built for privacy and trust.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: "https://her-space-connect.vercel.app/" },
+      {
+        property: "og:image",
+        content: "https://her-space-connect.vercel.app/icon-512.png",
+      },
+      { property: "og:image:width", content: "512" },
+      { property: "og:image:height", content: "512" },
+      { property: "og:image:alt", content: "HerSpace" },
+      { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:image",
+        content: "https://her-space-connect.vercel.app/icon-512.png",
+      },
       { name: "twitter:site", content: "@HerSpace" },
     ],
     links: [
@@ -267,6 +285,75 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <Toaster />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "HerSpace",
+              url: "https://her-space-connect.vercel.app/",
+              logo: "https://her-space-connect.vercel.app/icon-512.png",
+              description:
+                "A private, women-only digital ecosystem for AI health insights, safety network, mentorship, careers, and sisterhood.",
+              sameAs: [],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "HerSpace",
+              url: "https://her-space-connect.vercel.app/",
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "Is HerSpace really women-only?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Yes. Accounts are verified to keep the space women-only; misrepresentation may lead to removal.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "What data does HerSpace collect?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Account data (name, email, profile photo), health data you choose to log, and technical data to operate the service. Personal data is never sold and health content is never used for advertising.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Does HerSpace replace a doctor?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "No. HerSpace content, including AI-generated insights, is educational only and does not replace professional medical advice, diagnosis, or emergency services.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "How do I join HerSpace?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Create an account with email or Google sign-in, or explore instantly with guest demo access.",
+                  },
+                },
+              ],
+            }),
+          }}
+        />
       </ThemeProvider>
     </QueryClientProvider>
   );

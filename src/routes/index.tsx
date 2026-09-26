@@ -26,9 +26,11 @@ export const Route = createFileRoute("/")({
         content: "A quiet room for your health, shared with those you trust.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://her-space-connect.vercel.app/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "canonical", href: "https://her-space-connect.vercel.app/" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500&display=swap",

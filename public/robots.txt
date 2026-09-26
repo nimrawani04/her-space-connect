@@ -3,4 +3,4 @@ Allow: /
 Disallow: /_authenticated/
 Disallow: /dashboard
 
-Sitemap: /sitemap.xml
+Sitemap: https://her-space-connect.vercel.app/sitemap.xml
