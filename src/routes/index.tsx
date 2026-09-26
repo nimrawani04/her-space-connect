@@ -4,6 +4,7 @@ import { Menu, X, ShieldCheck } from "lucide-react";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
   authLog,
+  clearAuthDestination,
   completeAuthRedirect,
   consumeOAuthFragmentSession,
   hasOAuthResponseInUrl,

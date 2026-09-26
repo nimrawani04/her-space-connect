@@ -222,13 +222,17 @@ function RootComponent() {
         redirecting,
       });
       
-      // If signed in and on an unauthed page, redirect to dashboard
-      if ((event === "SIGNED_IN" || (event === "INITIAL_SESSION" && window.location.pathname === "/auth")) && session?.user && isUnauthedPage && !redirecting) {
+      // If signed in and on an unauthed page, redirect to destination
+      if (
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "USER_UPDATED") &&
+        session?.user &&
+        isUnauthedPage &&
+        !redirecting
+      ) {
         redirecting = true;
-        authLog("root.forcing-dashboard-redirect");
+        authLog("root.forcing-dashboard-redirect", { event, path: window.location.pathname });
         window.setTimeout(() => {
-          clearAuthDestination();
-          window.location.replace("/dashboard");
+          completeAuthRedirect();
         }, 100);
       }
     });
