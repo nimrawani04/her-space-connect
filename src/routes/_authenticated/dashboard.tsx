@@ -41,12 +41,14 @@ function Dashboard() {
   }, []);
 
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
     <div className="max-w-6xl mx-auto space-y-10">
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">{today}</p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Good morning, {name}.</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">{greeting}, {name}.</h1>
       </header>
 
       <div className="grid gap-6 md:grid-cols-3">
