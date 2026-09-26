@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,9 +17,16 @@ import {
   waitForAuthenticatedUser,
 } from "@/lib/auth-redirect";
 
-const searchSchema = z.object({
-  mode: z.enum(["signin", "signup"]).optional(),
-});
+const searchSchema = z
+  .object({
+    mode: z.enum(["signin", "signup"]).optional(),
+    code: z.string().optional(),
+    state: z.string().optional(),
+    error: z.string().optional(),
+    error_description: z.string().optional(),
+    error_code: z.string().optional(),
+  })
+  .passthrough();
 
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
@@ -33,8 +40,16 @@ export const Route = createFileRoute("/auth")({
       },
     ],
   }),
-  component: AuthPage,
+  component: AuthLayout,
 });
+
+function AuthLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname === "/auth/callback" || pathname.startsWith("/auth/callback/")) {
+    return <Outlet />;
+  }
+  return <AuthPage />;
+}
 
 const credSchema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255),
@@ -44,8 +59,8 @@ const credSchema = z.object({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const search = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"signin" | "signup">(search.mode ?? "signin");
+  const search = useSearch({ from: "/auth", strict: false });
+  const [mode, setMode] = useState<"signin" | "signup">(search?.mode === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
