@@ -125,4 +125,17 @@ describe("Google sign-in end-to-end handoff", () => {
     const user = await consumeOAuthCodeSession();
     expect(user).toEqual({ id: "user-1" });
   });
+
+  it("handles search query parameters for OAuth tokens", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/auth/callback?access_token=search.access.token&refresh_token=search-refresh",
+    );
+
+    const user = await consumeOAuthFragmentSession();
+    expect(user).toEqual({ id: "user-1" });
+    expect(authState.setSessionCalls).toBe(1);
+  });
 });
+

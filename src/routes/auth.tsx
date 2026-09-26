@@ -53,17 +53,25 @@ function AuthPage() {
     let cancelled = false;
 
     if (hasSupabaseBrowserConfig()) {
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user && !cancelled) {
+          authLog("auth-page.auth-state-redirect");
+          clearAuthDestination();
+          window.location.replace("/dashboard");
+        }
+      });
+
       (async () => {
         let user = null;
         try {
           user = await consumeOAuthFragmentSession();
           authLog("auth-page.fragment-consumed", { hasUser: Boolean(user) });
         } catch {
-          /* ignore fragment errors, continue to wait for session */
+          /* ignore fragment errors */
         }
         if (!user) {
           try {
-            user = await waitForAuthenticatedUser(3_000);
+            user = await waitForAuthenticatedUser(4_000);
             authLog("auth-page.wait-completed", { hasUser: Boolean(user) });
           } catch {
             /* no active session */
@@ -71,9 +79,15 @@ function AuthPage() {
         }
         if (!cancelled && user) {
           authLog("auth-page.forcing-dashboard");
+          clearAuthDestination();
           window.location.replace("/dashboard");
         }
       })();
+
+      return () => {
+        cancelled = true;
+        sub.subscription.unsubscribe();
+      };
     } else {
       const demoUser = localStorage.getItem("herspace_demo_user");
       if (demoUser) {

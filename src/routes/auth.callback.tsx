@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { toast } from "sonner";
 import {
   authLog,
-  completeAuthRedirect,
+  clearAuthDestination,
+  getAuthDestination,
   consumeOAuthFragmentSession,
   waitForAuthenticatedUser,
 } from "@/lib/auth-redirect";
@@ -30,6 +32,30 @@ function AuthCallback() {
 
   useEffect(() => {
     let cancelled = false;
+    let redirected = false;
+
+    const performSuccessRedirect = (targetUser?: unknown) => {
+      if (redirected || cancelled) return;
+      redirected = true;
+      const target = getAuthDestination() || "/dashboard";
+      clearAuthDestination();
+      authLog("callback.user-found-redirecting", { destination: target, hasUser: Boolean(targetUser) });
+      
+      // Use replace so user cannot click 'back' into the auth callback
+      window.location.replace(target);
+    };
+
+    // 1. Listen for Supabase auth state change events immediately
+    let authSub: { unsubscribe: () => void } | null = null;
+    if (hasSupabaseBrowserConfig()) {
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        authLog("callback.onAuthStateChange", { event, hasSession: Boolean(session) });
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "USER_UPDATED") && session?.user) {
+          performSuccessRedirect(session.user);
+        }
+      });
+      authSub = data.subscription;
+    }
 
     const runAuthCheck = async () => {
       const currentUrl = window.location.href;
@@ -37,7 +63,7 @@ function AuthCallback() {
       
       // Check for OAuth errors in URL (both query params and hash)
       const params = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       
       const error = params.get("error") || hashParams.get("error");
       const errorDescription = params.get("error_description") || hashParams.get("error_description");
@@ -47,11 +73,10 @@ function AuthCallback() {
         authLog("callback.oauth-error", { error, errorCode, errorDescription });
         
         let message = "Google sign-in failed. ";
-        
         if (errorDescription?.includes("exchange external code")) {
           message += "OAuth configuration issue. Please verify Google Cloud Console redirect URLs.";
         } else {
-          message += errorDescription || "Please try again.";
+          message += errorDescription || error || "Please try again.";
         }
         
         setErrorMsg(message);
@@ -60,7 +85,7 @@ function AuthCallback() {
         });
         
         setTimeout(() => {
-          if (!cancelled) navigate({ to: "/auth", replace: true });
+          if (!cancelled && !redirected) navigate({ to: "/auth", replace: true });
         }, 3000);
         return;
       }
@@ -69,7 +94,7 @@ function AuthCallback() {
       const demoUser = typeof window !== "undefined" ? localStorage.getItem("herspace_demo_user") : null;
       if (demoUser) {
         authLog("callback.demo-user-redirect");
-        window.location.href = "/dashboard";
+        performSuccessRedirect();
         return;
       }
 
@@ -79,7 +104,19 @@ function AuthCallback() {
         return;
       }
 
-      // Try to get the session
+      // Check for an existing session first
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session?.user) {
+          authLog("callback.existing-session-found");
+          performSuccessRedirect(sessionData.session.user);
+          return;
+        }
+      } catch {
+        /* continue */
+      }
+
+      // Try to consume fragment or code
       let user = null;
       try {
         authLog("callback.consuming-oauth-session");
@@ -91,34 +128,40 @@ function AuthCallback() {
         });
       }
 
-      // Wait for session if not immediately available
-      if (!user) {
-        try {
-          authLog("callback.waiting-for-session");
-          user = await waitForAuthenticatedUser(12_000);
-          authLog("callback.session-wait-complete", { hasUser: Boolean(user) });
-        } catch (error) {
-          authLog("callback.session-wait-failed", {
-            reason: error instanceof Error ? error.message : "unknown",
-          });
-        }
+      if (user) {
+        performSuccessRedirect(user);
+        return;
       }
 
-      if (cancelled) return;
+      // Wait for session if not immediately available
+      try {
+        authLog("callback.waiting-for-session");
+        user = await waitForAuthenticatedUser(12_000);
+        authLog("callback.session-wait-complete", { hasUser: Boolean(user) });
+      } catch (error) {
+        authLog("callback.session-wait-failed", {
+          reason: error instanceof Error ? error.message : "unknown",
+        });
+      }
+
+      if (cancelled || redirected) return;
       
-      // If we have a user, wait a moment for session to fully establish, then redirect
       if (user) {
-        authLog("callback.user-found-redirecting", { userId: user.id });
-        // Small delay to ensure session is fully written to storage
-        await new Promise(resolve => setTimeout(resolve, 800));
-        if (cancelled) return;
-        
-        authLog("callback.redirecting-now");
-        // Use href instead of replace for more reliable redirect
-        window.location.href = "/dashboard";
+        performSuccessRedirect(user);
         return;
       }
       
+      // Final fallback: check getUser()
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          performSuccessRedirect(userData.user);
+          return;
+        }
+      } catch {
+        /* continue to error */
+      }
+
       // No user found after all attempts
       authLog("callback.no-session-found-redirecting-to-auth");
       toast.error("Sign-in incomplete", {
@@ -126,14 +169,15 @@ function AuthCallback() {
       });
       
       setTimeout(() => {
-        if (!cancelled) navigate({ to: "/auth", replace: true });
-      }, 1000);
+        if (!cancelled && !redirected) navigate({ to: "/auth", replace: true });
+      }, 1200);
     };
 
     void runAuthCheck();
 
     return () => {
       cancelled = true;
+      authSub?.unsubscribe();
     };
   }, [navigate]);
 
@@ -161,3 +205,4 @@ function AuthCallback() {
     </main>
   );
 }
+

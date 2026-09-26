@@ -80,14 +80,34 @@ export async function consumeOAuthFragmentSession() {
     return null;
   }
 
-  const params = new URLSearchParams(
-    window.location.hash ? window.location.hash.slice(1) : window.location.search,
-  );
-  const accessToken = params.get("access_token");
-  const refreshToken = params.get("refresh_token");
+  const hashStr = window.location.hash ? window.location.hash.replace(/^#/, "") : "";
+  const searchStr = window.location.search ? window.location.search.replace(/^\?/, "") : "";
+  const hashParams = new URLSearchParams(hashStr);
+  const searchParams = new URLSearchParams(searchStr);
+
+  const accessToken = hashParams.get("access_token") || searchParams.get("access_token");
+  const refreshToken = hashParams.get("refresh_token") || searchParams.get("refresh_token");
+
   if (!accessToken || !refreshToken) {
-    authLog("callback.no-token-fragment", { hasCode: params.has("code") });
-    return consumeOAuthCodeSession();
+    const hasCode = searchParams.has("code") || hashParams.has("code");
+    authLog("callback.no-token-fragment", { hasCode });
+    if (hasCode) {
+      return consumeOAuthCodeSession();
+    }
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.user) {
+        return sessionData.session.user;
+      }
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        return userData.user;
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
   }
 
   authLog("callback.token-fragment-found");
@@ -98,7 +118,8 @@ export async function consumeOAuthFragmentSession() {
   url.searchParams.delete("expires_at");
   url.searchParams.delete("expires_in");
   url.searchParams.delete("provider_token");
-  url.searchParams.delete("refresh_token");
+  url.searchParams.delete("token_type");
+  url.searchParams.delete("type");
   url.searchParams.delete("state");
 
   window.history.replaceState(window.history.state, document.title, `${url.pathname}${url.search}`);
@@ -114,69 +135,13 @@ export async function consumeOAuthFragmentSession() {
       if (currentSession.data.session?.user) {
         return currentSession.data.session.user;
       }
-      throw error;
-    }
-    authLog("callback.set-session-complete", { hasUser: Boolean(data.user) });
-    return data.user;
-  } catch (err) {
-    const currentSession = await supabase.auth.getSession();
-    if (currentSession.data.session?.user) {
-      return currentSession.data.session.user;
-    }
-    throw err;
-  }
-}
-
-/**
- * Some OAuth providers return an authorization code in the query string
- * instead of tokens in the fragment. Exchange it before the auth guard runs.
- */
-export async function consumeOAuthCodeSession() {
-  if (!hasSupabaseBrowserConfig()) return null;
-
-  const url = new URL(window.location.href);
-  const code = url.searchParams.get("code");
-  if (!code) return null;
-
-  try {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      authLog("callback.exchange-code-error", { reason: error.message });
-      const currentSession = await supabase.auth.getSession();
-      if (currentSession.data.session?.user) {
-        authLog("callback.session-recovered-after-code-error");
-        url.searchParams.delete("code");
-        url.searchParams.delete("state");
-        window.history.replaceState(
-          window.history.state,
-          document.title,
-          `${url.pathname}${url.search}${url.hash}`,
-        );
-        return currentSession.data.session.user;
-      }
       const currentUser = await supabase.auth.getUser();
       if (currentUser.data?.user) {
-        authLog("callback.user-recovered-after-code-error");
-        url.searchParams.delete("code");
-        url.searchParams.delete("state");
-        window.history.replaceState(
-          window.history.state,
-          document.title,
-          `${url.pathname}${url.search}${url.hash}`,
-        );
         return currentUser.data.user;
       }
       throw error;
     }
-
-    url.searchParams.delete("code");
-    url.searchParams.delete("state");
-    window.history.replaceState(
-      window.history.state,
-      document.title,
-      `${url.pathname}${url.search}${url.hash}`,
-    );
-
+    authLog("callback.set-session-complete", { hasUser: Boolean(data.user) });
     return data.user;
   } catch (err) {
     const currentSession = await supabase.auth.getSession();
@@ -190,6 +155,69 @@ export async function consumeOAuthCodeSession() {
     throw err;
   }
 }
+
+/**
+ * Some OAuth providers return an authorization code in the query string
+ * instead of tokens in the fragment. Exchange it before the auth guard runs.
+ */
+export async function consumeOAuthCodeSession() {
+  if (!hasSupabaseBrowserConfig()) return null;
+
+  const url = new URL(window.location.href);
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+  const code = url.searchParams.get("code") || hashParams.get("code");
+  if (!code) return null;
+
+  try {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    // Clean up code from url
+    url.searchParams.delete("code");
+    url.searchParams.delete("state");
+    window.history.replaceState(
+      window.history.state,
+      document.title,
+      `${url.pathname}${url.search}`,
+    );
+
+    if (error) {
+      authLog("callback.exchange-code-error", { reason: error.message });
+      const currentSession = await supabase.auth.getSession();
+      if (currentSession.data.session?.user) {
+        authLog("callback.session-recovered-after-code-error");
+        return currentSession.data.session.user;
+      }
+      const currentUser = await supabase.auth.getUser();
+      if (currentUser.data?.user) {
+        authLog("callback.user-recovered-after-code-error");
+        return currentUser.data.user;
+      }
+      const delayedUser = await waitForAuthenticatedUser(4_000);
+      if (delayedUser) {
+        authLog("callback.user-recovered-after-delay");
+        return delayedUser;
+      }
+      throw error;
+    }
+
+    return data.user;
+  } catch (err) {
+    const currentSession = await supabase.auth.getSession();
+    if (currentSession.data.session?.user) {
+      return currentSession.data.session.user;
+    }
+    const currentUser = await supabase.auth.getUser();
+    if (currentUser.data?.user) {
+      return currentUser.data.user;
+    }
+    const delayedUser = await waitForAuthenticatedUser(4_000);
+    if (delayedUser) {
+      return delayedUser;
+    }
+    throw err;
+  }
+}
+
 
 export async function waitForAuthenticatedUser(timeoutMs = 12_000) {
   if (!hasSupabaseBrowserConfig()) {
@@ -267,10 +295,18 @@ export function hasOAuthResponseInUrl() {
   if (typeof window === "undefined") return false;
   const hash = window.location.hash ?? "";
   const search = window.location.search ?? "";
+  const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+  const searchParams = new URLSearchParams(search);
+
   return (
     hash.includes("access_token") ||
     hash.includes("refresh_token") ||
-    new URLSearchParams(search).has("code")
+    searchParams.has("code") ||
+    hashParams.has("code") ||
+    searchParams.has("error") ||
+    hashParams.has("error") ||
+    searchParams.has("error_description") ||
+    hashParams.has("error_description")
   );
 }
 
@@ -278,7 +314,7 @@ export async function resolveGuardUser(options: {
   handoffTimeoutMs?: number;
   graceMs?: number;
 } = {}) {
-  const { handoffTimeoutMs = 10_000, graceMs = 1_500 } = options;
+  const { handoffTimeoutMs = 15_000, graceMs = 2_500 } = options;
 
   if (!hasSupabaseBrowserConfig()) {
     authLog("guard.config-missing");
@@ -286,10 +322,17 @@ export async function resolveGuardUser(options: {
   }
 
   try {
-    const { data } = await supabase.auth.getSession();
-    if (data.session?.user) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session?.user) {
       authLog("guard.session-fast-path");
-      return data.session.user;
+      clearAuthDestination();
+      return sessionData.session.user;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user) {
+      authLog("guard.user-fast-path");
+      clearAuthDestination();
+      return userData.user;
     }
   } catch {
     /* fall through to the polling paths */
@@ -303,6 +346,7 @@ export async function resolveGuardUser(options: {
       const fragmentUser = await consumeOAuthFragmentSession();
       if (fragmentUser) {
         authLog("guard.session-from-oauth-response");
+        clearAuthDestination();
         return fragmentUser;
       }
     } catch {
@@ -311,6 +355,11 @@ export async function resolveGuardUser(options: {
   }
 
   const user = await waitForAuthenticatedUser(inHandoff ? handoffTimeoutMs : graceMs);
-  if (!user) authLog("guard.session-unresolved", { inHandoff });
+  if (user) {
+    clearAuthDestination();
+  } else {
+    authLog("guard.session-unresolved", { inHandoff });
+  }
   return user;
 }
+
