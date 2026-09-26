@@ -74,7 +74,48 @@ export function completeAuthRedirect() {
  * protected route guard runs, then remove the credentials from browser
  * history immediately.
  */
-export async function consumeOAuthFragmentSession() {
+let fragmentConsumePromise: Promise<unknown | null> | null = null;
+
+function decodeJwtMeta(token: string): { kid?: string; iss?: string } {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return {};
+    const header = JSON.parse(atob(parts[0].replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return { kid: header?.kid, iss: payload?.iss };
+  } catch {
+    return {};
+  }
+}
+
+function clearOAuthParamsFromUrl() {
+  const url = new URL(window.location.href);
+  for (const k of [
+    "access_token",
+    "refresh_token",
+    "expires_at",
+    "expires_in",
+    "provider_token",
+    "token_type",
+    "type",
+    "state",
+    "code",
+  ]) {
+    url.searchParams.delete(k);
+  }
+  // Drop the hash entirely — OAuth tokens live there and must not linger in history.
+  window.history.replaceState(window.history.state, document.title, `${url.pathname}${url.search}`);
+}
+
+export function consumeOAuthFragmentSession() {
+  if (fragmentConsumePromise) return fragmentConsumePromise;
+  fragmentConsumePromise = consumeOAuthFragmentSessionInner().finally(() => {
+    fragmentConsumePromise = null;
+  });
+  return fragmentConsumePromise;
+}
+
+async function consumeOAuthFragmentSessionInner() {
   if (!hasSupabaseBrowserConfig()) {
     authLog("callback.config-missing");
     return null;
@@ -112,36 +153,33 @@ export async function consumeOAuthFragmentSession() {
 
   authLog("callback.token-fragment-found");
 
-  const url = new URL(window.location.href);
-  url.searchParams.delete("access_token");
-  url.searchParams.delete("refresh_token");
-  url.searchParams.delete("expires_at");
-  url.searchParams.delete("expires_in");
-  url.searchParams.delete("provider_token");
-  url.searchParams.delete("token_type");
-  url.searchParams.delete("type");
-  url.searchParams.delete("state");
-
-  window.history.replaceState(window.history.state, document.title, `${url.pathname}${url.search}`);
-
   try {
     const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
     });
     if (error) {
-      authLog("callback.set-session-failed", { reason: error.message });
+      const meta = decodeJwtMeta(accessToken);
+      authLog("callback.set-session-failed", {
+        reason: error.message,
+        tokenIss: meta.iss,
+        tokenKid: meta.kid,
+      });
       const currentSession = await supabase.auth.getSession();
       if (currentSession.data.session?.user) {
+        clearOAuthParamsFromUrl();
         return currentSession.data.session.user;
       }
       const currentUser = await supabase.auth.getUser();
       if (currentUser.data?.user) {
+        clearOAuthParamsFromUrl();
         return currentUser.data.user;
       }
+      // Keep the URL fragment intact so a retry / correct-project client can still use it.
       throw error;
     }
     authLog("callback.set-session-complete", { hasUser: Boolean(data.user) });
+    clearOAuthParamsFromUrl();
     return data.user;
   } catch (err) {
     const currentSession = await supabase.auth.getSession();
@@ -160,7 +198,17 @@ export async function consumeOAuthFragmentSession() {
  * Some OAuth providers return an authorization code in the query string
  * instead of tokens in the fragment. Exchange it before the auth guard runs.
  */
-export async function consumeOAuthCodeSession() {
+let codeConsumePromise: Promise<unknown | null> | null = null;
+
+export function consumeOAuthCodeSession() {
+  if (codeConsumePromise) return codeConsumePromise;
+  codeConsumePromise = consumeOAuthCodeSessionInner().finally(() => {
+    codeConsumePromise = null;
+  });
+  return codeConsumePromise;
+}
+
+async function consumeOAuthCodeSessionInner() {
   if (!hasSupabaseBrowserConfig()) return null;
 
   // Check if session was already established automatically by Supabase client
