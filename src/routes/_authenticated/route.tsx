@@ -137,20 +137,38 @@ function AuthedShell() {
     <SidebarProvider>
       <div className="min-h-dvh flex w-full text-foreground">
         <Sidebar collapsible="icon">
-          <SidebarHeader className="px-4 py-5">
-            <Link to="/dashboard" className="font-serif italic text-2xl tracking-tight">HerSpace</Link>
+          <SidebarHeader className="px-4 py-5 group-data-[collapsible=icon]:px-2">
+            <Link
+              to="/dashboard"
+              aria-label="HerSpace dashboard"
+              className="relative block h-8 overflow-hidden font-serif italic tracking-tight"
+            >
+              <span className="absolute inset-0 flex items-center whitespace-nowrap text-2xl leading-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] opacity-100 translate-x-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:-translate-x-2">
+                HerSpace
+              </span>
+              <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-lg leading-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] opacity-0 translate-x-2 scale-95 group-data-[collapsible=icon]:opacity-100 group-data-[collapsible=icon]:translate-x-0 group-data-[collapsible=icon]:scale-100 group-data-[collapsible=icon]:delay-100">
+                HS
+              </span>
+            </Link>
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Your space</SidebarGroupLabel>
+              <SidebarGroupLabel className="font-manrope text-[11px] uppercase tracking-[0.2em]">
+                Your space
+              </SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu>
+                <SidebarMenu className="gap-1">
                   {nav.map((item) => (
                     <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton asChild isActive={pathname === item.to || pathname.startsWith(item.to + "/")}>
-                        <Link to={item.to} className="flex items-center gap-2">
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.label}</span>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.to || pathname.startsWith(item.to + "/")}
+                        tooltip={item.label}
+                        className="!rounded-full transition-all duration-300 hover:!bg-[#AFDDFF]/10 data-[active=true]:!bg-[#AFDDFF] data-[active=true]:!text-black data-[active=true]:font-medium"
+                      >
+                        <Link to={item.to} className="flex items-center gap-2.5">
+                          <item.icon className="h-4 w-4 shrink-0 transition-transform duration-300" />
+                          <span className="font-manrope text-[13px] tracking-wide">{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -160,8 +178,13 @@ function AuthedShell() {
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="p-4">
-            <Button variant="ghost" size="sm" onClick={signOut} className="justify-start gap-2 text-muted-foreground">
-              <LogOut className="h-4 w-4" /> Sign out
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="justify-start gap-2 font-manrope text-xs text-muted-foreground !rounded-full transition-all duration-300 hover:!bg-[#AFDDFF]/10 hover:!text-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            >
+              <LogOut className="h-4 w-4" /> <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
