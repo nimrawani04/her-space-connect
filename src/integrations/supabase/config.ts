@@ -14,6 +14,7 @@ export function getSupabasePublishableKey(): string {
   if (
     envKey &&
     !envKey.startsWith("sb_publishable_") &&
+    !envKey.startsWith("sb_secret_") &&
     envKey !== "replace_with_your_supabase_publishable_or_anon_key" &&
     envKey !== "your_supabase_publishable_or_anon_key"
   ) {
