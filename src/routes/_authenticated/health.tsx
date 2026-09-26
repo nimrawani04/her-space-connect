@@ -154,7 +154,7 @@ function HealthHub() {
       </section>
 
       <Tabs defaultValue="symptoms" className="space-y-6 scroll-mt-8" id="symptom-assistant">
-        <TabsList className="bg-muted flex-wrap h-auto">
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="period">Period log</TabsTrigger>
           <TabsTrigger value="daily">Daily wellness</TabsTrigger>
           <TabsTrigger value="hormones">Cycle & Hormones</TabsTrigger>

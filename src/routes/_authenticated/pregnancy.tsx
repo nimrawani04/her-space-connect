@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Baby, BookOpen, Bot, FlaskConical, Sprout, Stethoscope } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePregnancyProfile } from "@/hooks/use-pregnancy-profile";
@@ -32,7 +33,9 @@ function Pregnancy() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">🤰 Women's journey</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2 flex items-center gap-1.5">
+          <Baby className="h-3.5 w-3.5" /> Women's journey
+        </p>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Pregnancy</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl">
           Period tracking flows naturally into pregnancy: plan, test, then follow week 1 to 40 with your own health data and an AI companion beside you.
@@ -50,12 +53,24 @@ function Pregnancy() {
         <Tabs defaultValue={isPregnant ? "journey" : "planning"}>
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="w-max">
-              <TabsTrigger value="planning">🌱 Planning</TabsTrigger>
-              <TabsTrigger value="test">🧪 Test</TabsTrigger>
-              <TabsTrigger value="journey">🤰 Journey</TabsTrigger>
-              <TabsTrigger value="tracking">🩺 Health</TabsTrigger>
-              <TabsTrigger value="learn">📚 Knowledge</TabsTrigger>
-              <TabsTrigger value="ai">🤖 Companion</TabsTrigger>
+              <TabsTrigger value="planning" className="gap-2">
+                <Sprout className="h-3.5 w-3.5" /> Planning
+              </TabsTrigger>
+              <TabsTrigger value="test" className="gap-2">
+                <FlaskConical className="h-3.5 w-3.5" /> Test
+              </TabsTrigger>
+              <TabsTrigger value="journey" className="gap-2">
+                <Baby className="h-3.5 w-3.5" /> Journey
+              </TabsTrigger>
+              <TabsTrigger value="tracking" className="gap-2">
+                <Stethoscope className="h-3.5 w-3.5" /> Health
+              </TabsTrigger>
+              <TabsTrigger value="learn" className="gap-2">
+                <BookOpen className="h-3.5 w-3.5" /> Knowledge
+              </TabsTrigger>
+              <TabsTrigger value="ai" className="gap-2">
+                <Bot className="h-3.5 w-3.5" /> Companion
+              </TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="planning" className="mt-6"><Planning /></TabsContent>
