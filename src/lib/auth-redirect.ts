@@ -163,10 +163,30 @@ export async function consumeOAuthFragmentSession() {
 export async function consumeOAuthCodeSession() {
   if (!hasSupabaseBrowserConfig()) return null;
 
+  // Check if session was already established automatically by Supabase client
+  try {
+    const { data: existing } = await supabase.auth.getSession();
+    if (existing.session?.user) {
+      authLog("consume-code.already-active-session");
+      return existing.session.user;
+    }
+  } catch {
+    /* continue to manual exchange */
+  }
+
   const url = new URL(window.location.href);
   const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
   const code = url.searchParams.get("code") || hashParams.get("code");
-  if (!code) return null;
+  if (!code) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.user) return sessionData.session.user;
+      const { data: userData } = await supabase.auth.getUser();
+      return userData?.user ?? null;
+    } catch {
+      return null;
+    }
+  }
 
   try {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -197,11 +217,14 @@ export async function consumeOAuthCodeSession() {
         authLog("callback.user-recovered-after-delay");
         return delayedUser;
       }
-      throw error;
+      return null;
     }
 
     return data.user;
   } catch (err) {
+    authLog("callback.exchange-code-exception", {
+      reason: err instanceof Error ? err.message : "unknown",
+    });
     const currentSession = await supabase.auth.getSession();
     if (currentSession.data.session?.user) {
       return currentSession.data.session.user;
@@ -214,7 +237,7 @@ export async function consumeOAuthCodeSession() {
     if (delayedUser) {
       return delayedUser;
     }
-    throw err;
+    return null;
   }
 }
 
