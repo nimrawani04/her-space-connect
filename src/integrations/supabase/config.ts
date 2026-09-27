@@ -1,5 +1,5 @@
-const DEFAULT_SUPABASE_URL = "https://foteraufomwdujwappjt.supabase.co";
-const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvdGVyYXVmb213ZHVqd2FwcGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY0MTYsImV4cCI6MjA5ODAzMjQxNn0.upuLKtTRcIBXpLG-W0eozuiF5gImWS2cZq06_PW4Jdw";
+const DEFAULT_SUPABASE_URL = "https://syvqiqhyaoohbjbkftaj.supabase.co";
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_B8OjiP_STSjviMyhtF_5RQ_D5mRy53U";
 
 export function getSupabaseUrl(): string {
   const envUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
