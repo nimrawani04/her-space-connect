@@ -38,3 +38,17 @@ dist-ssr
 .env.*.local
 !.env.example
 
+# Android (android/ is a Gradle project inside this repo)
+*.apk
+*.aab
+*.ap_
+*.dex
+local.properties
+.gradle/
+build/
+captures/
+*.hprof
+*.iml
+.externalNativeBuild/
+.cxx/
+
