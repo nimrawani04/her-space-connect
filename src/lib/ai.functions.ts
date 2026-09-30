@@ -1,7 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText } from "ai";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { getAiModelConfig } from "./ai-gateway.server";
+import {
+  fallbackAnalyzeSymptoms,
+  fallbackAnalyzeJournal,
+  fallbackSimplifyResearch,
+  fallbackPredictCycle,
+  fallbackGenerateHealthInsights,
+  fallbackPregnancyCompanion,
+} from "./ai-fallback";
 
 function extractJson(raw: string): unknown {
   let s = raw.trim().replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
@@ -24,20 +32,29 @@ function extractJson(raw: string): unknown {
 }
 
 async function generateJson<T>(args: {
-  key: string;
   system: string;
   prompt: string;
   schema: z.ZodType<T>;
   schemaHint: string;
+  fallback: () => T;
 }): Promise<T> {
-  const gateway = createLovableAiGatewayProvider(args.key);
-  const { text } = await generateText({
-    model: gateway("google/gemini-3-flash-preview"),
-    system: `${args.system}\n\nYou MUST respond with valid JSON only, matching this shape exactly. No markdown, no commentary.\n${args.schemaHint}`,
-    prompt: args.prompt,
-  });
-  const parsed = extractJson(text);
-  return args.schema.parse(parsed);
+  const modelConfig = getAiModelConfig();
+  if (!modelConfig) {
+    return args.fallback();
+  }
+
+  try {
+    const { text } = await generateText({
+      model: modelConfig.provider(modelConfig.modelName),
+      system: `${args.system}\n\nYou MUST respond with valid JSON only, matching this shape exactly. No markdown, no commentary.\n${args.schemaHint}`,
+      prompt: args.prompt,
+    });
+    const parsed = extractJson(text);
+    return args.schema.parse(parsed);
+  } catch (err) {
+    console.warn("AI generation failed or not configured, using clinical fallback engine:", err);
+    return args.fallback();
+  }
 }
 
 const symptomInput = z.object({
@@ -69,10 +86,7 @@ Tone: warm, calm, clinical. Never moralize. Never assume cause.`;
 export const analyzeSymptoms = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => symptomInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI is not configured");
     return await generateJson({
-      key,
       system: SYMPTOM_SYSTEM,
       prompt: `Symptoms reported: ${data.symptoms}${data.age ? `\nAge: ${data.age}` : ""}${data.contextNotes ? `\nContext: ${data.contextNotes}` : ""}\n\nReturn structured analysis.`,
       schema: symptomSchema,
@@ -85,6 +99,7 @@ export const analyzeSymptoms = createServerFn({ method: "POST" })
   "redFlags": string[] (max 6),
   "disclaimer": string
 }`,
+      fallback: () => fallbackAnalyzeSymptoms(data),
     });
   });
 
@@ -111,10 +126,7 @@ Never diagnose. Never minimize. Never lecture. Be human, brief, and respectful o
 export const analyzeJournal = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => journalInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI is not configured");
     return await generateJson({
-      key,
       system: JOURNAL_SYSTEM,
       prompt: `Mood: ${data.mood ?? "unspecified"}\n\nEntry:\n${data.content}`,
       schema: journalSchema,
@@ -125,6 +137,7 @@ export const analyzeJournal = createServerFn({ method: "POST" })
   "copingSuggestions": string[] (max 4),
   "escalation": { "suggested": boolean, "reason": string (optional) }
 }`,
+      fallback: () => fallbackAnalyzeJournal(data),
     });
   });
 
@@ -148,10 +161,7 @@ Never give individualized medical advice.`;
 export const simplifyResearch = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => researchInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI is not configured");
     return await generateJson({
-      key,
       system: RESEARCH_SYSTEM,
       prompt: `Topic: ${data.topic}. Produce a beginner-friendly research brief.`,
       schema: researchSchema,
@@ -163,6 +173,7 @@ export const simplifyResearch = createServerFn({ method: "POST" })
   "faqs": [{ "q": string, "a": string }] (max 6),
   "suggestedSearches": string[] (max 4)
 }`,
+      fallback: () => fallbackSimplifyResearch(data),
     });
   });
 
@@ -209,10 +220,7 @@ Return ISO date strings (YYYY-MM-DD).`;
 export const predictCycle = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => predictInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI is not configured");
     return await generateJson({
-      key,
       system: PREDICT_SYSTEM,
       prompt: `Today: ${data.today}
 Recent period start dates (newest first): ${data.recentStarts.join(", ") || "none"}
@@ -239,6 +247,7 @@ Return structured prediction; factor cramp severity into confidence and crampSev
   "crampSeverityNote": string (optional, omit only when avgCramp and peakCramp are both low),
   "urgencyLevel": "routine" | "monitor" | "discuss-with-clinician"
 }`,
+      fallback: () => fallbackPredictCycle(data),
     });
   });
 
@@ -268,10 +277,7 @@ Be concrete, evidence-based, never diagnostic. Cite the time range you analyzed.
 export const generateHealthInsights = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => insightsInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI is not configured");
     return await generateJson({
-      key,
       system: INSIGHTS_SYSTEM,
       prompt: `CYCLE HISTORY (newest first):\n${data.cycleHistory}\n\nWELLNESS LOGS (newest first):\n${data.wellnessHistory}\n\nReturn structured insights.`,
       schema: insightsSchema,
@@ -280,8 +286,10 @@ export const generateHealthInsights = createServerFn({ method: "POST" })
   "doctorQuestions": string[] (max 6),
   "watchOuts": string[] (max 4)
 }`,
+      fallback: () => fallbackGenerateHealthInsights(data),
     });
   });
+
 // ---------------- Pregnancy companion ----------------
 
 const companionInput = z.object({
@@ -314,10 +322,7 @@ Always end with an educational-not-medical-advice disclaimer.`;
 export const pregnancyCompanion = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => companionInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI is not configured");
     return await generateJson({
-      key,
       system: COMPANION_SYSTEM,
       prompt: `Gestational week: ${data.week} (trimester ${data.trimester}).
 Estimated due date: ${data.dueDate ?? "unknown"}.
@@ -336,5 +341,6 @@ Return the structured companion update.`,
   "askYourClinician": string[] (max 4),
   "disclaimer": string
 }`,
+      fallback: () => fallbackPregnancyCompanion(data),
     });
   });
