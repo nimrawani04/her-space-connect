@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Menu, X, ShieldCheck, Sparkles, Heart, Activity, Users, ArrowRight } from "lucide-react";
+import { HerSpaceLogo } from "@/components/brand/HerSpaceLogo";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
   authLog,
@@ -132,11 +133,7 @@ function LandingPage() {
         {/* Navigation */}
         <header className="w-full px-5 sm:px-8 md:px-12 py-6 flex items-center justify-between border-b border-white/[0.07] backdrop-blur-md sticky top-0 z-40 bg-[#181214]/60">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#e07a70] to-[#c86d74] p-0.5 shadow-md shadow-rose-950/40 flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-[#181214]/40 backdrop-blur-xs flex items-center justify-center text-white">
-                <Sparkles className="w-4 h-4 text-rose-200" />
-              </div>
-            </div>
+            <HerSpaceLogo size={36} className="shadow-md shadow-rose-950/40" />
             <span className="font-serif italic text-2xl tracking-tight text-white font-normal">
               HerSpace
             </span>
@@ -340,7 +337,8 @@ function LandingPage() {
 
         {/* Warm Minimal Footer */}
         <footer className="w-full px-5 sm:px-8 md:px-12 py-8 border-t border-white/[0.07] text-xs text-stone-400 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <HerSpaceLogo size={24} />
             <span className="font-serif italic text-base text-white">HerSpace</span>
             <span>&middot; Designed with warmth &amp; deep care for women.</span>
           </div>

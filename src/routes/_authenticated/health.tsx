@@ -67,11 +67,9 @@ const symptomExamples = [
 ];
 
 function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (v: string) => void }) {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const categories = ["All", ...symptomExamples.map((c) => c.category)];
-  const visible = activeCategory === "All"
-    ? symptomExamples.flatMap((c) => c.examples)
-    : symptomExamples.find((c) => c.category === activeCategory)?.examples ?? [];
+  const [activeCategory, setActiveCategory] = useState("Period & cycle");
+  const categories = symptomExamples.map((c) => c.category);
+  const visible = symptomExamples.find((c) => c.category === activeCategory)?.examples ?? symptomExamples[0].examples;
 
   function add(example: string) {
     const trimmed = symptoms.trim();
@@ -82,16 +80,18 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
   }
 
   return (
-    <div className="space-y-3 pt-2">
+    <div className="space-y-2.5 pt-1">
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground font-semibold">
-          Tap to add common symptoms
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+          <Sparkles className="w-3 h-3 text-primary" /> Common symptom suggestions
         </p>
-        <span className="text-[11px] text-primary font-medium">Quick Suggestions</span>
+        <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">
+          {activeCategory}
+        </span>
       </div>
 
-      {/* Category Pills */}
-      <div className="flex flex-wrap gap-1.5">
+      {/* Category Pills - smooth mobile horizontal scroll */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
         {categories.map((cat) => {
           const isActive = activeCategory === cat;
           return (
@@ -99,10 +99,10 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer shrink-0 ${
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-xs shadow-primary/25 scale-[1.02]"
-                  : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-xs shadow-primary/20 scale-[1.02]"
+                  : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/50"
               }`}
               aria-pressed={isActive}
             >
@@ -112,20 +112,27 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
         })}
       </div>
 
-      {/* Symptom Tag Pills */}
-      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 scrollbar-thin">
-        {visible.map((ex) => (
-          <button
-            key={ex}
-            type="button"
-            onClick={() => add(ex)}
-            className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1"
-            aria-label={`Add ${ex}`}
-          >
-            <span className="text-xs font-bold leading-none">+</span>
-            <span>{ex}</span>
-          </button>
-        ))}
+      {/* Symptom Tag Pills - clean wrap with zero ugly scrollbars */}
+      <div className="flex flex-wrap gap-1.5 p-2.5 rounded-2xl bg-secondary/35 border border-border/60">
+        {visible.map((ex) => {
+          const isAdded = symptoms.toLowerCase().includes(ex.toLowerCase());
+          return (
+            <button
+              key={ex}
+              type="button"
+              onClick={() => add(ex)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                isAdded
+                  ? "bg-primary/20 text-primary border border-primary/40 font-semibold"
+                  : "bg-card/90 text-foreground border border-border/70 hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+              }`}
+              aria-label={`Add ${ex}`}
+            >
+              <span className="text-xs font-bold leading-none">{isAdded ? "✓" : "+"}</span>
+              <span>{ex}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -133,69 +140,52 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
 
 function HealthHub() {
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
-      {/* Serene Health Sanctuary Banner */}
-      <section className="relative rounded-3xl bg-gradient-to-br from-primary/12 via-secondary/40 to-background border border-primary/20 p-6 sm:p-10 md:p-12 overflow-hidden shadow-sm">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 border border-primary/25 text-xs font-medium text-primary">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>01 &middot; Sovereign Health Intelligence</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic leading-tight text-foreground tracking-tight">
-            Understand your body, before you see the doctor.
-          </h1>
-
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-light">
-            The HerSpace AI Symptom Assistant listens with care, correlates your signs with trusted clinical research,
-            and prepares a doctor-ready consultation report — private, sovereign, and built specifically for women.
+    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-fade-in">
+      {/* Serene Health Sanctuary Header Card */}
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
+            01 · Sovereign Clinical Intelligence &amp; Rhythms
           </p>
-
-          <div className="pt-2 flex flex-wrap gap-3">
-            <Button asChild className="rounded-full shadow-sm shadow-primary/25 gap-2">
-              <a href="#symptom-assistant">
-                <Sparkles className="h-4 w-4" /> Start Symptom Consultation
-              </a>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full">
-              <a href="#symptom-assistant">How It Works</a>
-            </Button>
+        </div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+              Health Hub
+            </h1>
+            <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+              Correlate symptoms with clinical research, track cycle rhythms, and prepare doctor-ready consultation briefs. Sovereign, private, and designed for women.
+            </p>
           </div>
-
-          <div className="pt-4 grid sm:grid-cols-3 gap-3.5 text-xs">
-            {[
-              { icon: Sparkles, title: "Plain-English Insights", body: "No confusing medical jargon. Calm, empathetic guidance." },
-              { icon: Stethoscope, title: "Doctor-Ready Report", body: "Export a printable summary to bring to your appointment." },
-              { icon: ShieldCheck, title: "Private by Design", body: "Your health records stay yours. Zero ad tracking." },
-            ].map((f) => (
-              <div key={f.title} className="rounded-2xl bg-card/75 border border-border/70 p-3.5 backdrop-blur-xs">
-                <f.icon className="h-4 w-4 text-primary mb-1.5" />
-                <p className="font-semibold text-foreground">{f.title}</p>
-                <p className="text-muted-foreground mt-0.5 leading-relaxed">{f.body}</p>
-              </div>
-            ))}
+          <div className="flex items-center gap-2.5 text-xs text-muted-foreground shrink-0 font-medium pb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/70">
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Private &amp; Sovereign
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/70">
+              <Stethoscope className="w-3.5 h-3.5 text-primary" /> Doctor-Ready
+            </span>
           </div>
         </div>
-
-        {/* Ambient floral glow */}
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
-      </section>
+      </header>
 
       {/* Tabs navigation */}
       <Tabs defaultValue="symptoms" className="space-y-6 scroll-mt-8" id="symptom-assistant">
-        <TabsList className="flex-wrap h-auto p-1.5 gap-1.5 bg-card/80 backdrop-blur-md border border-border/70 rounded-3xl">
-          <TabsTrigger value="symptoms" className="gap-2">
-            <Sparkles className="w-3.5 h-3.5" /> Symptom Assistant
-          </TabsTrigger>
-          <TabsTrigger value="period">Period log</TabsTrigger>
-          <TabsTrigger value="daily">Daily wellness</TabsTrigger>
-          <TabsTrigger value="hormones">Cycle &amp; Hormones</TabsTrigger>
-          <TabsTrigger value="insights">AI insights</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="research">Research</TabsTrigger>
-          <TabsTrigger value="tracker">Quick log</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
+          <TabsList className="flex h-auto p-1.5 gap-1.5 bg-card/85 backdrop-blur-md border border-border/70 rounded-full w-max min-w-full sm:min-w-0">
+            <TabsTrigger value="symptoms" className="gap-2 shrink-0 rounded-full text-xs">
+              <Sparkles className="w-3.5 h-3.5" /> Symptom Assistant
+            </TabsTrigger>
+            <TabsTrigger value="period" className="shrink-0 rounded-full text-xs">Period log</TabsTrigger>
+            <TabsTrigger value="daily" className="shrink-0 rounded-full text-xs">Daily wellness</TabsTrigger>
+            <TabsTrigger value="hormones" className="shrink-0 rounded-full text-xs">Cycle &amp; Hormones</TabsTrigger>
+            <TabsTrigger value="insights" className="shrink-0 rounded-full text-xs">AI insights</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0 rounded-full text-xs">Dashboard</TabsTrigger>
+            <TabsTrigger value="research" className="shrink-0 rounded-full text-xs">Research</TabsTrigger>
+            <TabsTrigger value="tracker" className="shrink-0 rounded-full text-xs">Quick log</TabsTrigger>
+            <TabsTrigger value="settings" className="shrink-0 rounded-full text-xs">Settings</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
         <TabsContent value="period"><Suspense fallback={<PanelFallback />}><PeriodLogger /></Suspense></TabsContent>
@@ -301,12 +291,12 @@ function SymptomAssistant() {
   }
 
   return (
-    <div className="grid lg:grid-cols-12 gap-8 items-start">
+    <div className="grid lg:grid-cols-2 gap-6 items-start">
       {/* Left Column: Symptom Consultation Form */}
-      <Card className="lg:col-span-6 border-primary/20 bg-card/85 backdrop-blur-md shadow-lg shadow-primary/5">
-        <CardHeader className="pb-4">
+      <Card className="min-w-0 rounded-3xl border border-border/80 bg-card/90 backdrop-blur-md shadow-xs">
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-2 h-2 rounded-full bg-primary" />
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-xs uppercase tracking-wider text-primary font-semibold font-sans">
               Clinical Assessment
             </span>
@@ -314,106 +304,151 @@ function SymptomAssistant() {
           <CardTitle className="font-serif italic text-2xl sm:text-3xl text-foreground">
             Describe what you&apos;re experiencing
           </CardTitle>
-          <p className="text-xs text-muted-foreground leading-relaxed font-light mt-1">
+          <p className="text-xs text-muted-foreground leading-relaxed font-light mt-0.5">
             Share any physical symptoms, mood shifts, cycle changes, or pain in your own words.
           </p>
         </CardHeader>
 
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="sym" className="text-xs font-medium text-foreground">
-              Your Symptoms &amp; Observations
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="sym" className="text-xs font-medium text-foreground">
+                Your Symptoms &amp; Observations
+              </Label>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {symptoms.length}/2000 chars
+              </span>
+            </div>
             <Textarea
               id="sym"
-              rows={5}
+              rows={4}
               value={symptoms}
               onChange={(e) => setSymptoms(e.target.value)}
               placeholder="e.g. irregular periods for 3 months, acne on jawline, fatigue, lower back pain before bleeding..."
               maxLength={2000}
-              className="rounded-2xl bg-secondary/35 border-border/80 p-4 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus-visible:ring-primary/40 focus-visible:border-primary/50 transition-all resize-y min-h-[120px]"
+              className="rounded-2xl bg-secondary/35 border-border/80 p-3.5 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus-visible:ring-primary/40 focus-visible:border-primary/50 transition-all resize-y min-h-[110px]"
             />
             {/* Quick symptom chip helper */}
             <SymptomQuickAdd symptoms={symptoms} onChange={setSymptoms} />
           </div>
 
-          <div className="space-y-1.5 pt-1">
-            <Label htmlFor="age" className="text-xs font-medium text-foreground">
-              Age (optional — helps tailor hormonal context)
-            </Label>
-            <Input
-              id="age"
-              type="number"
-              min={10}
-              max={110}
-              placeholder="e.g. 28"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="rounded-full bg-secondary/35 border-border/80 h-10 px-4 text-sm max-w-xs focus-visible:ring-primary/40"
-            />
+          <div className="grid sm:grid-cols-2 gap-3 items-end pt-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="age" className="text-xs font-medium text-foreground">
+                Age (optional — helps tailor hormonal context)
+              </Label>
+              <Input
+                id="age"
+                type="number"
+                min={10}
+                max={110}
+                placeholder="e.g. 28"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className="rounded-2xl bg-secondary/35 border-border/80 h-11 px-4 text-sm focus-visible:ring-primary/40"
+              />
+            </div>
+            <Button
+              onClick={run}
+              disabled={loading}
+              className="w-full rounded-full h-11 font-medium shadow-sm hover:brightness-105 gap-2 transition-all cursor-pointer bg-primary text-primary-foreground shrink-0"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                  <span>Synthesizing Insights...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Analyze &amp; Generate Report</span>
+                </>
+              )}
+            </Button>
           </div>
 
-          <Button
-            onClick={run}
-            disabled={loading}
-            className="w-full rounded-full h-11.5 font-medium shadow-md shadow-primary/25 gap-2 transition-all cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <span className="w-4 h-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
-                <span>Synthesizing Health Insights...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Analyze Symptoms &amp; Generate Report</span>
-              </>
-            )}
-          </Button>
-
-          <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+          <p className="text-[11px] text-muted-foreground text-center leading-relaxed pt-1">
             🛡️ HerSpace AI is an educational tool designed for women&apos;s peace of mind. It does not replace professional diagnosis.
           </p>
         </CardContent>
       </Card>
 
       {/* Right Column: Structured Analysis & Intelligence */}
-      <div className="lg:col-span-6 space-y-5">
+      <div className="min-w-0 space-y-4">
         {!result && !loading && (
-          <Card className="border-dashed border-primary/25 bg-card/60 backdrop-blur-md p-6 sm:p-8">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-14 h-14 rounded-full bg-primary/12 border border-primary/25 flex items-center justify-center text-primary">
-                <Stethoscope className="w-6 h-6" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="font-serif italic text-2xl text-foreground">
-                  Doctor-Ready Health Intelligence
-                </h3>
-                <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed font-light">
-                  Submit your symptoms on the left to receive a compassionate, organized breakdown designed to bring to your next healthcare visit.
-                </p>
+          <>
+            <Card className="rounded-3xl border border-border/80 bg-card/90 backdrop-blur-md shadow-xs p-5 sm:p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                  <Stethoscope className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif italic text-lg sm:text-xl text-foreground font-semibold">
+                    Doctor-Ready Intelligence
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Organized summary to advocate for yourself at your next visit.
+                  </p>
+                </div>
               </div>
 
-              <div className="w-full pt-4 grid sm:grid-cols-2 gap-3 text-left">
-                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+              <div className="grid sm:grid-cols-2 gap-2.5 pt-1">
+                <div className="p-3 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
                   <p className="text-xs font-semibold text-primary">1. Clinical Translation</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">Plain-English summary of what your body is expressing.</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Plain-English medical summary of what your body is expressing.
+                  </p>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+                <div className="p-3 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
                   <p className="text-xs font-semibold text-primary">2. Possibilities to Discuss</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">Potential hormonal or physiological angles for your doctor.</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Differential hormonal or physiological patterns for your doctor.
+                  </p>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+                <div className="p-3 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
                   <p className="text-xs font-semibold text-primary">3. Doctor Questions</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">Empowering questions to advocate for thorough testing.</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Targeted questions to request appropriate lab panels and scans.
+                  </p>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+                <div className="p-3 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
                   <p className="text-xs font-semibold text-primary">4. Gentle Self-Care</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">Nutrition, herbal remedies, and restorative cycle habits.</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Evidence-informed nutrition, herbs, and restorative cycle habits.
+                  </p>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+
+            <Card className="rounded-3xl border border-border/80 bg-card/90 backdrop-blur-md shadow-xs p-5 sm:p-6 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-serif italic text-base text-foreground font-semibold">
+                    Appointment Advocacy Guide
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground">How to ensure your symptoms are heard and tested</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-start gap-2 p-2.5 rounded-2xl bg-secondary/25 border border-border/50">
+                  <span className="font-bold text-primary shrink-0">01</span>
+                  <span><strong>Track cycle timing:</strong> Note if symptoms peak during follicular (days 1-13) or luteal phase (days 14-28).</span>
+                </div>
+                <div className="flex items-start gap-2 p-2.5 rounded-2xl bg-secondary/25 border border-border/50">
+                  <span className="font-bold text-primary shrink-0">02</span>
+                  <span><strong>Request optimal testing days:</strong> Estrogen/FSH/LH on Day 3; Progesterone on Day 21 (7 days post-ovulation).</span>
+                </div>
+                <div className="flex items-start gap-2 p-2.5 rounded-2xl bg-secondary/25 border border-border/50">
+                  <span className="font-bold text-primary shrink-0">03</span>
+                  <span><strong>If dismissed:</strong> Calmly ask: <em>&ldquo;Please document in my clinical chart that you declined to order this test.&rdquo;</em></span>
+                </div>
+              </div>
+            </Card>
+          </>
         )}
 
         {loading && (
