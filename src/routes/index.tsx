@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Menu, X, ShieldCheck } from "lucide-react";
+import { Menu, X, ShieldCheck, Sparkles, Heart, Activity, Users, ArrowRight } from "lucide-react";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import {
   authLog,
   clearAuthDestination,
-  completeAuthRedirect,
   consumeOAuthFragmentSession,
   hasOAuthResponseInUrl,
   waitForAuthenticatedUser,
@@ -14,16 +13,16 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "HerSpace" },
+      { title: "HerSpace · Sanctuary for Women's Health & Sisterhood" },
       {
         name: "description",
         content:
-          "HerSpace is a private, women-only digital ecosystem — AI health intelligence, a verified safety network, sisterhood, mentorship and growth in one trusted space.",
+          "HerSpace is a private, women-only sanctuary — AI health intelligence, verified safety network, sisterhood, mentorship and growth in one trusted space.",
       },
-      { property: "og:title", content: "HerSpace" },
+      { property: "og:title", content: "HerSpace · A Sanctuary for Women" },
       {
         property: "og:description",
-        content: "A quiet room for your health, shared with those you trust.",
+        content: "A quiet, sunlit room for your body, mind, and sisterhood.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://her-space-connect.vercel.app/" },
@@ -33,305 +32,41 @@ export const Route = createFileRoute("/")({
       { rel: "canonical", href: "https://her-space-connect.vercel.app/" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap",
       },
     ],
   }),
-  component: App,
+  component: LandingPage,
 });
 
-const NAV = [
-  { n: "01.", label: "HEALTH", delay: 350 },
-  { n: "02.", label: "SAFETY", delay: 450 },
-  { n: "03.", label: "COMMUNITY", delay: 550 },
-  { n: "04.", label: "GROWTH", delay: 650 },
+const PILLARS = [
+  {
+    icon: Activity,
+    tag: "Cycle & Body",
+    title: "Hormonal & Cycle Intelligence",
+    desc: "Private AI translating symptoms, cycle phases, and fertility changes into calm, compassionate clarity.",
+  },
+  {
+    icon: ShieldCheck,
+    tag: "Protection",
+    title: "Verified Safety Sisterhood",
+    desc: "A verified network of safe places, trusted emergency beacons, and discreet walking companions.",
+  },
+  {
+    icon: Users,
+    tag: "Safe Space",
+    title: "Unconditional Sisterhood",
+    desc: "Anonymous discussions, genuine questions, and heartfelt support from women who understand your journey.",
+  },
+  {
+    icon: Sparkles,
+    tag: "Growth",
+    title: "Mentorship & Elevation",
+    desc: "Verified women leaders opening doors in careers, creative work, wellness, and personal empowerment.",
+  },
 ];
 
-function NavItem({ n, label, delay }: { n: string; label: string; delay: number }) {
-  return (
-    <div className="flex items-center gap-[3px] anim-fade-up" style={{ animationDelay: `${delay}ms` }}>
-      <span className="font-manrope text-[#AFDDFF]/80 text-[13px] leading-[15.6px]">{n}</span>
-      <span className="font-manrope text-white text-[13px] leading-[15.6px] cursor-pointer hover:text-[#AFDDFF] transition-colors">
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function TrustRows() {
-  return (
-    <>
-      <div className="flex items-center gap-[10px] mb-3">
-        <ShieldCheck className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
-        <span className="font-manrope text-white text-[13px] leading-[15.6px]">PRIVATE BY DESIGN</span>
-        <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ VERIFIED ]</span>
-      </div>
-      <div className="flex items-center gap-[8px]">
-        <span className="font-manrope text-white text-[13px] leading-[15.6px]">STATUS:</span>
-        <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px]">
-          WOMEN_ONLY
-        </span>
-      </div>
-    </>
-  );
-}
-
-function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <div
-      className={`fixed inset-0 z-50 lg:hidden transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
-        open ? "visible" : "invisible"
-      }`}
-    >
-      <div
-        onClick={onClose}
-        className={`absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
-          open ? "opacity-100" : "opacity-0"
-        }`}
-      />
-      <div
-        className={`relative h-full flex flex-col px-5 pt-24 pb-10 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
-          open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
-        }`}
-      >
-        <button
-          aria-label="Close menu"
-          onClick={onClose}
-          className="absolute top-5 right-5 w-[40px] h-[40px] flex items-center justify-center"
-        >
-          <X className="w-[22px] h-[22px] text-white" strokeWidth={1.5} />
-        </button>
-
-        <div className="flex flex-col gap-8">
-          {NAV.map((item, i) => (
-            <div
-              key={item.label}
-              className={`flex items-center gap-3 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
-                open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-6"
-              }`}
-              style={{ transitionDelay: open ? `${150 + i * 75}ms` : "0ms" }}
-            >
-              <span className="font-manrope text-[#AFDDFF]/80 text-[14px] leading-[1]">{item.n}</span>
-              <span className="font-manrope text-white text-[28px] leading-[1.2] tracking-tight">{item.label}</span>
-            </div>
-          ))}
-        </div>
-
-        <div
-          className={`mt-auto pt-10 border-t border-white/10 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
-            open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-          style={{ transitionDelay: open ? "450ms" : "0ms" }}
-        >
-          <TrustRows />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const verticalPositions = ["12.6%", "37.5%", "61.9%", "86.2%"];
-const horizontalPositions = ["32.7%", "71.4%"];
-const vDelays = [600, 700, 800, 900];
-const hDelays = [800, 950];
-const plusDelays = [1000, 1080, 1160, 1240, 1320, 1400, 1480, 1560];
-
-function GridLines() {
-  const marks: { left: string; top: string }[] = [];
-  horizontalPositions.forEach((top) => verticalPositions.forEach((left) => marks.push({ left, top })));
-
-  return (
-    <div className="absolute inset-0 pointer-events-none">
-      {verticalPositions.map((left, i) => (
-        <div
-          key={`v${left}`}
-          className="absolute top-0 h-full w-px bg-white/[0.04] anim-grid-v"
-          style={{ left, animationDelay: `${vDelays[i]}ms` }}
-        />
-      ))}
-      {horizontalPositions.map((top, i) => (
-        <div
-          key={`h${top}`}
-          className="absolute left-0 w-full h-px bg-white/[0.04] anim-grid-h"
-          style={{ top, animationDelay: `${hDelays[i]}ms` }}
-        />
-      ))}
-      {marks.map((m, i) => (
-        <div
-          key={`p${i}`}
-          className="absolute anim-fade-in"
-          style={{ left: m.left, top: m.top, animationDelay: `${plusDelays[i]}ms` }}
-        >
-          <div className="absolute w-[10px] h-px bg-white/70 -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute w-px h-[10px] bg-white/70 -translate-x-1/2 -translate-y-1/2" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ConnectorLine({
-  x1,
-  y1,
-  x2,
-  y2,
-  delay,
-}: {
-  x1: string;
-  y1: string;
-  x2: string;
-  y2: string;
-  delay: number;
-}) {
-  return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none anim-fade-in"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke="rgba(255,255,255,0.25)"
-        strokeWidth="1"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
-
-function NodeLabel({
-  top,
-  left,
-  anim,
-  delay,
-  title,
-  body,
-  maxW,
-}: {
-  top: string;
-  left: string;
-  anim: string;
-  delay: number;
-  title: string;
-  body: string;
-  maxW: string;
-}) {
-  return (
-    <div className={`absolute ${anim}`} style={{ top, left, animationDelay: `${delay}ms` }}>
-      <p className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">{title}</p>
-      <p className={`font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] ${maxW}`}>{body}</p>
-    </div>
-  );
-}
-
-function CentralNodes() {
-  return (
-    <div className="absolute inset-0 pointer-events-none hidden md:block">
-      <ConnectorLine x1="38%" y1="14%" x2="52%" y2="14%" delay={1200} />
-      <ConnectorLine x1="52%" y1="14%" x2="60%" y2="27%" delay={1400} />
-      <ConnectorLine x1="32%" y1="58%" x2="20%" y2="74%" delay={1500} />
-      <ConnectorLine x1="20%" y1="74%" x2="6%" y2="74%" delay={1700} />
-      <ConnectorLine x1="78%" y1="53%" x2="63%" y2="53%" delay={1800} />
-      <ConnectorLine x1="63%" y1="53%" x2="50%" y2="63%" delay={2000} />
-
-      <div
-        className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
-        style={{ top: "27%", left: "60%", animationDelay: "1500ms" }}
-      />
-      <div
-        className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
-        style={{ top: "58%", left: "32%", animationDelay: "1800ms" }}
-      />
-      <div
-        className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
-        style={{ top: "63%", left: "50%", animationDelay: "2100ms" }}
-      />
-
-      <NodeLabel
-        top="11%"
-        left="26%"
-        anim="anim-slide-left"
-        delay={1100}
-        title="[ INTELLIGENCE ]"
-        body="Sovereign AI health intelligence translating symptoms and research into private, understandable insights."
-        maxW="max-w-[160px]"
-      />
-      <NodeLabel
-        top="76%"
-        left="3%"
-        anim="anim-slide-left"
-        delay={1400}
-        title="[ SAFETY_NETWORK ]"
-        body="Verified safe places, trusted women professionals, and real-time safety connections wherever you go."
-        maxW="max-w-[160px]"
-      />
-      <NodeLabel
-        top="50%"
-        left="78%"
-        anim="anim-slide-right"
-        delay={1700}
-        title="[ SISTERHOOD ]"
-        body="A trusted network for mentorship, travel, careers, knowledge, and meaningful connection."
-        maxW="max-w-[180px]"
-      />
-    </div>
-  );
-}
-
-function BottomRow({ onJoin, onExplore }: { onJoin: () => void; onExplore: () => void }) {
-  return (
-    <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0 z-10">
-      <button
-        onClick={onJoin}
-        className="bg-[#AFDDFF] px-[16px] md:px-[20px] py-[10px] md:py-[12px] flex items-center gap-[10px] hover:bg-[#c8e8ff] transition-colors anim-fade-up relative z-10 cursor-pointer"
-        style={{ animationDelay: "900ms" }}
-      >
-        <span className="text-black text-[16px] leading-none">&#10022;</span>
-        <span className="font-manrope text-black text-[12px] md:text-[13px] leading-[15.6px] uppercase tracking-wide">
-          JOIN HERSPACE
-        </span>
-      </button>
-
-      <div
-        className="relative max-w-[280px] hidden sm:block anim-slide-right z-10"
-        style={{ animationDelay: "1100ms" }}
-      >
-        <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] px-[6px] py-[2px] inline-block mb-[10px]">
-          WOMEN-ONLY — BUILT FOR TRUST
-        </span>
-        <div className="relative p-[20px] z-10">
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            viewBox="0 0 280 168"
-            preserveAspectRatio="none"
-          >
-            <polygon
-              points="0.5,0.5 279.5,0.5 279.5,167.5 30,167.5 0.5,137.5"
-              fill="none"
-              stroke="#AFDDFF"
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-          <p className="relative font-manrope text-white text-[13px] leading-[18px] mb-[18px]">
-            A private digital ecosystem for women — connecting health intelligence, safety, community, and growth in
-            one trusted space.
-          </p>
-          <span
-            onClick={onExplore}
-            className="relative font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px] cursor-pointer hover:underline z-10"
-          >
-            EXPLORE HERSPACE
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function App() {
+function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -375,82 +110,253 @@ function App() {
   }, [navigate]);
 
   return (
-    <section className="relative w-full h-screen overflow-hidden bg-black">
-      <video
-        className="absolute inset-0 w-full h-full object-cover anim-fade-in"
-        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-      />
+    <div className="relative min-h-screen w-full bg-[#181214] text-[#fbf6f5] font-sans overflow-x-hidden selection:bg-[#c86d74]/40 selection:text-white">
+      {/* Background cinematic video with warm ethereal gradient veil */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <video
+          className="w-full h-full object-cover opacity-35 scale-105 filter blur-[0.5px]"
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+        {/* Soft botanical warm glow overlays */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#181214]/80 via-[#24151a]/60 to-[#181214] backdrop-blur-[1px]" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#c86d74]/15 blur-[120px]" />
+        <div className="absolute top-1/3 -right-32 w-[30rem] h-[30rem] rounded-full bg-[#e8998d]/15 blur-[140px]" />
+        <div className="absolute -bottom-32 left-1/4 w-[36rem] h-[36rem] rounded-full bg-[#7e9a86]/10 blur-[150px]" />
+      </div>
 
-      <div className="relative z-10 w-full h-full">
-        <nav className="absolute top-0 left-0 w-full flex items-center px-5 md:px-[35px] py-5 md:py-[27px] z-20">
-          <div className="flex items-center gap-[40px]">
-            <span
-              className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap anim-fade-up"
-              style={{ animationDelay: "200ms" }}
-            >
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Navigation */}
+        <header className="w-full px-5 sm:px-8 md:px-12 py-6 flex items-center justify-between border-b border-white/[0.07] backdrop-blur-md sticky top-0 z-40 bg-[#181214]/60">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#e07a70] to-[#c86d74] p-0.5 shadow-md shadow-rose-950/40 flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-[#181214]/40 backdrop-blur-xs flex items-center justify-center text-white">
+                <Sparkles className="w-4 h-4 text-rose-200" />
+              </div>
+            </div>
+            <span className="font-serif italic text-2xl tracking-tight text-white font-normal">
               HerSpace
             </span>
-            <div className="hidden lg:flex items-center gap-[40px]">
-              {NAV.map((item) => (
-                <NavItem key={item.label} n={item.n} label={item.label} delay={item.delay} />
-              ))}
+            <span className="hidden sm:inline-flex items-center gap-1.5 ml-2 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#c86d74]/20 border border-[#c86d74]/30 text-rose-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c86d74] animate-pulse" />
+              Women Only
+            </span>
+          </div>
+
+          {/* Desktop Nav Links */}
+          <nav className="hidden lg:flex items-center gap-8 text-sm text-stone-300">
+            <button
+              onClick={() => navigate({ to: "/auth" })}
+              className="hover:text-rose-200 transition-colors cursor-pointer"
+            >
+              Health Intelligence
+            </button>
+            <button
+              onClick={() => navigate({ to: "/auth" })}
+              className="hover:text-rose-200 transition-colors cursor-pointer"
+            >
+              Safety Network
+            </button>
+            <button
+              onClick={() => navigate({ to: "/auth" })}
+              className="hover:text-rose-200 transition-colors cursor-pointer"
+            >
+              Sisterhood Circle
+            </button>
+            <button
+              onClick={() => navigate({ to: "/auth" })}
+              className="hover:text-rose-200 transition-colors cursor-pointer"
+            >
+              Mentorship
+            </button>
+          </nav>
+
+          {/* Right Action buttons */}
+          <div className="hidden sm:flex items-center gap-3">
+            <button
+              onClick={() => navigate({ to: "/auth" })}
+              className="px-4 py-2 text-sm text-stone-200 hover:text-white transition-colors cursor-pointer"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => navigate({ to: "/auth", search: { mode: "signup" } })}
+              className="px-5 py-2.5 rounded-full text-sm font-medium bg-gradient-to-r from-[#d97762] via-[#c86d74] to-[#b85a6b] text-white shadow-md shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
+            >
+              <span>Join Sanctuary</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            aria-label="Toggle navigation"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="sm:hidden p-2 rounded-full text-stone-200 hover:bg-white/10 transition-colors"
+          >
+            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </header>
+
+        {/* Mobile slide-over menu */}
+        {menuOpen && (
+          <div className="sm:hidden fixed inset-0 top-[73px] z-50 bg-[#181214]/95 backdrop-blur-xl p-6 flex flex-col justify-between border-t border-white/10">
+            <div className="space-y-6 pt-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[#e8998d]">Sanctuary Navigation</p>
+              <div className="flex flex-col gap-4 text-xl font-serif italic">
+                <button
+                  onClick={() => { setMenuOpen(false); navigate({ to: "/auth" }); }}
+                  className="text-left text-stone-200 hover:text-rose-200 py-2 border-b border-white/5"
+                >
+                  Health Hub & Cycle
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); navigate({ to: "/auth" }); }}
+                  className="text-left text-stone-200 hover:text-rose-200 py-2 border-b border-white/5"
+                >
+                  Sisterhood Safety Network
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); navigate({ to: "/auth" }); }}
+                  className="text-left text-stone-200 hover:text-rose-200 py-2 border-b border-white/5"
+                >
+                  Safe Space Community
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); navigate({ to: "/auth" }); }}
+                  className="text-left text-stone-200 hover:text-rose-200 py-2 border-b border-white/5"
+                >
+                  Mentorship & Growth
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 pb-8">
+              <button
+                onClick={() => { setMenuOpen(false); navigate({ to: "/auth", search: { mode: "signup" } }); }}
+                className="w-full py-3.5 rounded-full font-medium bg-gradient-to-r from-[#d97762] via-[#c86d74] to-[#b85a6b] text-white text-center shadow-lg"
+              >
+                Join HerSpace
+              </button>
+              <button
+                onClick={() => { setMenuOpen(false); navigate({ to: "/auth" }); }}
+                className="w-full py-3 rounded-full text-stone-300 hover:text-white text-center border border-white/10"
+              >
+                Sign In / Guest Access
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Hero Section */}
+        <main className="flex-1 flex flex-col items-center justify-center px-5 sm:px-8 md:px-12 pt-16 md:pt-24 pb-20 max-w-5xl mx-auto text-center">
+          {/* Gentle Sanctuary Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.06] border border-rose-300/20 backdrop-blur-md mb-8 anim-fade-up">
+            <Heart className="w-3.5 h-3.5 text-[#e07a70] fill-[#e07a70]/40" />
+            <span className="text-xs tracking-wide text-rose-100 font-medium">
+              A private, sacred haven created specifically for women
+            </span>
+          </div>
+
+          {/* Emotional Heading */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif italic text-white leading-[1.08] tracking-tight max-w-4xl anim-fade-up">
+            A quiet room for your health, safety, and sisterhood.
+          </h1>
+
+          <p className="mt-6 text-base sm:text-lg md:text-xl text-stone-300 max-w-2xl leading-relaxed anim-fade-up font-light">
+            Sovereign hormonal health intelligence. A verified safety net wherever you walk.
+            And a trusted circle of women who truly understand.
+          </p>
+
+          {/* Action CTAs */}
+          <div className="mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto anim-fade-up">
+            <button
+              onClick={() => navigate({ to: "/auth", search: { mode: "signup" } })}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-base font-semibold bg-gradient-to-r from-[#d97762] via-[#c86d74] to-[#b85a6b] text-white shadow-xl shadow-rose-950/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5"
+            >
+              <span>Enter HerSpace</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigate({ to: "/auth" })}
+              className="w-full sm:w-auto px-7 py-3.5 rounded-full text-base font-medium text-rose-100 bg-white/[0.05] border border-rose-200/20 hover:bg-white/[0.1] backdrop-blur-md transition-all cursor-pointer"
+            >
+              Instant Guest Tour
+            </button>
+          </div>
+
+          {/* Trust Highlights */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs text-stone-400 border-t border-white/[0.08] pt-8 w-full max-w-2xl anim-fade-in">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Verified Women Only</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#c86d74]" />
+              <span>Zero Advertising or Tracking</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#7e9a86]" />
+              <span>End-to-End Encrypted Logs</span>
             </div>
           </div>
 
-          <div
-            className="hidden lg:flex items-center gap-[12px] ml-auto anim-slide-right"
-            style={{ animationDelay: "600ms" }}
-          >
-            <ShieldCheck className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
-            <span className="font-manrope text-white text-[13px] leading-[15.6px]">PRIVATE BY DESIGN</span>
-            <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ VERIFIED ]</span>
-            <span className="font-manrope text-white text-[13px] leading-[15.6px] ml-[20px]">STATUS:</span>
-            <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px]">
-              WOMEN_ONLY
-            </span>
+          {/* Sanctuary Pillars Grid */}
+          <div className="mt-24 grid sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left w-full">
+            {PILLARS.map((pillar) => (
+              <div
+                key={pillar.title}
+                className="group relative p-6 rounded-3xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md hover:bg-white/[0.07] hover:border-rose-300/30 transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#c86d74]/20 to-[#e8998d]/20 border border-[#c86d74]/30 flex items-center justify-center text-[#e8998d] mb-4 group-hover:scale-110 transition-transform">
+                  <pillar.icon className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] uppercase tracking-widest text-[#e8998d] font-semibold">
+                  {pillar.tag}
+                </span>
+                <h2 className="text-lg font-serif italic text-white mt-1 mb-2">
+                  {pillar.title}
+                </h2>
+                <p className="text-xs text-stone-300 leading-relaxed font-light">
+                  {pillar.desc}
+                </p>
+              </div>
+            ))}
           </div>
 
-          <button
-            aria-label="Toggle menu"
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="lg:hidden ml-auto relative w-[40px] h-[40px] flex items-center justify-center anim-fade-in"
-            style={{ animationDelay: "400ms" }}
-          >
-            <Menu
-              className={`absolute w-[22px] h-[22px] text-white transition-all duration-300 ease-[cubic-bezier(0.76,0,0.24,1)] ${
-                menuOpen ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"
-              }`}
-              strokeWidth={1.5}
-            />
-            <X
-              className={`absolute w-[22px] h-[22px] text-white transition-all duration-300 ease-[cubic-bezier(0.76,0,0.24,1)] ${
-                menuOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"
-              }`}
-              strokeWidth={1.5}
-            />
-          </button>
-        </nav>
+          {/* Testimonial Quote */}
+          <div className="mt-20 w-full max-w-2xl p-8 rounded-3xl bg-gradient-to-br from-rose-950/20 via-white/[0.03] to-stone-900/30 border border-rose-200/15 backdrop-blur-md text-center">
+            <p className="font-serif italic text-xl md:text-2xl text-rose-100 leading-relaxed">
+              "For the first time, a digital space feels like resting in a quiet room with women who have your back."
+            </p>
+            <p className="mt-4 text-xs uppercase tracking-[0.2em] text-[#e8998d]">
+              Sisterhood Member &middot; HerSpace
+            </p>
+          </div>
+        </main>
 
-        <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
-
-        <h1
-          className="font-graphik text-white font-normal leading-[1em] absolute anim-fade-up text-[32px] sm:text-[48px] md:text-[68px] top-[140px] sm:top-[160px] md:top-[178px] left-5 md:left-[35px] max-w-[300px] sm:max-w-[420px] md:max-w-[554px]"
-          style={{ animationDelay: "400ms" }}
-        >
-          A quiet room for your health.
-        </h1>
-
-        <GridLines />
-        <CentralNodes />
-        <BottomRow
-          onJoin={() => navigate({ to: "/auth", search: { mode: "signup" } })}
-          onExplore={() => navigate({ to: "/auth" })}
-        />
+        {/* Warm Minimal Footer */}
+        <footer className="w-full px-5 sm:px-8 md:px-12 py-8 border-t border-white/[0.07] text-xs text-stone-400 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-serif italic text-base text-white">HerSpace</span>
+            <span>&middot; Designed with warmth &amp; deep care for women.</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <button onClick={() => navigate({ to: "/privacy" })} className="hover:text-stone-200 transition-colors">
+              Privacy Promise
+            </button>
+            <button onClick={() => navigate({ to: "/terms" })} className="hover:text-stone-200 transition-colors">
+              Terms &amp; Safety
+            </button>
+            <button onClick={() => navigate({ to: "/auth" })} className="hover:text-rose-300 transition-colors">
+              Enter Sanctuary &rarr;
+            </button>
+          </div>
+        </footer>
       </div>
-    </section>
+    </div>
   );
 }

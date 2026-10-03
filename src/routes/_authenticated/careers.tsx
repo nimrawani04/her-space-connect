@@ -183,10 +183,13 @@ export function Careers() {
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {announcement}
       </div>
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">05 · Opportunity</p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Careers & Opportunity</h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl">Internships, scholarships, fellowships, grants, and competitions shared by the community — for women, by women.</p>
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">05 · Opportunity & Growth</p>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Careers & Opportunity</h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">Internships, scholarships, fellowships, grants, and competitions shared by the community — for women, by women.</p>
       </header>
 
       <div className="grid md:grid-cols-3 gap-6">

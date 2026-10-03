@@ -82,35 +82,48 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
   }
 
   return (
-    <div className="space-y-3 pt-1">
-      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Start faster</p>
-      <div className="flex flex-wrap gap-2">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setActiveCategory(cat)}
-            className={`px-3 py-1 rounded-full text-xs border transition-colors ${
-              activeCategory === cat
-                ? "bg-earth text-earth-foreground border-earth"
-                : "bg-background text-foreground border-border hover:border-earth/40"
-            }`}
-            aria-pressed={activeCategory === cat}
-          >
-            {cat}
-          </button>
-        ))}
+    <div className="space-y-3 pt-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground font-semibold">
+          Tap to add common symptoms
+        </p>
+        <span className="text-[11px] text-primary font-medium">Quick Suggestions</span>
       </div>
-      <div className="flex flex-wrap gap-2">
+
+      {/* Category Pills */}
+      <div className="flex flex-wrap gap-1.5">
+        {categories.map((cat) => {
+          const isActive = activeCategory === cat;
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActiveCategory(cat)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-xs shadow-primary/25 scale-[1.02]"
+                  : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+              aria-pressed={isActive}
+            >
+              {cat}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Symptom Tag Pills */}
+      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 scrollbar-thin">
         {visible.map((ex) => (
           <button
             key={ex}
             type="button"
             onClick={() => add(ex)}
-            className="px-2.5 py-1 rounded-full text-xs bg-sand/50 text-earth border border-transparent hover:border-earth/30 hover:bg-sand transition-colors"
+            className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1"
             aria-label={`Add ${ex}`}
           >
-            + {ex}
+            <span className="text-xs font-bold leading-none">+</span>
+            <span>{ex}</span>
           </button>
         ))}
       </div>
@@ -120,58 +133,76 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
 
 function HealthHub() {
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <section className="rounded-3xl bg-sand/40 border border-border p-8 md:p-12">
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-3">01 · Intelligence</p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic leading-tight max-w-2xl">
-          Understand your body, before you see the doctor.
-        </h1>
-        <p className="text-muted-foreground mt-4 max-w-2xl leading-relaxed">
-          The HerSpace AI Symptom Assistant listens carefully, suggests possibilities to discuss with a clinician,
-          and prepares a doctor-ready report — designed by and for women.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild className="rounded-full bg-earth text-earth-foreground hover:brightness-110 gap-2">
-            <a href="#symptom-assistant"><Sparkles className="h-4 w-4" /> Start with your symptoms</a>
-          </Button>
-          <Button asChild variant="outline" className="rounded-full">
-            <a href="#symptom-assistant">How it works</a>
-          </Button>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+      {/* Serene Health Sanctuary Banner */}
+      <section className="relative rounded-3xl bg-gradient-to-br from-primary/12 via-secondary/40 to-background border border-primary/20 p-6 sm:p-10 md:p-12 overflow-hidden shadow-sm">
+        <div className="relative z-10 max-w-3xl space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 border border-primary/25 text-xs font-medium text-primary">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>01 &middot; Sovereign Health Intelligence</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic leading-tight text-foreground tracking-tight">
+            Understand your body, before you see the doctor.
+          </h1>
+
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-light">
+            The HerSpace AI Symptom Assistant listens with care, correlates your signs with trusted clinical research,
+            and prepares a doctor-ready consultation report — private, sovereign, and built specifically for women.
+          </p>
+
+          <div className="pt-2 flex flex-wrap gap-3">
+            <Button asChild className="rounded-full shadow-sm shadow-primary/25 gap-2">
+              <a href="#symptom-assistant">
+                <Sparkles className="h-4 w-4" /> Start Symptom Consultation
+              </a>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full">
+              <a href="#symptom-assistant">How It Works</a>
+            </Button>
+          </div>
+
+          <div className="pt-4 grid sm:grid-cols-3 gap-3.5 text-xs">
+            {[
+              { icon: Sparkles, title: "Plain-English Insights", body: "No confusing medical jargon. Calm, empathetic guidance." },
+              { icon: Stethoscope, title: "Doctor-Ready Report", body: "Export a printable summary to bring to your appointment." },
+              { icon: ShieldCheck, title: "Private by Design", body: "Your health records stay yours. Zero ad tracking." },
+            ].map((f) => (
+              <div key={f.title} className="rounded-2xl bg-card/75 border border-border/70 p-3.5 backdrop-blur-xs">
+                <f.icon className="h-4 w-4 text-primary mb-1.5" />
+                <p className="font-semibold text-foreground">{f.title}</p>
+                <p className="text-muted-foreground mt-0.5 leading-relaxed">{f.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-8 grid sm:grid-cols-3 gap-4 text-sm">
-          {[
-            { icon: Sparkles, title: "Plain-English answers", body: "No jargon. Just a calm summary you can act on." },
-            { icon: Stethoscope, title: "Doctor-ready report", body: "Export a printable PDF to bring to your appointment." },
-            { icon: ShieldCheck, title: "Private by design", body: "Your entries stay yours. Educational, never diagnostic." },
-          ].map((f) => (
-            <div key={f.title} className="rounded-2xl bg-background/60 border border-border p-4">
-              <f.icon className="h-4 w-4 text-earth mb-2" />
-              <p className="font-medium">{f.title}</p>
-              <p className="text-muted-foreground mt-1 leading-relaxed">{f.body}</p>
-            </div>
-          ))}
-        </div>
+
+        {/* Ambient floral glow */}
+        <div className="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
       </section>
 
+      {/* Tabs navigation */}
       <Tabs defaultValue="symptoms" className="space-y-6 scroll-mt-8" id="symptom-assistant">
-        <TabsList className="flex-wrap h-auto">
+        <TabsList className="flex-wrap h-auto p-1.5 gap-1.5 bg-card/80 backdrop-blur-md border border-border/70 rounded-3xl">
+          <TabsTrigger value="symptoms" className="gap-2">
+            <Sparkles className="w-3.5 h-3.5" /> Symptom Assistant
+          </TabsTrigger>
           <TabsTrigger value="period">Period log</TabsTrigger>
           <TabsTrigger value="daily">Daily wellness</TabsTrigger>
-          <TabsTrigger value="hormones">Cycle & Hormones</TabsTrigger>
+          <TabsTrigger value="hormones">Cycle &amp; Hormones</TabsTrigger>
           <TabsTrigger value="insights">AI insights</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="symptoms">Symptom Assistant</TabsTrigger>
           <TabsTrigger value="research">Research</TabsTrigger>
           <TabsTrigger value="tracker">Quick log</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
         <TabsContent value="period"><Suspense fallback={<PanelFallback />}><PeriodLogger /></Suspense></TabsContent>
         <TabsContent value="daily"><Suspense fallback={<PanelFallback />}><DailyWellness /></Suspense></TabsContent>
         <TabsContent value="insights"><Suspense fallback={<PanelFallback />}><AIInsights /></Suspense></TabsContent>
         <TabsContent value="dashboard"><Suspense fallback={<PanelFallback />}><CycleDashboard /></Suspense></TabsContent>
         <TabsContent value="settings"><Suspense fallback={<PanelFallback />}><HealthSettings /></Suspense></TabsContent>
-        <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
         <TabsContent value="research"><ResearchSimplifier /></TabsContent>
         <TabsContent value="tracker"><CycleTracker /></TabsContent>
         <TabsContent value="hormones">
@@ -208,9 +239,9 @@ function SymptomAssistant() {
 
   const urgencyColor: Record<string, string> = {
     "self-care": "bg-sage/15 text-sage border-sage/30",
-    "see-a-doctor-soon": "bg-earth/10 text-earth border-earth/30",
-    "urgent": "bg-orange-100 text-orange-900 border-orange-300",
-    "emergency": "bg-red-100 text-red-900 border-red-400",
+    "see-a-doctor-soon": "bg-primary/12 text-primary border-primary/30",
+    "urgent": "bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-300",
+    "emergency": "bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 border-rose-400",
   };
 
   function buildReport(r: SymptomResult) {
@@ -270,98 +301,216 @@ function SymptomAssistant() {
   }
 
   return (
-    <div className="grid md:grid-cols-5 gap-6">
-      <Card className="md:col-span-2">
-        <CardHeader><CardTitle className="font-serif italic text-2xl">Describe what you're experiencing</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
+    <div className="grid lg:grid-cols-12 gap-8 items-start">
+      {/* Left Column: Symptom Consultation Form */}
+      <Card className="lg:col-span-6 border-primary/20 bg-card/85 backdrop-blur-md shadow-lg shadow-primary/5">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-primary" />
+            <span className="text-xs uppercase tracking-wider text-primary font-semibold font-sans">
+              Clinical Assessment
+            </span>
+          </div>
+          <CardTitle className="font-serif italic text-2xl sm:text-3xl text-foreground">
+            Describe what you&apos;re experiencing
+          </CardTitle>
+          <p className="text-xs text-muted-foreground leading-relaxed font-light mt-1">
+            Share any physical symptoms, mood shifts, cycle changes, or pain in your own words.
+          </p>
+        </CardHeader>
+
+        <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="sym">Symptoms</Label>
-            <Textarea id="sym" rows={6} value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="e.g. irregular periods for 3 months, acne on jaw, hair thinning…" maxLength={2000} />
+            <Label htmlFor="sym" className="text-xs font-medium text-foreground">
+              Your Symptoms &amp; Observations
+            </Label>
+            <Textarea
+              id="sym"
+              rows={5}
+              value={symptoms}
+              onChange={(e) => setSymptoms(e.target.value)}
+              placeholder="e.g. irregular periods for 3 months, acne on jawline, fatigue, lower back pain before bleeding..."
+              maxLength={2000}
+              className="rounded-2xl bg-secondary/35 border-border/80 p-4 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus-visible:ring-primary/40 focus-visible:border-primary/50 transition-all resize-y min-h-[120px]"
+            />
+            {/* Quick symptom chip helper */}
             <SymptomQuickAdd symptoms={symptoms} onChange={setSymptoms} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="age">Age (optional)</Label>
-            <Input id="age" type="number" min={10} max={110} value={age} onChange={(e) => setAge(e.target.value)} />
+
+          <div className="space-y-1.5 pt-1">
+            <Label htmlFor="age" className="text-xs font-medium text-foreground">
+              Age (optional — helps tailor hormonal context)
+            </Label>
+            <Input
+              id="age"
+              type="number"
+              min={10}
+              max={110}
+              placeholder="e.g. 28"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              className="rounded-full bg-secondary/35 border-border/80 h-10 px-4 text-sm max-w-xs focus-visible:ring-primary/40"
+            />
           </div>
-          <Button onClick={run} disabled={loading} className="w-full rounded-full bg-earth text-earth-foreground hover:brightness-110">
-            {loading ? "Analyzing…" : "Analyze symptoms"}
+
+          <Button
+            onClick={run}
+            disabled={loading}
+            className="w-full rounded-full h-11.5 font-medium shadow-md shadow-primary/25 gap-2 transition-all cursor-pointer"
+          >
+            {loading ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                <span>Synthesizing Health Insights...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Analyze Symptoms &amp; Generate Report</span>
+              </>
+            )}
           </Button>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            HerSpace AI is an educational tool. It does not diagnose. For emergencies, call your local emergency number.
+
+          <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+            🛡️ HerSpace AI is an educational tool designed for women&apos;s peace of mind. It does not replace professional diagnosis.
           </p>
         </CardContent>
       </Card>
 
-      <div className="md:col-span-3 space-y-4">
+      {/* Right Column: Structured Analysis & Intelligence */}
+      <div className="lg:col-span-6 space-y-5">
         {!result && !loading && (
-          <Card className="border-dashed">
-            <CardContent className="p-8 text-center text-muted-foreground">
-              Your structured analysis will appear here.
-            </CardContent>
+          <Card className="border-dashed border-primary/25 bg-card/60 backdrop-blur-md p-6 sm:p-8">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-14 h-14 rounded-full bg-primary/12 border border-primary/25 flex items-center justify-center text-primary">
+                <Stethoscope className="w-6 h-6" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="font-serif italic text-2xl text-foreground">
+                  Doctor-Ready Health Intelligence
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed font-light">
+                  Submit your symptoms on the left to receive a compassionate, organized breakdown designed to bring to your next healthcare visit.
+                </p>
+              </div>
+
+              <div className="w-full pt-4 grid sm:grid-cols-2 gap-3 text-left">
+                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+                  <p className="text-xs font-semibold text-primary">1. Clinical Translation</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">Plain-English summary of what your body is expressing.</p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+                  <p className="text-xs font-semibold text-primary">2. Possibilities to Discuss</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">Potential hormonal or physiological angles for your doctor.</p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+                  <p className="text-xs font-semibold text-primary">3. Doctor Questions</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">Empowering questions to advocate for thorough testing.</p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 space-y-1">
+                  <p className="text-xs font-semibold text-primary">4. Gentle Self-Care</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">Nutrition, herbal remedies, and restorative cycle habits.</p>
+                </div>
+              </div>
+            </div>
           </Card>
         )}
-        {loading && <Card><CardContent className="p-8 text-muted-foreground">Thinking carefully…</CardContent></Card>}
+
+        {loading && (
+          <Card className="border-primary/30 bg-card/80 backdrop-blur-md p-10 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-primary/15 mx-auto flex items-center justify-center text-primary animate-pulse">
+              <Sparkles className="w-6 h-6 animate-spin" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-serif italic text-2xl text-foreground">Listening carefully...</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                HerSpace is cross-referencing your symptoms with evidence-based research and preparing your private report.
+              </p>
+            </div>
+          </Card>
+        )}
+
         {result && (
           <>
             {result.urgency === "emergency" && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>This may need urgent care</AlertTitle>
-                <AlertDescription>Please contact emergency services or go to the nearest ER.</AlertDescription>
+              <Alert variant="destructive" className="rounded-2xl border-rose-400 bg-rose-50 dark:bg-rose-950/80">
+                <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-300" />
+                <AlertTitle className="font-serif italic text-base">This may require immediate medical care</AlertTitle>
+                <AlertDescription className="text-xs mt-1">
+                  Please contact emergency services (911/999) or visit the nearest emergency room without delay.
+                </AlertDescription>
               </Alert>
             )}
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <CardTitle className="font-serif italic text-2xl">Summary</CardTitle>
-                <Badge className={urgencyColor[result.urgency] ?? ""}>{result.urgency.replace(/-/g, " ")}</Badge>
+
+            <Card className="border-primary/25 bg-card/90 backdrop-blur-md shadow-lg shadow-primary/5">
+              <CardHeader className="flex flex-row items-start justify-between pb-3">
+                <div>
+                  <span className="text-xs uppercase tracking-wider text-primary font-semibold">Assessment Summary</span>
+                  <CardTitle className="font-serif italic text-2xl text-foreground mt-0.5">Clinical Synthesis</CardTitle>
+                </div>
+                <Badge className={`rounded-full px-3 py-1 text-xs capitalize ${urgencyColor[result.urgency] ?? ""}`}>
+                  {result.urgency.replace(/-/g, " ")}
+                </Badge>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p className="leading-relaxed">{result.plainEnglishSummary}</p>
+                <p className="text-sm leading-relaxed text-foreground/90 bg-secondary/30 p-4 rounded-2xl border border-border/60">
+                  {result.plainEnglishSummary}
+                </p>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={downloadReport} variant="outline" size="sm" className="rounded-full gap-2">
-                    <FileDown className="h-3.5 w-3.5" /> Download doctor-ready report
+                <div className="flex flex-wrap gap-2.5">
+                  <Button onClick={downloadReport} variant="outline" size="sm" className="rounded-full gap-2 text-xs">
+                    <FileDown className="h-3.5 w-3.5 text-primary" /> Download Doctor Report (.txt)
                   </Button>
-                  <Button onClick={printReport} variant="outline" size="sm" className="rounded-full gap-2">
-                    <Printer className="h-3.5 w-3.5" /> Print / Save as PDF
+                  <Button onClick={printReport} variant="outline" size="sm" className="rounded-full gap-2 text-xs">
+                    <Printer className="h-3.5 w-3.5 text-primary" /> Print / Save as PDF
                   </Button>
                 </div>
 
-                <Section title="Possible things to discuss with a clinician">
+                <Section title="Possible things to explore with a clinician">
                   <ul className="space-y-3">
                     {result.possibleConditions.map((c) => (
-                      <li key={c.name} className="rounded-xl border border-border p-4">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium">{c.name}</span>
-                          <Badge variant="outline" className="text-[10px]">confidence: {c.confidence}</Badge>
+                      <li key={c.name} className="rounded-2xl border border-border/70 bg-card/60 p-4 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-serif italic text-base text-foreground">{c.name}</span>
+                          <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                            Confidence: {c.confidence}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{c.why}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{c.why}</p>
                       </li>
                     ))}
                   </ul>
                 </Section>
 
-                <Section title="Questions to bring to your doctor">
-                  <ul className="list-disc pl-5 space-y-1.5 text-sm">
-                    {result.questionsForYourDoctor.map((q) => <li key={q}>{q}</li>)}
-                  </ul>
+                <Section title="Questions to bring to your appointment">
+                  <div className="rounded-2xl border border-border/70 bg-secondary/20 p-4">
+                    <ul className="list-disc pl-5 space-y-2 text-xs text-foreground/90">
+                      {result.questionsForYourDoctor.map((q) => <li key={q} className="leading-relaxed">{q}</li>)}
+                    </ul>
+                  </div>
                 </Section>
 
-                <Section title="Gentle self-care">
-                  <ul className="list-disc pl-5 space-y-1.5 text-sm">
-                    {result.selfCareSuggestions.map((s) => <li key={s}>{s}</li>)}
-                  </ul>
+                <Section title="Nourishing self-care suggestions">
+                  <div className="rounded-2xl border border-border/70 bg-secondary/20 p-4">
+                    <ul className="list-disc pl-5 space-y-2 text-xs text-foreground/90">
+                      {result.selfCareSuggestions.map((s) => <li key={s} className="leading-relaxed">{s}</li>)}
+                    </ul>
+                  </div>
                 </Section>
 
                 {result.redFlags.length > 0 && (
                   <Section title="Red flags — seek care if you notice">
-                    <ul className="list-disc pl-5 space-y-1.5 text-sm text-red-700">
-                      {result.redFlags.map((r) => <li key={r}>{r}</li>)}
-                    </ul>
+                    <div className="rounded-2xl border border-rose-300 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/40 p-4">
+                      <ul className="list-disc pl-5 space-y-1.5 text-xs text-rose-700 dark:text-rose-300">
+                        {result.redFlags.map((r) => <li key={r}>{r}</li>)}
+                      </ul>
+                    </div>
                   </Section>
                 )}
 
-                <p className="text-xs text-muted-foreground italic border-t border-border pt-4">{result.disclaimer}</p>
+                <p className="text-[11px] text-muted-foreground italic border-t border-border/60 pt-4">
+                  {result.disclaimer}
+                </p>
               </CardContent>
             </Card>
           </>

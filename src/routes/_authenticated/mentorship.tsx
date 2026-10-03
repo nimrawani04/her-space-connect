@@ -46,10 +46,15 @@ function Mentorship() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">04 · Growth</p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Mentorship</h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl">Connect with verified women leaders across engineering, medicine, research, AI, entrepreneurship, design, UPSC, and freelancing.</p>
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">04 · Leadership & Growth</p>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Mentorship Circle</h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+          Connect with verified women leaders across engineering, medicine, research, design, AI, and entrepreneurship.
+        </p>
       </header>
 
       <div className="grid md:grid-cols-3 gap-6">
