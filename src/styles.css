@@ -223,6 +223,13 @@
    keep <body> transparent so the pattern shows through every page shell. */
 html {
   background-color: var(--color-background);
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  overflow-wrap: break-word;
 }
 html.bg-warm {
   background-image: 

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useSearch, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { HerSpaceLogo } from "@/components/brand/HerSpaceLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { Button } from "@/components/ui/button";
@@ -244,9 +245,7 @@ function AuthPage() {
             to="/"
             className="flex items-center gap-2.5 font-serif italic text-2xl text-white tracking-tight"
           >
-            <div className="w-8 h-8 rounded-full bg-[#c86d74]/20 border border-[#c86d74]/40 flex items-center justify-center text-rose-200">
-              <span className="text-sm">&#10022;</span>
-            </div>
+            <HerSpaceLogo size={32} />
             <span>HerSpace</span>
           </Link>
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-[#c86d74]/15 border border-[#c86d74]/25 text-rose-200">
