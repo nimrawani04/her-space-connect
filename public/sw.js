@@ -1,11 +1,16 @@
 // HerSpace Service Worker
-const CACHE_NAME = "herspace-v1";
+const CACHE_NAME = "herspace-v3";
 const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",
+  "/favicon.ico",
+  "/favicon.png",
+  "/favicon.svg",
+  "/apple-touch-icon.png",
+  "/apple-touch-icon-precomposed.png",
+  "/app-icon.png",
   "/icon-192.png",
-  "/icon-512.png",
-  "/favicon.png"
+  "/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
