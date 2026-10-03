@@ -221,234 +221,204 @@ function AuthPage() {
   }
 
   return (
-    <section className="relative w-full min-h-dvh overflow-hidden bg-black text-white">
-      <video
-        className="absolute inset-0 w-full h-full object-cover anim-fade-in"
-        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-      />
-      <div className="absolute inset-0 bg-black/60" />
-
-      <div className="absolute inset-0 pointer-events-none">
-        {["12.6%", "37.5%", "61.9%", "86.2%"].map((left, i) => (
-          <div
-            key={`v${left}`}
-            className="absolute top-0 h-full w-px bg-white/[0.04] anim-grid-v"
-            style={{ left, animationDelay: `${600 + i * 100}ms` }}
-          />
-        ))}
-        {["32.7%", "71.4%"].map((top, i) => (
-          <div
-            key={`h${top}`}
-            className="absolute left-0 w-full h-px bg-white/[0.04] anim-grid-h"
-            style={{ top, animationDelay: `${800 + i * 150}ms` }}
-          />
-        ))}
-        {["32.7%", "71.4%"].flatMap((top) =>
-          ["12.6%", "37.5%", "61.9%", "86.2%"].map((left) => ({ left, top })),
-        ).map((m, i) => (
-          <div
-            key={`p${i}`}
-            className="absolute anim-fade-in"
-            style={{ left: m.left, top: m.top, animationDelay: `${1000 + i * 80}ms` }}
-          >
-            <div className="absolute w-[10px] h-px bg-white/70 -translate-x-1/2 -translate-y-1/2" />
-            <div className="absolute w-px h-[10px] bg-white/70 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-        ))}
+    <section className="relative w-full min-h-dvh overflow-hidden bg-[#181214] text-[#fbf6f5] font-sans flex flex-col">
+      {/* Background cinematic video with warm ethereal gradient veil */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <video
+          className="w-full h-full object-cover opacity-25 scale-105 filter blur-[1px]"
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#181214]/85 via-[#231519]/75 to-[#181214] backdrop-blur-[1px]" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#c86d74]/20 blur-[130px]" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-[#e8998d]/20 blur-[140px]" />
       </div>
 
-      <div className="absolute inset-0 pointer-events-none hidden md:block">
-        <svg
-          className="absolute inset-0 w-full h-full anim-fade-in"
-          style={{ animationDelay: "1200ms" }}
-        >
-          <line x1="38%" y1="14%" x2="52%" y2="14%" stroke="rgba(255,255,255,0.25)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-          <line x1="32%" y1="58%" x2="20%" y2="74%" stroke="rgba(255,255,255,0.25)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        </svg>
-        <div
-          className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
-          style={{ top: "27%", left: "60%", animationDelay: "1500ms" }}
-        />
-        <div
-          className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
-          style={{ top: "58%", left: "32%", animationDelay: "1800ms" }}
-        />
-      </div>
-
-      <div className="relative z-10 w-full min-h-dvh flex flex-col">
-        <nav className="w-full flex items-center px-5 md:px-[35px] py-5 md:py-[27px]">
+      <div className="relative z-10 w-full min-h-dvh flex flex-col justify-between">
+        {/* Navigation */}
+        <nav className="w-full flex items-center justify-between px-6 md:px-12 py-6 border-b border-white/[0.06] backdrop-blur-xs">
           <Link
             to="/"
-            className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap anim-fade-up"
-            style={{ animationDelay: "200ms" }}
+            className="flex items-center gap-2.5 font-serif italic text-2xl text-white tracking-tight"
           >
-            HerSpace
+            <div className="w-8 h-8 rounded-full bg-[#c86d74]/20 border border-[#c86d74]/40 flex items-center justify-center text-rose-200">
+              <span className="text-sm">&#10022;</span>
+            </div>
+            <span>HerSpace</span>
           </Link>
-          <div
-            className="hidden lg:flex items-center gap-[12px] ml-auto anim-slide-right"
-            style={{ animationDelay: "600ms" }}
-          >
-            <span className="font-manrope text-white text-[13px] leading-[15.6px]">PRIVATE BY DESIGN</span>
-            <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ VERIFIED ]</span>
-            <span className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px] ml-[20px]">
-              WOMEN_ONLY
-            </span>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-[#c86d74]/15 border border-[#c86d74]/25 text-rose-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#c86d74] animate-pulse" />
+            Verified Women-Only Sanctuary
           </div>
         </nav>
 
-        <div className="flex-1 flex items-center justify-center md:justify-between gap-10 px-5 md:px-[35px] lg:px-[60px] pb-10">
-          <div className="hidden md:flex flex-col justify-center max-w-md">
-            <p
-              className="font-graphik font-normal text-white text-[32px] lg:text-[48px] leading-[1.05em] anim-slide-left"
-              style={{ animationDelay: "1100ms" }}
-            >
-              "A quiet room for your health, shared with those you trust."
-            </p>
-            <p
-              className="mt-6 font-manrope text-white/60 text-[12px] uppercase tracking-[0.2em] anim-fade-up"
-              style={{ animationDelay: "1300ms" }}
-            >
-              Verified women-only · Zero-knowledge privacy
-            </p>
-            <p
-              className="mt-8 font-manrope text-white/40 text-[12px] leading-[18px] max-w-sm anim-fade-in"
-              style={{ animationDelay: "1500ms" }}
-            >
-              HerSpace does not replace professional medical advice, legal counsel, or emergency
-              services.
-            </p>
-          </div>
-          <div
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 md:p-8 space-y-6 anim-slide-right"
-            style={{ animationDelay: "500ms" }}
-          >
-            <div className="anim-fade-up" style={{ animationDelay: "600ms" }}>
-              <h1 className="font-graphik font-normal text-white text-[32px] md:text-[40px] leading-[1em]">
-                {mode === "signin" ? "Welcome back." : "Join HerSpace."}
-              </h1>
-              <p className="mt-2 font-manrope text-white/60 text-[13px] leading-[18px]">
-                {mode === "signin"
-                  ? "Sign in to your space."
-                  : "Create your account — it takes a minute."}
+        {/* Center Content */}
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-10 max-w-5xl mx-auto w-full">
+          <div className="grid md:grid-cols-2 gap-12 items-center w-full">
+            {/* Left Poetic Message */}
+            <div className="hidden md:flex flex-col justify-center space-y-6 max-w-md">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-rose-300/20 text-xs text-rose-200 w-fit">
+                <span>Private &middot; Sovereign &middot; Protected</span>
+              </div>
+              <h2 className="font-serif italic text-3xl lg:text-4xl text-white leading-snug">
+                "A quiet room for your health, shared with those you trust."
+              </h2>
+              <p className="text-sm text-stone-300 font-light leading-relaxed">
+                Connect your cycle data, explore verified safe zones, and find sisters walking the same path — in a space where women always come first.
               </p>
+              <div className="flex items-center gap-4 pt-2 text-xs text-stone-400">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-emerald-400">&check;</span> Women-only
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-emerald-400">&check;</span> Zero data sales
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-emerald-400">&check;</span> Instant demo
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-2 anim-fade-up" style={{ animationDelay: "700ms" }}>
-              <Button
-                type="button"
-                className="w-full rounded-full h-11 bg-white text-black hover:bg-[#AFDDFF]"
-                onClick={handleGoogle}
-                disabled={loading}
-              >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
-                Continue with Google
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full rounded-full h-9 font-manrope text-xs text-white/60 hover:text-[#AFDDFF] hover:bg-transparent"
-                onClick={handleDemoSignIn}
-                disabled={loading}
-              >
-                Instant Guest / Demo Access →
-              </Button>
-            </div>
+            {/* Right Auth Card */}
+            <div className="w-full max-w-md mx-auto rounded-3xl border border-rose-200/15 bg-[#201518]/80 backdrop-blur-xl p-7 sm:p-9 shadow-2xl shadow-rose-950/50 space-y-6">
+              <div>
+                <h1 className="font-serif italic text-3xl text-white">
+                  {mode === "signin" ? "Welcome back, sister." : "Join the sisterhood."}
+                </h1>
+                <p className="mt-1.5 text-xs text-stone-300 font-light">
+                  {mode === "signin"
+                    ? "Enter your sanctuary."
+                    : "Create your private profile in just a minute."}
+                </p>
+              </div>
 
-            <div className="flex items-center gap-3 anim-fade-in" style={{ animationDelay: "800ms" }}>
-              <span className="h-px flex-1 bg-white/10" />
-              <span className="font-manrope text-[11px] uppercase tracking-widest text-white/40">or</span>
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
+              {/* Quick Google & Demo Options */}
+              <div className="space-y-2.5">
+                <Button
+                  type="button"
+                  className="w-full rounded-full h-11 bg-white text-stone-900 hover:bg-stone-100 font-medium shadow-sm transition-all"
+                  onClick={handleGoogle}
+                  disabled={loading}
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Continue with Google
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full rounded-full h-9 text-xs text-rose-200/80 hover:text-white hover:bg-white/[0.08]"
+                  onClick={handleDemoSignIn}
+                  disabled={loading}
+                >
+                  Instant Guest / Demo Access &rarr;
+                </Button>
+              </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 anim-fade-up" style={{ animationDelay: "900ms" }}>
-              {mode === "signup" && (
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-white/70">Your name</Label>
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-white/10" />
+                <span className="text-[11px] uppercase tracking-widest text-stone-400">or with email</span>
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-3.5">
+                {mode === "signup" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name" className="text-xs text-stone-300">Your First Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="e.g. Maya"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={60}
+                      required
+                      className="rounded-xl bg-white/[0.06] border-white/15 text-white placeholder:text-stone-500 focus-visible:ring-rose-400/50"
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-xs text-stone-300">Email Address</Label>
                   <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={60}
+                    id="email"
+                    type="email"
+                    placeholder="sister@domain.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="bg-white/5 border-white/15 text-white placeholder:text-white/40"
+                    autoComplete="email"
+                    className="rounded-xl bg-white/[0.06] border-white/15 text-white placeholder:text-stone-500 focus-visible:ring-rose-400/50"
                   />
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white/70">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  className="bg-white/5 border-white/15 text-white placeholder:text-white/40"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white/70">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                  className="bg-white/5 border-white/15 text-white placeholder:text-white/40"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full rounded-full h-11 bg-[#AFDDFF] text-black hover:bg-[#c8e8ff]"
-                disabled={loading}
-              >
-                {loading ? "..." : mode === "signin" ? "Sign in" : "Create account"}
-              </Button>
-            </form>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-xs text-stone-300">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="At least 8 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                    className="rounded-xl bg-white/[0.06] border-white/15 text-white placeholder:text-stone-500 focus-visible:ring-rose-400/50"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full rounded-full h-11 bg-gradient-to-r from-[#d97762] via-[#c86d74] to-[#b85a6b] text-white font-medium shadow-md shadow-rose-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  disabled={loading}
+                >
+                  {loading ? "Please wait..." : mode === "signin" ? "Sign in to HerSpace" : "Create Account"}
+                </Button>
+              </form>
 
-            <p className="font-manrope text-[13px] text-center text-white/60 anim-fade-in" style={{ animationDelay: "1100ms" }}>
-              {mode === "signin" ? "New to HerSpace? " : "Already have an account? "}
-              <button
-                type="button"
-                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                className="text-[#AFDDFF] font-medium hover:underline"
-              >
-                {mode === "signin" ? "Join now" : "Sign in"}
-              </button>
-            </p>
-            <p className="font-manrope text-[11px] text-center text-white/40">
-              <Link to="/privacy" className="hover:text-[#AFDDFF] hover:underline">
-                Privacy
-              </Link>
-              <span className="mx-2">·</span>
-              <Link to="/terms" className="hover:text-[#AFDDFF] hover:underline">
-                Terms
-              </Link>
-            </p>
+              <div className="pt-2 text-center space-y-2">
+                <p className="text-xs text-stone-300">
+                  {mode === "signin" ? "New to HerSpace? " : "Already have an account? "}
+                  <button
+                    type="button"
+                    onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                    className="text-[#e8998d] font-semibold hover:underline"
+                  >
+                    {mode === "signin" ? "Join now" : "Sign in"}
+                  </button>
+                </p>
+                <p className="text-[11px] text-stone-400">
+                  <Link to="/privacy" className="hover:text-rose-200 hover:underline">
+                    Privacy
+                  </Link>
+                  <span className="mx-2">&middot;</span>
+                  <Link to="/terms" className="hover:text-rose-200 hover:underline">
+                    Terms
+                  </Link>
+                </p>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Minimal Footer */}
+        <div className="py-4 text-center text-xs text-stone-400 border-t border-white/[0.06]">
+          HerSpace &middot; Built exclusively for women&apos;s health, privacy, and empowerment.
         </div>
       </div>
     </section>

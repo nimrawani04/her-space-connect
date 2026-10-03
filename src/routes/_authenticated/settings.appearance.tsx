@@ -18,12 +18,12 @@ export const Route = createFileRoute("/_authenticated/settings/appearance")({
 });
 
 const BACKGROUNDS: { id: Background; name: string; desc: string }[] = [
-  { id: "plain", name: "Plain", desc: "Calm warm off-white" },
-  { id: "warm", name: "Warm glow", desc: "Soft earth wash" },
-  { id: "sage", name: "Sage haze", desc: "Cool green ambience" },
-  { id: "dusk", name: "Dusk", desc: "Top-down sunset fade" },
-  { id: "gradient", name: "Editorial", desc: "Diagonal earth → sage" },
-  { id: "grain", name: "Grain", desc: "Subtle dotted texture" },
+  { id: "plain", name: "Alabaster", desc: "Warm cashmere linen" },
+  { id: "warm", name: "Rose Glow", desc: "Soft terracotta ambient wash" },
+  { id: "sage", name: "Eucalyptus", desc: "Botanical sage haze" },
+  { id: "dusk", name: "Sunset Silk", desc: "Gentle dusk rose fade" },
+  { id: "gradient", name: "Sanctuary", desc: "Harmonious rose & herbal glow" },
+  { id: "grain", name: "Fine Silk", desc: "Delicate textured grain" },
 ];
 
 function AppearancePage() {
@@ -102,18 +102,21 @@ function AppearancePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">Settings</p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Theme &amp; Appearance</h1>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <p className="text-muted-foreground max-w-2xl">
-            Tune HerSpace to feel like yours. Everything saves to your profile and follows you across devices.
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Customization Sanctuary</p>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Theme &amp; Appearance</h1>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+          <p className="text-muted-foreground max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+            Tune HerSpace to feel like yours. Choose your sanctuary palette, mood, and floral glow. Everything syncs to your profile.
           </p>
           <Button
             variant="outline"
             size="sm"
             onClick={resetAll}
-            className="rounded-full gap-2 shrink-0"
+            className="rounded-full gap-2 shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Reset to defaults
           </Button>

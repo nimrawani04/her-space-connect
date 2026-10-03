@@ -712,10 +712,15 @@ function Experience() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">03 · Match</p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Experience Match</h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl">Find women who've lived what you're living. Request a conversation, or join the circle around a shared journey.</p>
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">03 · Shared Lived Experience</p>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Experience Match</h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+          Find women who&apos;ve walked what you&apos;re walking. Request a 1-on-1 sisterhood conversation or join the circle around a shared journey.
+        </p>
       </header>
       <div className="flex flex-wrap gap-2 items-center">
         <Input placeholder="Search a journey…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-md" />

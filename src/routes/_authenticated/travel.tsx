@@ -269,10 +269,15 @@ function Travel() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">08 · Sisterhood on the road</p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Travel Sisterhood</h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl">Women locals across the world. Stranded in a new city? Find a sister, a safe stay, and trusted transport.</p>
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">08 · Global Sisterhood on the Road</p>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Travel Sisterhood</h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+          Women locals across the world. Exploring or traveling solo? Find a verified sister, safe stay recommendations, and warm local connections.
+        </p>
       </header>
       <Alert>
         <Plane className="h-4 w-4" />

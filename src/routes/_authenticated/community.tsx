@@ -76,15 +76,20 @@ function Community() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2">02 · Sisterhood</p>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Safe Space</h1>
-          <span className={`inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full border ${live ? "border-sage/40 text-sage bg-sage/10" : "border-border text-muted-foreground"}`}>
-            <Radio className={`h-3 w-3 ${live ? "animate-pulse" : ""}`} /> {live ? "Live" : "Connecting…"}
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">02 · Sisterhood Community</p>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] px-3 py-1 rounded-full border ${live ? "border-primary/30 text-primary bg-primary/10" : "border-border text-muted-foreground"}`}>
+            <Radio className={`h-3 w-3 ${live ? "animate-pulse" : ""}`} /> {live ? "Live Pulse" : "Connecting…"}
           </span>
         </div>
-        <p className="text-muted-foreground mt-3 max-w-2xl">A women-only space for honest conversation. Posts can be anonymous or under your name. Be kind. We moderate for harassment and toxicity.</p>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Safe Space</h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+          A women-only space for honest conversation. Share freely, ask anonymously, and listen with kindness.
+        </p>
       </header>
 
       <div className="grid md:grid-cols-3 gap-6">

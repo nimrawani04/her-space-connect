@@ -14,7 +14,7 @@ type ThemeCtx = {
   setBackground: (b: Background) => void;
 };
 
-const DEFAULT_ACCENT = "#c2410c"; // earth / burnt orange
+const DEFAULT_ACCENT = "#c86d74"; // rose clay / warm terracotta rose
 const DEFAULT_BG: Background = "plain";
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
@@ -197,12 +197,12 @@ export function useTheme() {
 }
 
 export const ACCENT_PRESETS: { name: string; hex: string }[] = [
-  { name: "Earth", hex: "#c2410c" },
-  { name: "Rose", hex: "#be3a5b" },
-  { name: "Plum", hex: "#7c3aed" },
-  { name: "Sage", hex: "#5a7a5f" },
-  { name: "Ocean", hex: "#0e7490" },
-  { name: "Indigo", hex: "#4f46e5" },
-  { name: "Gold", hex: "#a16207" },
-  { name: "Ink", hex: "#374151" },
+  { name: "Rose Clay", hex: "#c86d74" },
+  { name: "Terracotta", hex: "#d97762" },
+  { name: "Dusty Mauve", hex: "#a86b88" },
+  { name: "Botanical Sage", hex: "#5e836b" },
+  { name: "Warm Honey", hex: "#c08a3e" },
+  { name: "Deep Berry", hex: "#903b5b" },
+  { name: "Soft Cashmere", hex: "#a38379" },
+  { name: "Charcoal Silk", hex: "#4b4447" },
 ];

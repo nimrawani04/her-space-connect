@@ -32,17 +32,20 @@ function Pregnancy() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-earth mb-2 flex items-center gap-1.5">
-          <Baby className="h-3.5 w-3.5" /> Women's journey
-        </p>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic">Pregnancy</h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl">
-          Period tracking flows naturally into pregnancy: plan, test, then follow week 1 to 40 with your own health data and an AI companion beside you.
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <Baby className="h-4 w-4 text-primary" />
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
+            Matrescence & Fertility Journey
+          </p>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Pregnancy & Fertility</h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+          From preconception planning to week 40 matrescence: cycle awareness, developmental tracking, and gentle maternal support.
         </p>
         {isPregnant && ga && (
-          <p className="mt-3 font-serif italic text-xl">
-            You're {ga.weeks} weeks {ga.days} days pregnant{profile.due_date ? ` · due ${new Date(profile.due_date).toLocaleDateString()}` : ""}.
+          <p className="mt-4 font-serif italic text-xl text-primary font-medium">
+            You&apos;re {ga.weeks} weeks {ga.days} days pregnant{profile.due_date ? ` · due ${new Date(profile.due_date).toLocaleDateString()}` : ""}.
           </p>
         )}
       </header>
