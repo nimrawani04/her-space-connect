@@ -31,9 +31,9 @@ function Terms() {
         <section className="space-y-3">
           <h2 className="font-serif italic text-2xl">The service</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            HerSpace is a women-only digital ecosystem for health insights, community,
-            mentorship, careers, safety networking, and mental wellness. Accounts are verified
-            to keep the space women-only; misrepresentation may lead to removal.
+            HerSpace is a dedicated digital ecosystem for health insights, community,
+            mentorship, careers, safety networking, and mental wellness, designed to empower
+            women in a safe and supportive space.
           </p>
         </section>
 

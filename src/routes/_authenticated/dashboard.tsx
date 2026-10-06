@@ -157,7 +157,7 @@ function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Verified Mentorship */}
+        {/* Mentorship */}
         <Card className="group hover:border-primary/30 transition-all flex flex-col justify-between">
           <CardHeader className="pb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sisterhood Network</span>
@@ -165,7 +165,7 @@ function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
             <p className="text-sm text-muted-foreground font-light leading-relaxed">
-              Connect with verified women leaders, founders, and guides ready to support your career and life goals.
+              Connect with experienced women leaders, founders, and guides ready to support your career and life goals.
             </p>
             <Button asChild variant="outline" className="rounded-full w-full">
               <Link to="/mentorship">Browse Mentors &rarr;</Link>

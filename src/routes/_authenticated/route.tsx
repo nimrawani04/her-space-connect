@@ -18,8 +18,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
-  Activity, Users, Sparkles, GraduationCap, Briefcase, ShoppingBag,
-  ShieldCheck, Plane, HeartPulse, BookOpen, LayoutDashboard, LogOut, Palette, Baby,
+  Activity, Users, Sparkles, GraduationCap, Briefcase,
+  ShieldCheck, HeartPulse, BookOpen, LayoutDashboard, LogOut, Palette, Baby,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -95,9 +95,7 @@ const nav = [
   { to: "/experience", icon: Sparkles, label: "Experience Match" },
   { to: "/mentorship", icon: GraduationCap, label: "Mentorship" },
   { to: "/careers", icon: Briefcase, label: "Careers" },
-  { to: "/marketplace", icon: ShoppingBag, label: "Marketplace" },
   { to: "/safety", icon: ShieldCheck, label: "Safety Network" },
-  { to: "/travel", icon: Plane, label: "Travel Sisterhood" },
   { to: "/wellness", icon: HeartPulse, label: "Mental Wellness" },
   { to: "/library", icon: BookOpen, label: "Library" },
 ] as const;
@@ -363,14 +361,18 @@ function AuthedShell() {
           </header>
 
           {/* Main content viewport with bottom padding on mobile for floating bar */}
-          <main className="flex-1 p-3.5 sm:p-6 md:p-10 pb-24 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden">
+          <main
+            className="flex-1 p-3.5 sm:p-6 md:p-10 pb-36 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden"
+            style={{ paddingBottom: "max(9rem, calc(7rem + env(safe-area-inset-bottom, 0px)))" }}
+          >
             <Outlet />
           </main>
 
           {/* Liquid Glass Mobile Island Navigation Bar (WebGL Liquid Glass Aesthetic) */}
           <nav
             aria-label="Mobile Navigation"
-            className="sm:hidden fixed bottom-3 inset-x-3 z-40 bg-white/75 dark:bg-card/70 backdrop-blur-3xl border border-white/70 dark:border-white/15 rounded-full shadow-[0_16px_48px_rgba(0,0,0,0.16),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.06)] py-2 px-2.5 flex items-center justify-around max-w-sm mx-auto"
+            className="sm:hidden fixed inset-x-3 z-40 bg-white/75 dark:bg-card/70 backdrop-blur-3xl border border-white/70 dark:border-white/15 rounded-full shadow-[0_16px_48px_rgba(0,0,0,0.16),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.06)] py-2 px-2.5 flex items-center justify-around max-w-sm mx-auto"
+            style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
           >
             {mobileTabs.map((tab) => {
               const active = pathname === tab.to || pathname.startsWith(tab.to + "/");

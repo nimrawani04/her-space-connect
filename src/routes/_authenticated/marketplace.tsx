@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,10 @@ import { toast } from "sonner";
 import { ShoppingBag, Sparkles, Tag, DollarSign, User, Briefcase, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/marketplace")({
-  head: () => ({ meta: [{ title: "Marketplace · HerSpace" }] }),
+  beforeLoad: () => {
+    throw redirect({ to: "/mentorship" });
+  },
+  head: () => ({ meta: [{ title: "Mentorship · HerSpace" }] }),
   component: Marketplace,
 });
 
@@ -79,7 +82,7 @@ function Marketplace() {
         </h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
           Hire women — designers, developers, tutors, bakers, consultants, and writers.
-          Verified profiles, fair independent rates, and sisterhood reviews you can trust.
+          Trusted profiles, fair independent rates, and sisterhood reviews you can trust.
         </p>
       </header>
 
@@ -221,8 +224,8 @@ function Marketplace() {
                 </div>
                 <div className="pt-2 border-t border-border/50 flex items-center justify-between">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    Verified Sister
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                    Community Member
                   </span>
                   <Button
                     size="sm"

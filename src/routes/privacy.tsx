@@ -43,7 +43,7 @@ function Privacy() {
           <h2 className="font-serif italic text-2xl">How we use it</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             To provide your account, personalize health insights, operate community and safety
-            features, and keep the women-only space verified. We never sell your personal data
+            features, and keep the community secure. We never sell your personal data
             and never use health journal content for advertising.
           </p>
         </section>
@@ -53,7 +53,7 @@ function Privacy() {
           <p className="text-sm text-muted-foreground leading-relaxed">
             Data is processed by our infrastructure providers (hosting, database, authentication)
             solely to operate HerSpace. Community posts you mark public are visible to other
-            verified members. We disclose data only when required by law.
+            members. We disclose data only when required by law.
           </p>
         </section>
 
