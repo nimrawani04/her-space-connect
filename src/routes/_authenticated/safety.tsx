@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { useEffect, useState, lazy, Suspense } from "react";
+const SafetyMap = lazy(() => import("@/components/safety/SafetyMap"));
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,12 @@ import { toast } from "sonner";
 import { ShieldAlert, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/safety")({
-  head: () => ({ meta: [{ title: "Safety Network · HerSpace" }] }),
+  head: () => ({ meta: [
+    { title: "Safety Network · HerSpace" },
+    { name: "description", content: "Community safety map built from women's anonymous reports, plus safe places and alerts." },
+    { property: "og:title", content: "Safety Network · HerSpace" },
+    { property: "og:description", content: "See community safety patterns, not individual accusations." },
+  ] }),
   component: Safety,
 });
 
@@ -34,12 +40,20 @@ function Safety() {
         </p>
       </header>
 
-      <Tabs defaultValue="places" className="space-y-6">
-        <TabsList className="bg-muted">
+      <Tabs defaultValue="map" className="space-y-6">
+        <TabsList className="bg-muted flex-wrap h-auto">
+          <TabsTrigger value="map">Community Safety Map</TabsTrigger>
           <TabsTrigger value="places">Safe Places</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="pros">Female Professionals</TabsTrigger>
         </TabsList>
+        <TabsContent value="map">
+          <ClientOnly fallback={<div className="h-[520px] rounded-xl bg-muted animate-pulse" />}>
+            <Suspense fallback={<div className="h-[520px] rounded-xl bg-muted animate-pulse" />}>
+              <SafetyMap />
+            </Suspense>
+          </ClientOnly>
+        </TabsContent>
         <TabsContent value="places"><SafePlaces /></TabsContent>
         <TabsContent value="alerts"><Alerts /></TabsContent>
         <TabsContent value="pros"><Pros /></TabsContent>
