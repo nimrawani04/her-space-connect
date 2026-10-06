@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, redirect } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,9 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/travel/inbox")({
+  beforeLoad: () => {
+    throw redirect({ to: "/safety" });
+  },
   head: () => ({ meta: [{ title: "Travel Inbox · HerSpace" }] }),
   component: TravelInbox,
   errorComponent: ({ error, reset }) => {

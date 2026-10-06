@@ -101,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "HerSpace is a women-only digital ecosystem for AI health insights, anonymous community, mentorship, careers, safety network, and mental wellness.",
+          "HerSpace is a dedicated digital ecosystem for AI health insights, anonymous community, mentorship, careers, safety network, and mental wellness.",
       },
       { name: "author", content: "HerSpace" },
       { name: "theme-color", content: "#e9b4c4" },
@@ -304,7 +304,7 @@ function RootComponent() {
               url: "https://her-space-connect.vercel.app/",
               logo: "https://her-space-connect.vercel.app/icon-512.png",
               description:
-                "A private, women-only digital ecosystem for AI health insights, safety network, mentorship, careers, and sisterhood.",
+                "A private, dedicated digital ecosystem for AI health insights, safety network, mentorship, careers, and sisterhood.",
               sameAs: [],
             }),
           }}
@@ -329,10 +329,10 @@ function RootComponent() {
               mainEntity: [
                 {
                   "@type": "Question",
-                  name: "Is HerSpace really women-only?",
+                  name: "Who is HerSpace designed for?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Yes. Accounts are verified to keep the space women-only; misrepresentation may lead to removal.",
+                    text: "HerSpace is designed as a private sanctuary and supportive network dedicated to women's well-being, safety, and empowerment.",
                   },
                 },
                 {

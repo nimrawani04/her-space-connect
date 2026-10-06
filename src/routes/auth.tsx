@@ -37,7 +37,7 @@ export const Route = createFileRoute("/auth")({
       {
         name: "description",
         content:
-          "Sign in to HerSpace — a women-only ecosystem for health, safety, mentorship, and sisterhood.",
+          "Sign in to HerSpace — a dedicated sanctuary for health, safety, mentorship, and sisterhood.",
       },
       { property: "og:url", content: "https://her-space-connect.vercel.app/auth" },
     ],

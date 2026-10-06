@@ -142,9 +142,9 @@ export function Planning() {
 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-                <div><Label>BBT (°C)</Label><Input type="number" step="0.01" min="34" max="40" value={bbt} onChange={(e) => setBbt(e.target.value)} placeholder="36.50" /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="min-w-0"><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-w-0" /></div>
+                <div className="min-w-0"><Label>BBT (°C)</Label><Input type="number" step="0.01" min="34" max="40" value={bbt} onChange={(e) => setBbt(e.target.value)} placeholder="36.50" className="w-full min-w-0" /></div>
               </div>
               <div>
                 <Label>Cervical mucus</Label>

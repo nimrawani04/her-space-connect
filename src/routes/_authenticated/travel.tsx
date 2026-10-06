@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter, redirect } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,9 @@ const travelRequestsQueryOptions = (filters: { city: string; country: string; ne
   });
 
 export const Route = createFileRoute("/_authenticated/travel")({
+  beforeLoad: () => {
+    throw redirect({ to: "/safety" });
+  },
   head: () => ({ meta: [{ title: "Travel Sisterhood · HerSpace" }] }),
   validateSearch: zodValidator(travelSearchSchema),
   loaderDeps: ({ search: { city, country, need } }) => ({ city, country, need }),

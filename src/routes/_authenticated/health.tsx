@@ -690,11 +690,11 @@ function CycleTracker() {
       <Card>
         <CardHeader><CardTitle className="font-serif italic">Today's check-in</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Date</Label><Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} /></div>
-            <div><Label>Flow</Label><Input value={flow} onChange={(e) => setFlow(e.target.value)} placeholder="none / light / heavy" /></div>
-            <div><Label>Mood</Label><Input value={mood} onChange={(e) => setMood(e.target.value)} placeholder="calm / anxious…" /></div>
-            <div><Label>Energy 1–10</Label><Input type="number" min={1} max={10} value={energy} onChange={(e) => setEnergy(e.target.value)} /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="min-w-0"><Label>Date</Label><Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className="w-full min-w-0" /></div>
+            <div className="min-w-0"><Label>Flow</Label><Input value={flow} onChange={(e) => setFlow(e.target.value)} placeholder="none / light / heavy" className="w-full min-w-0" /></div>
+            <div className="min-w-0"><Label>Mood</Label><Input value={mood} onChange={(e) => setMood(e.target.value)} placeholder="calm / anxious…" className="w-full min-w-0" /></div>
+            <div className="min-w-0"><Label>Energy 1–10</Label><Input type="number" min={1} max={10} value={energy} onChange={(e) => setEnergy(e.target.value)} className="w-full min-w-0" /></div>
           </div>
           <div>
             <Label>Symptoms today</Label>
