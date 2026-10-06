@@ -1107,6 +1107,42 @@ export type Database = {
         }
         Relationships: []
       }
+      safety_map_reports: {
+        Row: {
+          area_label: string | null
+          category: string
+          cell_lat: number
+          cell_lng: number
+          created_at: string
+          id: string
+          note: string | null
+          time_window: string
+          user_id: string
+        }
+        Insert: {
+          area_label?: string | null
+          category: string
+          cell_lat: number
+          cell_lng: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          time_window?: string
+          user_id: string
+        }
+        Update: {
+          area_label?: string | null
+          category?: string
+          cell_lat?: number
+          cell_lng?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          time_window?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       service_listings: {
         Row: {
           craft: string
@@ -1344,7 +1380,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_safety_patterns: {
+        Args: {
+          max_lat: number
+          max_lng: number
+          min_lat: number
+          min_lng: number
+        }
+        Returns: {
+          category: string
+          cell_lat: number
+          cell_lng: number
+          last_reported: string
+          reporters: number
+          time_window: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "mentor" | "member"
