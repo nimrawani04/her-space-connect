@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { chatMentalWellness } from "@/lib/ai.functions";
+import { tellHerSpace } from "@/lib/tell-herspace.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,30 +36,49 @@ export interface ChatMessage {
     name: string;
     instructions: string[];
   };
+  urgency?: "emergency" | "urgent" | "soon" | "routine";
+  dangerCheck?: string | null;
+  supportAreas?: string[];
+  followUpQuestions?: string[];
+  nextSteps?: { title: string; detail: string }[];
+  resources?: { name: string; what: string; how: string }[];
+  documentsToPrepare?: string[];
 }
+
+const URGENCY_STYLE: Record<string, { label: string; cls: string }> = {
+  emergency: { label: "Emergency — get help now", cls: "bg-destructive text-destructive-foreground" },
+  urgent: { label: "Urgent — act in the next day or two", cls: "bg-destructive/15 text-destructive border border-destructive/30" },
+  soon: { label: "Worth acting on soon", cls: "bg-primary/15 text-primary border border-primary/30" },
+  routine: { label: "No immediate danger detected", cls: "bg-secondary text-foreground border border-border" },
+};
+const AREA_LABEL: Record<string, string> = {
+  safety: "Safety", health: "Health", mental_wellbeing: "Emotional support", legal: "Legal",
+  workplace_or_education: "Work / university", financial: "Financial", relationships: "Relationships",
+  reproductive: "Reproductive health", housing: "Housing", other: "Other",
+};
 
 interface TalkToHerSpaceCompanionProps {
   onSaveToJournal?: (reflectionText: string) => void;
 }
 
 const CONVERSATION_STARTERS = [
-  "I am feeling very overwhelmed and anxious today",
-  "Burned out from work and carrying too much mental load",
-  "Having intense PMS mood swings and crying over small things",
-  "I can't stop overthinking and need a calming exercise",
-  "Guilt about setting a boundary with family or partner",
-  "I cannot afford a doctor and need lower-cost clinic options",
+  "My boyfriend is threatening me and I'm scared",
+  "I've been having severe period pain but can't afford a private gynecologist",
+  "I reported harassment at my university but nobody is taking me seriously",
+  "Someone keeps following me on my way home",
+  "I'm completely burned out and can't stop crying",
+  "My employer hasn't paid me for two months",
 ];
 
 export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompanionProps) {
-  const chatFn = useServerFn(chatMentalWellness);
+  const chatFn = useServerFn(tellHerSpace);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
       role: "assistant",
       content:
-        "Welcome to your private sanctuary. Whatever you are feeling right now—heavy, scattered, tender, exhausted, or simply needing an open heart—I am here to listen with compassion and zero judgment.\n\nYou can speak freely about your stress, your cycle, your relationships, or whatever is weighing on your heart today. How are you really doing?",
+        "Tell me what's happening, in your own words. You don't need to know whether it's a health, safety, legal, money or emotional problem — I'll help work that out, check whether anything is urgent, and guide you to your next step and real help.\n\nNothing is saved unless you choose to.",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -174,19 +193,19 @@ export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompa
         content: res.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         theme: res.theme,
-        suggestedActions: res.suggestedActions,
-        reflectionPrompt: res.reflectionPrompt,
-        groundingExercise: res.groundingExercise,
+        urgency: res.urgency,
+        dangerCheck: res.dangerCheck,
+        supportAreas: res.supportAreas,
+        followUpQuestions: res.followUpQuestions,
+        nextSteps: res.nextSteps,
+        resources: res.resources,
+        documentsToPrepare: res.documentsToPrepare,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-
-      if (res.groundingExercise) {
-        setActiveGrounding(res.groundingExercise);
-      }
     } catch (error) {
-      console.error("Mental wellness chat error:", error);
-      toast.error("Could not send message right now. Please try again.");
+      console.error("Tell HerSpace error:", error);
+      toast.error(error instanceof Error ? error.message : "Could not send message right now. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -222,7 +241,7 @@ export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompa
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
             <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold flex items-center gap-1.5">
-              <MessageSquareHeart className="w-3.5 h-3.5" /> Talk to HerSpace · Mental Wellness Companion
+              <MessageSquareHeart className="w-3.5 h-3.5" /> Tell HerSpace
             </p>
           </div>
 
@@ -253,12 +272,12 @@ export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompa
         <CardTitle className="font-serif italic text-2xl sm:text-3xl text-foreground">
           {showCarePathway
             ? "Healthcare & Subsidized Clinic Navigator"
-            : "Talk to HerSpace. Speak Your Mind."}
+            : "Tell HerSpace what's happening."}
         </CardTitle>
         <CardDescription className="text-sm text-muted-foreground font-light max-w-2xl mt-1.5 leading-relaxed">
           {showCarePathway
             ? "Dedicated guidance to locate sliding-scale centers, public hospital OPDs, and doctor prep checklists."
-            : "A private, sovereign sanctuary to talk through anxiety, fatigue, relationship emotions, cycle mood swings, or whatever is on your heart. No canned lectures."}
+            : "Describe it in your own words. HerSpace checks for urgency, works out what kind of help fits, and guides you to your next step and real support. Not a replacement for a doctor, lawyer or emergency services."}
         </CardDescription>
       </Card>
 
@@ -282,7 +301,7 @@ export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompa
           {/* Conversation Starters (Chips) */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary" /> Gentle Conversation Prompts:
+              <Sparkles className="w-3.5 h-3.5 text-primary" /> For example:
             </p>
             <div className="flex flex-wrap gap-2">
               {CONVERSATION_STARTERS.map((prompt, idx) => (
@@ -369,7 +388,28 @@ export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompa
                   </div>
 
                   {/* Actions / Next Steps Checklist from HerSpace */}
-                  {m.suggestedActions && m.suggestedActions.length > 0 && (
+                          {m.urgency && (
+                    <div className={`rounded-xl px-3 py-2 text-xs font-semibold ${URGENCY_STYLE[m.urgency].cls}`}>
+                      {URGENCY_STYLE[m.urgency].label}
+                    </div>
+                  )}
+                  {m.dangerCheck && (
+                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-2">
+                      <p className="font-semibold text-destructive">{m.dangerCheck}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => handleSend("No, I am not safe right now.")} className="rounded-full bg-destructive text-destructive-foreground px-3 py-1">I'm not safe</button>
+                        <button type="button" onClick={() => handleSend("I'm safe for now.")} className="rounded-full border border-border bg-card px-3 py-1">I'm safe for now</button>
+                      </div>
+                    </div>
+                  )}
+                  {m.supportAreas && m.supportAreas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {m.supportAreas.map((a) => (
+                        <Badge key={a} variant="outline" className="rounded-full text-[10px]">{AREA_LABEL[a] ?? a}</Badge>
+                      ))}
+                    </div>
+                  )}
+          {m.suggestedActions && m.suggestedActions.length > 0 && (
                     <div className="pt-2 border-t border-border/50 space-y-1.5">
                       <p className="text-[10px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3" /> Gentle Self-Care Steps:
@@ -382,6 +422,56 @@ export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompa
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {m.nextSteps && m.nextSteps.length > 0 && (
+                    <div className="pt-2 border-t border-border/50 space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1">
+                        <ArrowRight className="w-3 h-3" /> Your next steps
+                      </p>
+                      <ol className="space-y-1.5 text-xs">
+                        {m.nextSteps.map((s, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] flex items-center justify-center shrink-0">{i + 1}</span>
+                            <span><strong className="font-medium">{s.title}</strong>{s.detail ? ` — ${s.detail}` : ""}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                  {m.resources && m.resources.length > 0 && (
+                    <div className="pt-2 border-t border-border/50 space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1">
+                        <HeartHandshake className="w-3 h-3" /> Where to get real help
+                      </p>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {m.resources.map((r, i) => (
+                          <div key={i} className="rounded-xl border border-border/70 bg-card p-2.5 text-xs">
+                            <p className="font-medium">{r.name}</p>
+                            <p className="text-muted-foreground">{r.what}</p>
+                            <p className="mt-1">{r.how}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {m.documentsToPrepare && m.documentsToPrepare.length > 0 && (
+                    <div className="pt-2 border-t border-border/50 space-y-1">
+                      <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Things to write down or gather</p>
+                      <ul className="list-disc pl-4 text-xs space-y-0.5">
+                        {m.documentsToPrepare.map((d, i) => <li key={i}>{d}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {m.followUpQuestions && m.followUpQuestions.length > 0 && (
+                    <div className="pt-2 border-t border-border/50 space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">To guide you better, tell me:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {m.followUpQuestions.map((q, i) => (
+                          <button key={i} type="button" onClick={() => setInput(q + " ")} className="rounded-full border border-border bg-card px-3 py-1 text-xs hover:border-primary/40">{q}</button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -463,7 +553,7 @@ export function TalkToHerSpaceCompanion({ onSaveToJournal }: TalkToHerSpaceCompa
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Tell HerSpace what you are experiencing... (e.g. 'Feeling so anxious about this week', 'How to handle burnout', 'Cycle mood swings...')"
+              placeholder="Tell HerSpace what's going on, in your own words…"
               rows={3}
               className="w-full bg-transparent border-0 resize-none text-xs sm:text-sm p-2 focus-visible:ring-0 leading-relaxed placeholder:text-muted-foreground/70"
             />
