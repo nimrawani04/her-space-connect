@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { usePregnancyProfile } from "@/hooks/use-pregnancy-profile";
+import { useLifeStagePreferences } from "@/hooks/use-life-stage-preferences";
 import {
   SidebarProvider,
   Sidebar,
@@ -20,6 +21,7 @@ import {
 import {
   Activity, Users, Sparkles, GraduationCap, Briefcase,
   ShieldCheck, HeartPulse, BookOpen, LayoutDashboard, LogOut, Palette, Baby,
+  MessageSquareHeart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -67,7 +69,7 @@ export const Route = createFileRoute("/_authenticated")({
         authLog("guard.checking-session");
         const user = await resolveGuardUser({ handoffTimeoutMs: 10_000, graceMs: 1_500 });
         if (user) {
-          authLog("guard.session-confirmed", { userId: user.id });
+          authLog("guard.session-confirmed", { userId: (user as any).id });
           return { user };
         }
         authLog("guard.no-user-from-resolve");
@@ -88,16 +90,16 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const nav = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/health", icon: Activity, label: "Health Hub" },
-  { to: "/pregnancy", icon: Baby, label: "Pregnancy" },
-  { to: "/community", icon: Users, label: "Safe Space" },
-  { to: "/experience", icon: Sparkles, label: "Experience Match" },
-  { to: "/mentorship", icon: GraduationCap, label: "Mentorship" },
-  { to: "/careers", icon: Briefcase, label: "Careers" },
-  { to: "/safety", icon: ShieldCheck, label: "Safety Network" },
-  { to: "/wellness", icon: HeartPulse, label: "Mental Wellness" },
-  { to: "/library", icon: BookOpen, label: "Library" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
+  { to: "/health", icon: Activity, label: "Health Hub", key: "health" },
+  { to: "/pregnancy", icon: Baby, label: "Pregnancy", key: "pregnancy" },
+  { to: "/community", icon: Users, label: "Safe Space", key: "community" },
+  { to: "/experience", icon: Sparkles, label: "Experience Match", key: "experience" },
+  { to: "/mentorship", icon: GraduationCap, label: "Mentorship", key: "mentorship" },
+  { to: "/careers", icon: Briefcase, label: "Careers", key: "careers" },
+  { to: "/safety", icon: ShieldCheck, label: "Safety Network", key: "safety" },
+  { to: "/wellness", icon: HeartPulse, label: "Mental Wellness", key: "wellness" },
+  { to: "/library", icon: BookOpen, label: "Library", key: "library" },
 ] as const;
 
 function LiquidGlassIcon({
@@ -125,7 +127,7 @@ function LiquidGlassIcon({
     <div
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className={`relative w-11 h-11 rounded-[16px] flex items-center justify-center transition-all duration-300 select-none overflow-hidden group-active:scale-90 ${
+      className={`relative w-10 h-10 min-[380px]:w-11 min-[380px]:h-11 rounded-[14px] min-[380px]:rounded-[16px] flex items-center justify-center transition-all duration-300 select-none overflow-hidden group-active:scale-90 ${
         active ? "scale-105" : "hover:scale-105"
       }`}
       style={{
@@ -202,6 +204,7 @@ function LiquidGlassIcon({
 function AuthedShell() {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const currentSearch = useRouterState({ select: (s) => (s.location.search as Record<string, any>) || {} });
   const [name, setName] = useState<string>("Sister");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -243,17 +246,25 @@ function AuthedShell() {
     });
   }
 
+  const { preferences: lifeStages } = useLifeStagePreferences();
   const { profile: pregnancyProfile } = usePregnancyProfile();
-  const isPregnant = pregnancyProfile?.stage === "pregnant";
+  const isPregnant = pregnancyProfile?.stage === "pregnant" || lifeStages.pregnancy;
+
+  const visibleNav = useMemo(() => {
+    return nav.filter((item) => {
+      if (item.key === "pregnancy" && !lifeStages.pregnancy) return false;
+      return true;
+    });
+  }, [lifeStages.pregnancy]);
 
   const mobileTabs = useMemo(() => [
     { to: "/dashboard", icon: LayoutDashboard, label: "Home" },
     { to: "/health", icon: Activity, label: "Health" },
-    isPregnant
+    lifeStages.pregnancy
       ? { to: "/pregnancy", icon: Baby, label: "Pregnancy" }
-      : { to: "/wellness", icon: HeartPulse, label: "Mental Wellness" },
+      : { to: "/wellness", icon: HeartPulse, label: "Wellness" },
     { to: "/library", icon: BookOpen, label: "Library" },
-  ], [isPregnant]);
+  ], [lifeStages.pregnancy]);
 
   return (
     <SidebarProvider>
@@ -299,17 +310,21 @@ function AuthedShell() {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1">
-                  {nav.map((item) => {
-                    const isActive = pathname === item.to || pathname.startsWith(item.to + "/");
+                  {visibleNav.map((item) => {
+                    const isActive = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to + "/"));
                     return (
-                      <SidebarMenuItem key={item.to}>
+                      <SidebarMenuItem key={item.key}>
                         <SidebarMenuButton
                           asChild
                           isActive={isActive}
                           tooltip={item.label}
                           className="!rounded-2xl transition-all duration-200 hover:!bg-primary/10 hover:!text-primary data-[active=true]:!bg-primary data-[active=true]:!text-primary-foreground data-[active=true]:shadow-sm data-[active=true]:shadow-primary/25 font-sans"
                         >
-                          <Link to={item.to} className="flex items-center gap-3 px-3 py-2">
+                          <Link
+                            to={item.to}
+                            search={"search" in item ? (item as any).search : undefined}
+                            className="flex items-center gap-3 px-3 py-2"
+                          >
                             <item.icon className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isActive ? "scale-105" : "text-muted-foreground"}`} />
                             <span className="text-[13px] font-medium tracking-wide">{item.label}</span>
                           </Link>
@@ -334,24 +349,23 @@ function AuthedShell() {
         </Sidebar>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-16 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 border-b border-border/70 px-4 sm:px-6 sticky top-0 bg-background/85 backdrop-blur-md z-30">
-            <div className="flex items-center gap-2">
+          <header className="h-16 flex items-center justify-between gap-2 border-b border-border/70 px-3 sm:px-6 sticky top-0 bg-background/85 backdrop-blur-md z-30 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
               <SidebarTrigger className="shrink-0 rounded-full hover:bg-secondary" />
-              <Link to="/dashboard" className="flex items-center gap-2 font-serif italic text-xl sm:hidden truncate min-w-0">
-                <HerSpaceLogo size={26} />
-                <span>HerSpace</span>
+              <Link to="/dashboard" className="flex items-center gap-1.5 font-serif italic text-lg sm:text-xl sm:hidden truncate min-w-0">
+                <HerSpaceLogo size={24} className="shrink-0" />
+                <span className="truncate hidden min-[360px]:inline">HerSpace</span>
               </Link>
             </div>
-            <div className="hidden sm:block min-w-0" />
-            <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-3.5 shrink-0">
               <Link to="/settings/appearance" className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-foreground transition-colors items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-secondary/60">
                 <Palette className="h-3.5 w-3.5 text-primary" /> Appearance
               </Link>
-              <Link to="/settings/appearance" className="flex items-center gap-2.5 group min-w-0 max-w-[42vw] pl-1 pr-2 py-1 rounded-full hover:bg-secondary/40 transition-colors">
+              <Link to="/settings/appearance" className="flex items-center gap-2 group min-w-0 pl-1 pr-1.5 py-1 rounded-full hover:bg-secondary/40 transition-colors">
                 <span className="text-xs text-muted-foreground hidden md:inline truncate max-w-[18ch]">
                   Welcome, <span className="font-semibold text-foreground">{name}</span>
                 </span>
-                <Avatar className="h-8.5 w-8.5 shrink-0 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all shadow-xs">
+                <Avatar className="h-8 w-8 shrink-0 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all shadow-xs">
                   {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{initials(name)}</AvatarFallback>
                 </Avatar>
@@ -362,7 +376,7 @@ function AuthedShell() {
 
           {/* Main content viewport with bottom padding on mobile for floating bar */}
           <main
-            className="flex-1 p-3.5 sm:p-6 md:p-10 pb-36 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden"
+            className="flex-1 p-3 sm:p-6 md:p-10 pb-36 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden"
             style={{ paddingBottom: "max(9rem, calc(7rem + env(safe-area-inset-bottom, 0px)))" }}
           >
             <Outlet />
@@ -371,7 +385,7 @@ function AuthedShell() {
           {/* Liquid Glass Mobile Island Navigation Bar (WebGL Liquid Glass Aesthetic) */}
           <nav
             aria-label="Mobile Navigation"
-            className="sm:hidden fixed inset-x-3 z-40 bg-white/75 dark:bg-card/70 backdrop-blur-3xl border border-white/70 dark:border-white/15 rounded-full shadow-[0_16px_48px_rgba(0,0,0,0.16),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.06)] py-2 px-2.5 flex items-center justify-around max-w-sm mx-auto"
+            className="sm:hidden fixed inset-x-3 z-40 bg-white/75 dark:bg-card/70 backdrop-blur-3xl border border-white/70 dark:border-white/15 rounded-full shadow-[0_16px_48px_rgba(0,0,0,0.16),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.06)] py-1.5 px-2 flex items-center justify-around max-w-sm mx-auto"
             style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
           >
             {mobileTabs.map((tab) => {

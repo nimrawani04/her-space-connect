@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Bell, Download, ShieldCheck, Trash2 } from "lucide-react";
+import { Bell, Download, ShieldCheck, Trash2, Sparkles } from "lucide-react";
+import { useLifeStagePreferences } from "@/hooks/use-life-stage-preferences";
 
 type Prefs = {
   notify_period: boolean; notify_ovulation: boolean; notify_hydration: boolean; notify_sleep: boolean;
@@ -21,6 +23,7 @@ const DEFAULTS: Prefs = {
 };
 
 export function HealthSettings() {
+  const { preferences: lifeStages, setPreference: setLifeStagePreference } = useLifeStagePreferences();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
@@ -99,6 +102,96 @@ export function HealthSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Life Stage Hub Customization */}
+      <Card className="rounded-3xl border border-primary/25 bg-card/90 shadow-xs overflow-hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[11px] uppercase tracking-wider text-primary font-semibold">
+              Personalized Experience
+            </span>
+          </div>
+          <CardTitle className="font-serif italic text-2xl flex items-center gap-2 text-foreground">
+            <Sparkles className="h-5 w-5 text-primary" /> Life Stages &amp; Specialized Hubs
+          </CardTitle>
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+            HerSpace adapts to your current stage of life. Turn on specialized hubs only when you need them — keep them toggled off for a clean, focused period and cycle tracking view.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3.5 pt-1">
+          {/* 1. Teen & First Period */}
+          <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 p-4 transition-colors hover:border-primary/40 bg-secondary/20">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🌸</span>
+                <p className="font-medium text-sm text-foreground">Teen &amp; First Period</p>
+                {lifeStages.teen_period && (
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">Active in Health</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                First period education, puberty body changes, cycle basics, and private answers for young teens.
+              </p>
+            </div>
+            <Switch
+              checked={lifeStages.teen_period}
+              onCheckedChange={(checked) => {
+                setLifeStagePreference("teen_period", checked);
+                toast.success(checked ? "Teen & First Period hub enabled in Health Hub" : "Teen & First Period hub hidden");
+              }}
+              className="mt-1"
+            />
+          </div>
+
+          {/* 2. Perimenopause & Menopause */}
+          <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 p-4 transition-colors hover:border-primary/40 bg-secondary/20">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🌿</span>
+                <p className="font-medium text-sm text-foreground">Perimenopause &amp; Menopause</p>
+                {lifeStages.perimenopause && (
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">Active in Health</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Erratic cycle rhythms, hot flashes, brain fog, sleep changes, and midlife hormonal transition support.
+              </p>
+            </div>
+            <Switch
+              checked={lifeStages.perimenopause}
+              onCheckedChange={(checked) => {
+                setLifeStagePreference("perimenopause", checked);
+                toast.success(checked ? "Perimenopause hub enabled in Health Hub" : "Perimenopause hub hidden");
+              }}
+              className="mt-1"
+            />
+          </div>
+
+          {/* 3. Pregnancy & Postpartum */}
+          <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 p-4 transition-colors hover:border-primary/40 bg-secondary/20">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🍼</span>
+                <p className="font-medium text-sm text-foreground">Pregnancy &amp; Postpartum</p>
+                {lifeStages.pregnancy && (
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">Active in Navigation</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Conception planning, weekly fetal development, trimester milestones, and maternal health tracker.
+              </p>
+            </div>
+            <Switch
+              checked={lifeStages.pregnancy}
+              onCheckedChange={(checked) => {
+                setLifeStagePreference("pregnancy", checked);
+                toast.success(checked ? "Pregnancy section enabled in navigation" : "Pregnancy section hidden");
+              }}
+              className="mt-1"
+            />
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader><CardTitle className="font-serif italic text-2xl flex items-center gap-2"><Bell className="h-5 w-5" /> Smart notifications</CardTitle></CardHeader>
         <CardContent className="space-y-4">

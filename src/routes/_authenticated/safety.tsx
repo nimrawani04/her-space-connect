@@ -67,24 +67,26 @@ type Alert = { id: string; alert_type: string; city: string; country: string; lo
 function Safety() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">07 · Community Safety Network</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Community Safety Network</p>
         </div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Safety Network</h1>
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Safety Network</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
           Safe havens, reviews by women for women, and community alerts. Your peace of mind matters everywhere.
         </p>
       </header>
 
       <Tabs defaultValue="map" className="space-y-6">
-        <TabsList className="bg-muted flex-wrap h-auto">
-          <TabsTrigger value="map">Community Safety Map</TabsTrigger>
-          <TabsTrigger value="places">Safe Places</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts &amp; Notices</TabsTrigger>
-          <TabsTrigger value="pros">Female Professionals</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
+          <TabsList className="flex h-auto p-1.5 gap-1.5 bg-card/85 backdrop-blur-md border border-border/70 rounded-full w-max min-w-full sm:min-w-0">
+            <TabsTrigger value="map" className="rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer">Community Safety Map</TabsTrigger>
+            <TabsTrigger value="places" className="rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer">Safe Places</TabsTrigger>
+            <TabsTrigger value="alerts" className="rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer">Alerts &amp; Notices</TabsTrigger>
+            <TabsTrigger value="pros" className="rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer">Female Professionals</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="map">
           <ClientOnly fallback={<div className="h-[520px] rounded-xl bg-muted animate-pulse" />}>
             <Suspense fallback={<div className="h-[520px] rounded-xl bg-muted animate-pulse" />}>

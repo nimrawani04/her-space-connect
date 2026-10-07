@@ -430,3 +430,258 @@ export function fallbackPregnancyCompanion(data: {
     disclaimer: "HerSpace Pregnancy Companion is an educational resource and does not replace medical advice from your OB/GYN or certified midwife.",
   };
 }
+
+export function fallbackChatMentalWellness(data: {
+  message: string;
+  history?: Array<{ role: "user" | "assistant"; content: string }>;
+}) {
+  const text = data.message.trim().toLowerCase();
+
+  const isCrisis =
+    text.includes("kill myself") ||
+    text.includes("want to die") ||
+    text.includes("suicide") ||
+    text.includes("end my life") ||
+    text.includes("hurt myself") ||
+    text.includes("abuse") ||
+    text.includes("self harm");
+
+  if (isCrisis) {
+    return {
+      reply:
+        "I hear how much pain you are carrying right now, and I want you to know you are not alone in this dark moment. Your life and your safety matter deeply. Please reach out right now to someone trained who can support you through this safely:\n\n• **988 Suicide & Crisis Lifeline**: Call or text **988** (Available 24/7, free & confidential in US/Canada)\n• **Crisis Text Line**: Text **HOME to 741741**\n• **UK Crisis Line**: Call **111** or **999**\n• **International Resources**: Visit [findahelpline.com](https://findahelpline.com)\n\nPlease take a slow breath with me. Reach out to a loved one, a friend, or one of these helplines right now.",
+      theme: "Crisis & Immediate Support",
+      suggestedActions: [
+        "Call or text 988 immediately (Free & 24/7)",
+        "Text HOME to 741741 for text crisis support",
+        "Reach out to someone you trust and tell them you need support",
+      ],
+      reflectionPrompt: "I am holding space for my pain, and I choose to let compassionate help in.",
+      groundingExercise: {
+        name: "5-4-3-2-1 Sensory Grounding",
+        instructions: [
+          "5 things you can see around the room right now",
+          "4 things you can physically touch (the texture of your clothes, your chair, the floor)",
+          "3 things you can hear (room hum, distant traffic, breath)",
+          "2 things you can smell or enjoy the scent of",
+          "1 thing you can taste or the feeling of cool water in your mouth",
+        ],
+      },
+    };
+  }
+
+  // Healthcare cost / doctor question specifically
+  if (
+    (text.includes("afford") || text.includes("cost") || text.includes("money") || text.includes("insurance") || text.includes("broke")) &&
+    (text.includes("doctor") || text.includes("gyn") || text.includes("clinic") || text.includes("hospital") || text.includes("medical"))
+  ) {
+    return {
+      reply:
+        "Navigating healthcare costs when you are already dealing with symptoms or worry is exhausting, and you deserve accessible, respectful care regardless of financial circumstances.\n\nHere are practical avenues available to explore:\n\n1. **Community Health Centers / FQHCs**: Federally Qualified Health Centers and community clinics provide sliding-scale fees based on your income, not high private flat rates. Even with $0 income, many provide free or low-nominal ($5–$15) visits.\n2. **Public / District Hospitals (Outpatient Clinics)**: Government or public hospital OPDs frequently offer baseline blood tests, routine ultrasounds, and basic reproductive screenings at minimal or no charge.\n3. **Telehealth Triage Services**: Virtual consultations can often provide initial guidance, low-cost prescription refills, or lab orders before booking expensive in-person visits.\n4. **Title X Family Planning Clinics**: In many areas, Title X clinics provide confidential, income-adjusted reproductive healthcare, cancer screenings, and contraception.",
+      theme: "Affordable Healthcare & Navigation",
+      suggestedActions: [
+        "Search findahealthcenter.hrsa.gov for sliding-scale clinics nearby",
+        "Call the clinic front desk and ask for their 'Sliding Fee Scale hardship program'",
+        "Prepare a 1-page summary of symptoms and dates to make your consultation concise",
+      ],
+      reflectionPrompt: "My worth and health are not determined by finances. I have the right to seek safe care.",
+    };
+  }
+
+  // Anxiety, panic, racing thoughts
+  if (
+    text.includes("anxious") ||
+    text.includes("anxiety") ||
+    text.includes("panic") ||
+    text.includes("overwhelm") ||
+    text.includes("racing") ||
+    text.includes("nervous") ||
+    text.includes("scared") ||
+    text.includes("fear") ||
+    text.includes("worry")
+  ) {
+    return {
+      reply:
+        "Take a slow breath right here with me. When anxiety spikes, your nervous system is trying to protect you by sounding alarms, even when you are physically safe right in this room.\n\nLet’s start by uncoupling your mind from the racing thoughts: your thoughts right now are weather, not facts. You don't have to solve everything today, or figure out the next five years in the next five minutes.\n\nNotice where you are holding this in your body—drop your shoulders down away from your ears, unlock your jaw, and let your belly soften completely.",
+      theme: "Anxiety & Nervous System Calming",
+      suggestedActions: [
+        "Try the 4-7-8 breathing exercise below for 3 cycles",
+        "Place both feet flat on the floor and feel the solid ground beneath you",
+        "Drink a glass of cold water slowly, noticing the sensation down your throat",
+        "Write down the single next step you need to take today—just one",
+      ],
+      reflectionPrompt: "What is one fear my mind is telling me that I can give myself permission to set down for today?",
+      groundingExercise: {
+        name: "4-7-8 Parasympathetic Reset",
+        instructions: [
+          "Empty your lungs completely through your mouth with a gentle whoosh",
+          "Inhale quietly through your nose to a mental count of 4",
+          "Gently hold your breath for a count of 7",
+          "Exhale completely through your mouth for a count of 8",
+          "Repeat this cycle 4 times to stimulate the vagus nerve",
+        ],
+      },
+    };
+  }
+
+  // Burnout, exhaustion, work stress, mental load
+  if (
+    text.includes("burnout") ||
+    text.includes("burned out") ||
+    text.includes("exhaust") ||
+    text.includes("tired") ||
+    text.includes("work") ||
+    text.includes("job") ||
+    text.includes("boss") ||
+    text.includes("mental load") ||
+    text.includes("drained") ||
+    text.includes("too much to do")
+  ) {
+    return {
+      reply:
+        "I hear how bone-deep that tiredness feels. When you carry the mental load for everyone around you—or work under constant pressure—exhaustion isn't just physical; it's emotional and sensory overload.\n\nYou do not have to earn your right to rest. Rest is not a reward for productivity; it is a biological requirement. When we push past our natural limits, our body eventually forces a pause.\n\nToday, I invite you to consider what you can subtract, rather than what else you can optimize or achieve.",
+      theme: "Burnout Recovery & Mental Load",
+      suggestedActions: [
+        "Declare a 30-minute 'zero-demand' window where nobody can ask you for anything",
+        "Identify one task on your to-do list that can be deferred until next week or deleted",
+        "Step away from your work screen and lie down flat on your back for 10 minutes",
+        "Say 'no' or 'I don't have capacity for that this week' to an upcoming non-essential ask",
+      ],
+      reflectionPrompt: "If I didn't feel the need to prove my worth through doing, what would my soul ask for right now?",
+    };
+  }
+
+  // Hormonal / PMS / PMDD / Cycle-related emotional volatility
+  if (
+    text.includes("pms") ||
+    text.includes("pmdd") ||
+    text.includes("period") ||
+    text.includes("cycle") ||
+    text.includes("crying for no reason") ||
+    text.includes("mood swing") ||
+    text.includes("irritab") ||
+    text.includes("luteal") ||
+    text.includes("hormon")
+  ) {
+    return {
+      reply:
+        "Please be so gentle with yourself. During the luteal phase (the days leading up to your period), progesterone drops and serotonin levels can plummet rapidly. The feelings you are experiencing are neurochemically real—you are not 'crazy', overly dramatic, or failing.\n\nHormonal shifts lower our emotional filtration system: things you normally brush aside suddenly feel raw and intolerable. While the intensity may feel overwhelming, remember that this phase is temporary and your body will reset.\n\nThis is a time for insulation: warm nourishing foods, lower social obligations, and cozy boundaries.",
+      theme: "Cycle Rhythms & Hormonal Emotional Support",
+      suggestedActions: [
+        "Remind yourself: 'This is my hormones talking right now, not the permanent truth of my life'",
+        "Eat a complex carbohydrate snack (oats, sweet potato, banana) to naturally boost serotonin",
+        "Avoid making major relational decisions or life ultimatums until cycle day 3",
+        "Take a warm bath or use a heating pad across your lower abdomen and lower back",
+      ],
+      reflectionPrompt: "What tenderness or reassurance would I give a dear friend who was feeling this exact hormonal wave?",
+    };
+  }
+
+  // Sadness, grief, loneliness, heartbreak
+  if (
+    text.includes("sad") ||
+    text.includes("cry") ||
+    text.includes("crying") ||
+    text.includes("lonely") ||
+    text.includes("alone") ||
+    text.includes("heartbreak") ||
+    text.includes("breakup") ||
+    text.includes("loss") ||
+    text.includes("grief") ||
+    text.includes("empty")
+  ) {
+    return {
+      reply:
+        "I am sitting with you in this sorrow. It takes courage to admit when you feel lonely, heartbroken, or heavy inside. Tears are not weakness—they are your nervous system's way of releasing emotional stress hormones.\n\nYou do not have to hurry your way out of this feeling or put on a brave face for HerSpace. It is completely okay to feel sad, tender, or disoriented right now.\n\nEven when loneliness feels absolute, remember that countless women around the world are sitting with this exact ache tonight. You are part of that shared human heartbeat.",
+      theme: "Emotional Healing & Grief Support",
+      suggestedActions: [
+        "Let yourself cry if the tears need to come; fighting them takes twice as much energy",
+        "Wrap yourself in a warm blanket or put on your softest clothes for tactile comfort",
+        "Place one hand on your heart and one on your belly; feel your own warmth and breath",
+        "Send a simple low-pressure text to one friend: 'Thinking of you, just having a quiet evening'",
+      ],
+      reflectionPrompt: "What does the tenderest part of my heart need to hear from me right now?",
+    };
+  }
+
+  // Relationships, boundaries, conflict, guilt
+  if (
+    text.includes("relationship") ||
+    text.includes("partner") ||
+    text.includes("husband") ||
+    text.includes("boyfriend") ||
+    text.includes("mom") ||
+    text.includes("mother") ||
+    text.includes("family") ||
+    text.includes("boundary") ||
+    text.includes("guilt") ||
+    text.includes("people pleaser") ||
+    text.includes("fight") ||
+    text.includes("argument")
+  ) {
+    return {
+      reply:
+        "Interpersonal dynamics can be one of the heaviest things we carry. When you are used to keeping the peace or managing everyone else's emotional temperature, setting a boundary can feel like cruelty—even though it is actually essential self-preservation.\n\nA boundary is not an attack or a punishment toward the other person. A boundary is simply the distance at which you can love both them and yourself simultaneously.\n\nYou are allowed to have preferences, limits, and needs that inconvenience other people.",
+      theme: "Boundaries & Relational Clarity",
+      suggestedActions: [
+        "Practice a simple clear boundary phrase: 'I love you, and I also need some quiet time tonight'",
+        "Remind yourself that someone else's disappointment does not equal your failure",
+        "Take 5 minutes before replying to heated messages or calls to let adrenaline settle",
+      ],
+      reflectionPrompt: "Where in my relationships am I currently saying 'yes' when my spirit is screaming 'no'?",
+    };
+  }
+
+  // Sleep, insomnia, night worries
+  if (
+    text.includes("sleep") ||
+    text.includes("insomnia") ||
+    text.includes("can't sleep") ||
+    text.includes("awake") ||
+    text.includes("night") ||
+    text.includes("nightmare")
+  ) {
+    return {
+      reply:
+        "Nighttime has a way of magnifying every worry. When the world goes quiet and distractions disappear, all the untangled thoughts from the day rush to the surface. It is very common to feel heightened vulnerability in the middle of the night.\n\nIf you can't sleep, don't battle the bed. Lying there feeling angry at yourself for being awake only releases more cortisol.\n\nReframe this time: even resting quietly with your eyes closed and muscles relaxed provides significant restorative benefits to your cells.",
+      theme: "Sleep Sanctuary & Night Rest",
+      suggestedActions: [
+        "Turn down bright overhead lights and dim all screens immediately",
+        "Do a 'brain dump': write every lingering worry on a scrap of paper and close the notebook",
+        "Sip chamomile or warm water and do gentle shoulder rolls",
+        "Try the progressive muscle relaxation below",
+      ],
+      reflectionPrompt: "The day is done. I have done what I could, and tomorrow is a clean slate.",
+      groundingExercise: {
+        name: "Progressive Physical Release",
+        instructions: [
+          "Gently tense your toes and feet for 5 seconds, then let them go completely limp",
+          "Tense your thighs and calves for 5 seconds, then release and feel the warmth sink into the bed",
+          "Tighten your hands into fists for 5 seconds, then open your palms soft and heavy",
+          "Squeeze your eyes and furrow your brow for 3 seconds, then let your forehead turn smooth as water",
+        ],
+      },
+    };
+  }
+
+  // Default warm empathetic response to any question or sharing
+  return {
+    reply: `Thank you for sharing this with me. When you speak your truth—even into a screen—you are giving yourself permission to be seen and to untangle whatever you've been holding inside.\n\nWhatever brought you to HerSpace today, you don't have to carry the whole weight of it by yourself. Every season of life brings moments where we need to pause, exhale, and get our bearings again.\n\nWhat feels like the most supportive next step for your spirit right now? Even the smallest gesture of gentleness toward yourself counts.`,
+    theme: "Personal Reflection & Emotional Grounding",
+    suggestedActions: [
+      "Drink a warm glass of water or tea and take three slow, conscious breaths",
+      "Notice your physical posture and gently release any tension in your neck and shoulders",
+      "Write a short two-sentence reflection in your private journal on how you feel right now",
+    ],
+    reflectionPrompt: "What is one kind boundary or moment of gentleness you can offer yourself today?",
+    groundingExercise: {
+      name: "3-Minute Body & Breath Anchor",
+      instructions: [
+        "Inhale slowly for 4 seconds, feeling your chest and belly expand",
+        "Gently pause at the top for 2 seconds",
+        "Exhale softly through your mouth for 6 seconds",
+        "Allow your shoulders to sink downward with every out-breath",
+      ],
+    },
+  };
+}

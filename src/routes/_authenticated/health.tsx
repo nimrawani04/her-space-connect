@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, lazy, Suspense } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState, Component, ReactNode, ErrorInfo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeSymptoms, simplifyResearch } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,40 +13,76 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { AlertTriangle, FileDown, Printer, Sparkles, ShieldCheck, Stethoscope } from "lucide-react";
+import {
+  AlertTriangle,
+  FileText,
+  Printer,
+  Sparkles,
+  ShieldCheck,
+  Stethoscope,
+  HeartHandshake,
+  Microscope,
+  MessageSquareHeart,
+  Calendar,
+  Sun,
+  Activity,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Heavy tab panels load on demand so the Health Hub shell paints immediately.
-const PeriodLogger = lazy(() =>
-  import("@/components/health/PeriodLogger").then((m) => ({ default: m.PeriodLogger })),
-);
-const DailyWellness = lazy(() =>
-  import("@/components/health/DailyWellness").then((m) => ({ default: m.DailyWellness })),
-);
-const CyclePrediction = lazy(() =>
-  import("@/components/health/CyclePrediction").then((m) => ({ default: m.CyclePrediction })),
-);
-const PhaseTimeline = lazy(() =>
-  import("@/components/health/PhaseTimeline").then((m) => ({ default: m.PhaseTimeline })),
-);
-const AIInsights = lazy(() =>
-  import("@/components/health/AIInsights").then((m) => ({ default: m.AIInsights })),
-);
-const CycleDashboard = lazy(() =>
-  import("@/components/health/CycleDashboard").then((m) => ({ default: m.CycleDashboard })),
-);
-const HealthSettings = lazy(() =>
-  import("@/components/health/HealthSettings").then((m) => ({ default: m.HealthSettings })),
-);
+import { PeriodLogger } from "@/components/health/PeriodLogger";
+import { DailyWellness } from "@/components/health/DailyWellness";
+import { CyclePrediction } from "@/components/health/CyclePrediction";
+import { PhaseTimeline } from "@/components/health/PhaseTimeline";
+import { AIInsights } from "@/components/health/AIInsights";
+import { CycleDashboard } from "@/components/health/CycleDashboard";
+import { HealthSettings } from "@/components/health/HealthSettings";
+import { PerimenopauseHub } from "@/components/health/PerimenopauseHub";
+import { TeenPeriodHub } from "@/components/health/TeenPeriodHub";
+import LabTestIntegrations from "@/components/health/LabTestIntegrations";
+import { useLifeStagePreferences } from "@/hooks/use-life-stage-preferences";
 
-function PanelFallback() {
-  return (
-    <div className="space-y-4" aria-busy="true">
-      <Skeleton className="h-8 w-56" />
-      <Skeleton className="h-40 w-full" />
-      <Skeleton className="h-24 w-full" />
-    </div>
-  );
+class TabErrorBoundary extends Component<
+  { tabName?: string; children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { tabName?: string; children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Tab error in", this.props.tabName, error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="rounded-3xl border border-destructive/30 bg-card p-8 text-center space-y-4">
+          <div className="w-10 h-10 mx-auto rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground text-base">
+              Unable to load {this.props.tabName ?? "this section"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+              {this.state.error?.message || "An unexpected error occurred while rendering this tab."}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="rounded-full text-xs"
+          >
+            Retry
+          </Button>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export const Route = createFileRoute("/_authenticated/health")({
@@ -139,26 +175,59 @@ function SymptomQuickAdd({ symptoms, onChange }: { symptoms: string; onChange: (
 }
 
 function HealthHub() {
+  const { preferences: lifeStages } = useLifeStagePreferences();
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("tab");
+      if (p === "pathway" || p === "talk") return "period";
+      if (p === "tracker") return "daily";
+      if (p) return p;
+    }
+    return "period";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("tab");
+      if (p === "pathway" || p === "talk") {
+        window.location.replace("/wellness?tab=talk");
+      }
+      if (p === "tracker") {
+        setActiveTab("daily");
+      }
+    }
+  }, []);
+
+  // If a tab belongs to a deactivated life stage, automatically fall back to the period log
+  useEffect(() => {
+    if (activeTab === "teen" && !lifeStages.teen_period) {
+      setActiveTab("period");
+    }
+    if (activeTab === "perimenopause" && !lifeStages.perimenopause) {
+      setActiveTab("period");
+    }
+  }, [activeTab, lifeStages.teen_period, lifeStages.perimenopause]);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-fade-in">
       {/* Serene Health Sanctuary Header Card */}
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
-            01 · Sovereign Clinical Intelligence &amp; Rhythms
+            Sovereign Clinical Intelligence &amp; Rhythms
           </p>
         </div>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
               Health Hub
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
-              Correlate symptoms with clinical research, track cycle rhythms, and prepare doctor-ready consultation briefs. Sovereign, private, and designed for women.
+              Correlate symptoms with clinical research, track cycle rhythms, and prepare doctor-ready consultation briefs. Sovereign, private, and designed for women across every stage of life.
             </p>
           </div>
-          <div className="flex items-center gap-2.5 text-xs text-muted-foreground shrink-0 font-medium pb-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground shrink-0 font-medium pb-1">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/70">
               <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Private &amp; Sovereign
             </span>
@@ -169,40 +238,158 @@ function HealthHub() {
         </div>
       </header>
 
-      {/* Tabs navigation */}
-      <Tabs defaultValue="symptoms" className="space-y-6 scroll-mt-8" id="symptom-assistant">
+      {/* Tabs navigation: 1. Log, 2. Symptom Assistant, 3. Daily Wellness, 4. Cycles & Hormones, 5. Lab Test Kits, then rest */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 scroll-mt-8" id="symptom-assistant">
         <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
           <TabsList className="flex h-auto p-1.5 gap-1.5 bg-card/85 backdrop-blur-md border border-border/70 rounded-full w-max min-w-full sm:min-w-0">
-            <TabsTrigger value="symptoms" className="gap-2 shrink-0 rounded-full text-xs">
+            {/* 1. Log */}
+            <TabsTrigger
+              value="period"
+              className="gap-2 shrink-0 rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            >
+              <Calendar className="w-3.5 h-3.5" /> Log
+            </TabsTrigger>
+            {/* 2. Symptom Assistant */}
+            <TabsTrigger
+              value="symptoms"
+              className="gap-2 shrink-0 rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            >
               <Sparkles className="w-3.5 h-3.5" /> Symptom Assistant
             </TabsTrigger>
-            <TabsTrigger value="period" className="shrink-0 rounded-full text-xs">Period log</TabsTrigger>
-            <TabsTrigger value="daily" className="shrink-0 rounded-full text-xs">Daily wellness</TabsTrigger>
-            <TabsTrigger value="hormones" className="shrink-0 rounded-full text-xs">Cycle &amp; Hormones</TabsTrigger>
-            <TabsTrigger value="insights" className="shrink-0 rounded-full text-xs">AI insights</TabsTrigger>
-            <TabsTrigger value="dashboard" className="shrink-0 rounded-full text-xs">Dashboard</TabsTrigger>
-            <TabsTrigger value="research" className="shrink-0 rounded-full text-xs">Research</TabsTrigger>
-            <TabsTrigger value="tracker" className="shrink-0 rounded-full text-xs">Quick log</TabsTrigger>
-            <TabsTrigger value="settings" className="shrink-0 rounded-full text-xs">Settings</TabsTrigger>
+            {/* 3. Daily Wellness */}
+            <TabsTrigger
+              value="daily"
+              className="gap-2 shrink-0 rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            >
+              <Sun className="w-3.5 h-3.5" /> Daily Wellness
+            </TabsTrigger>
+            {/* 4. Cycles & Hormones */}
+            <TabsTrigger
+              value="hormones"
+              className="gap-2 shrink-0 rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            >
+              <Activity className="w-3.5 h-3.5" /> Cycles &amp; Hormones
+            </TabsTrigger>
+            {/* 5. Lab Test Kits */}
+            <TabsTrigger
+              value="labs"
+              className="gap-2 shrink-0 rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            >
+              <Microscope className="w-3.5 h-3.5" /> Lab Test Kits
+            </TabsTrigger>
+
+            {/* Specialized Life Stage Hubs - visible ONLY when toggled ON in Settings */}
+            {lifeStages.teen_period && (
+              <TabsTrigger
+                value="teen"
+                className="gap-1.5 shrink-0 rounded-full text-xs cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                🌸 Teen &amp; First Period
+              </TabsTrigger>
+            )}
+            {lifeStages.perimenopause && (
+              <TabsTrigger
+                value="perimenopause"
+                className="gap-1.5 shrink-0 rounded-full text-xs cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                🌿 Perimenopause
+              </TabsTrigger>
+            )}
+
+            {/* Standard Hub Tabs */}
+            <TabsTrigger value="insights" className="shrink-0 rounded-full text-xs cursor-pointer">
+              AI Insights
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0 rounded-full text-xs cursor-pointer">
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="research" className="shrink-0 rounded-full text-xs cursor-pointer">
+              Research
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="shrink-0 rounded-full text-xs cursor-pointer">
+              Settings
+            </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="symptoms"><SymptomAssistant /></TabsContent>
-        <TabsContent value="period"><Suspense fallback={<PanelFallback />}><PeriodLogger /></Suspense></TabsContent>
-        <TabsContent value="daily"><Suspense fallback={<PanelFallback />}><DailyWellness /></Suspense></TabsContent>
-        <TabsContent value="insights"><Suspense fallback={<PanelFallback />}><AIInsights /></Suspense></TabsContent>
-        <TabsContent value="dashboard"><Suspense fallback={<PanelFallback />}><CycleDashboard /></Suspense></TabsContent>
-        <TabsContent value="settings"><Suspense fallback={<PanelFallback />}><HealthSettings /></Suspense></TabsContent>
-        <TabsContent value="research"><ResearchSimplifier /></TabsContent>
-        <TabsContent value="tracker"><CycleTracker /></TabsContent>
+        {/* 1. Log */}
+        <TabsContent value="period">
+          <TabErrorBoundary tabName="Log">
+            <PeriodLogger />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        {/* 2. Symptom Assistant */}
+        <TabsContent value="symptoms">
+          <TabErrorBoundary tabName="Symptom Assistant">
+            <SymptomAssistant />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        {/* 3. Daily Wellness */}
+        <TabsContent value="daily">
+          <TabErrorBoundary tabName="Daily Wellness">
+            <DailyWellness />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        {/* 4. Cycles & Hormones */}
         <TabsContent value="hormones">
-          <Suspense fallback={<PanelFallback />}>
-          <div className="space-y-6">
-            <CyclePrediction />
-            <PhaseTimeline />
-            <HormoneCycle />
-          </div>
-          </Suspense>
+          <TabErrorBoundary tabName="Cycles & Hormones">
+            <div className="space-y-6">
+              <CyclePrediction />
+              <PhaseTimeline />
+              <HormoneCycle />
+            </div>
+          </TabErrorBoundary>
+        </TabsContent>
+
+        {/* 5. Lab Test Kits */}
+        <TabsContent value="labs">
+          <TabErrorBoundary tabName="Lab Test Kits">
+            <LabTestIntegrations />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        {/* Specialized Life Stage Hub Contents - rendered ONLY when toggled ON */}
+        {lifeStages.teen_period && (
+          <TabsContent value="teen">
+            <TabErrorBoundary tabName="Teen Period Hub">
+              <TeenPeriodHub />
+            </TabErrorBoundary>
+          </TabsContent>
+        )}
+
+        {lifeStages.perimenopause && (
+          <TabsContent value="perimenopause">
+            <TabErrorBoundary tabName="Perimenopause Hub">
+              <PerimenopauseHub />
+            </TabErrorBoundary>
+          </TabsContent>
+        )}
+
+        <TabsContent value="insights">
+          <TabErrorBoundary tabName="AI Insights">
+            <AIInsights />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="dashboard">
+          <TabErrorBoundary tabName="Cycle Dashboard">
+            <CycleDashboard />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="research">
+          <TabErrorBoundary tabName="Research">
+            <ResearchSimplifier />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <TabErrorBoundary tabName="Settings">
+            <HealthSettings />
+          </TabErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>
@@ -212,9 +399,18 @@ function HealthHub() {
 function SymptomAssistant() {
   const analyze = useServerFn(analyzeSymptoms);
   const [symptoms, setSymptoms] = useState("");
+  const [patientName, setPatientName] = useState("");
   const [age, setAge] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SymptomResult | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const meta = data?.user?.user_metadata;
+      const name = meta?.full_name || meta?.name || meta?.display_name || "";
+      if (name) setPatientName(name);
+    });
+  }, []);
 
   async function run() {
     if (symptoms.trim().length < 3) { toast.error("Describe your symptoms first."); return; }
@@ -234,60 +430,60 @@ function SymptomAssistant() {
     "emergency": "bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 border-rose-400",
   };
 
-  function buildReport(r: SymptomResult) {
-    const date = new Date().toLocaleString();
-    return [
-      `HerSpace — Doctor-Ready Symptom Report`,
-      `Generated: ${date}`,
-      age ? `Patient age: ${age}` : "",
-      "",
-      `SYMPTOMS REPORTED`,
-      symptoms,
-      "",
-      `URGENCY: ${r.urgency.replace(/-/g, " ").toUpperCase()}`,
-      "",
-      `SUMMARY`,
-      r.plainEnglishSummary,
-      "",
-      `POSSIBLE CONDITIONS TO DISCUSS`,
-      ...r.possibleConditions.map((c) => `• ${c.name} (confidence: ${c.confidence}) — ${c.why}`),
-      "",
-      `QUESTIONS FOR THE CLINICIAN`,
-      ...r.questionsForYourDoctor.map((q) => `• ${q}`),
-      "",
-      `SELF-CARE SUGGESTIONS`,
-      ...r.selfCareSuggestions.map((s) => `• ${s}`),
-      "",
-      r.redFlags.length ? `RED FLAGS — SEEK CARE IF NOTICED` : "",
-      ...r.redFlags.map((s) => `• ${s}`),
-      "",
-      `DISCLAIMER`,
-      r.disclaimer,
-    ].filter(Boolean).join("\n");
+  async function downloadDoctorPdf() {
+    if (!result) return;
+    try {
+      const { buildDoctorReportPdf } = await import("@/lib/doctor-report-pdf");
+      const blob = buildDoctorReportPdf({
+        patientName: patientName.trim() || undefined,
+        patientAge: age ? Number(age) : undefined,
+        reportedSymptoms: symptoms,
+        urgency: result.urgency,
+        plainEnglishSummary: result.plainEnglishSummary,
+        possibleConditions: result.possibleConditions,
+        questionsForDoctor: result.questionsForYourDoctor,
+        selfCareSuggestions: result.selfCareSuggestions,
+        redFlags: result.redFlags,
+        disclaimer: result.disclaimer,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const cleanName = patientName.trim() ? `${patientName.trim().toLowerCase().replace(/\s+/g, "-")}-` : "";
+      a.download = `herspace-doctor-report-${cleanName}${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Doctor-ready report downloaded (PDF)");
+    } catch {
+      toast.error("Could not generate PDF report. Please try again.");
+    }
   }
 
-  function downloadReport() {
+  async function printDoctorPdf() {
     if (!result) return;
-    const blob = new Blob([buildReport(result)], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `herspace-symptom-report-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function printReport() {
-    if (!result) return;
-    const w = window.open("", "_blank", "width=800,height=900");
-    if (!w) { toast.error("Allow pop-ups to print."); return; }
-    const safe = buildReport(result).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]!));
-    w.document.write(`<!doctype html><html><head><title>HerSpace Symptom Report</title>
-      <style>body{font:14px/1.55 Georgia,serif;max-width:680px;margin:40px auto;padding:0 24px;color:#2a241e}
-      pre{white-space:pre-wrap;font-family:inherit}h1{font-style:italic;font-weight:500;font-size:22px;margin:0 0 8px}</style>
-      </head><body><h1>HerSpace · Symptom Report</h1><pre>${safe}</pre>
-      <script>window.onload=()=>window.print()</script></body></html>`);
-    w.document.close();
+    try {
+      const { buildDoctorReportPdf } = await import("@/lib/doctor-report-pdf");
+      const blob = buildDoctorReportPdf({
+        patientName: patientName.trim() || undefined,
+        patientAge: age ? Number(age) : undefined,
+        reportedSymptoms: symptoms,
+        urgency: result.urgency,
+        plainEnglishSummary: result.plainEnglishSummary,
+        possibleConditions: result.possibleConditions,
+        questionsForDoctor: result.questionsForYourDoctor,
+        selfCareSuggestions: result.selfCareSuggestions,
+        redFlags: result.redFlags,
+        disclaimer: result.disclaimer,
+      });
+      const url = URL.createObjectURL(blob);
+      const w = window.open(url, "_blank");
+      if (!w) {
+        toast.error("Allow pop-ups to preview and print.");
+        return;
+      }
+    } catch {
+      toast.error("Could not open PDF for printing.");
+    }
   }
 
   return (
@@ -332,10 +528,22 @@ function SymptomAssistant() {
             <SymptomQuickAdd symptoms={symptoms} onChange={setSymptoms} />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-3 items-end pt-1">
+          <div className="grid sm:grid-cols-2 gap-3 pt-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="pName" className="text-xs font-medium text-foreground">
+                Patient Name or Alias (for report)
+              </Label>
+              <Input
+                id="pName"
+                placeholder="e.g. Nimra Wani"
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+                className="rounded-2xl bg-secondary/35 border-border/80 h-11 px-4 text-sm focus-visible:ring-primary/40"
+              />
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="age" className="text-xs font-medium text-foreground">
-                Age (optional — helps tailor hormonal context)
+                Age (optional — aids hormonal context)
               </Label>
               <Input
                 id="age"
@@ -348,24 +556,25 @@ function SymptomAssistant() {
                 className="rounded-2xl bg-secondary/35 border-border/80 h-11 px-4 text-sm focus-visible:ring-primary/40"
               />
             </div>
-            <Button
-              onClick={run}
-              disabled={loading}
-              className="w-full rounded-full h-11 font-medium shadow-sm hover:brightness-105 gap-2 transition-all cursor-pointer bg-primary text-primary-foreground shrink-0"
-            >
-              {loading ? (
-                <>
-                  <span className="w-4 h-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
-                  <span>Synthesizing Insights...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Analyze &amp; Generate Report</span>
-                </>
-              )}
-            </Button>
           </div>
+
+          <Button
+            onClick={run}
+            disabled={loading}
+            className="w-full rounded-full h-11 font-medium shadow-sm hover:brightness-105 gap-2 transition-all cursor-pointer bg-primary text-primary-foreground shrink-0 mt-2"
+          >
+            {loading ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                <span>Synthesizing Insights...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Analyze &amp; Generate Report</span>
+              </>
+            )}
+          </Button>
 
           <p className="text-[11px] text-muted-foreground text-center leading-relaxed pt-1">
             🛡️ HerSpace AI is an educational tool designed for women&apos;s peace of mind. It does not replace professional diagnosis.
@@ -492,12 +701,21 @@ function SymptomAssistant() {
                   {result.plainEnglishSummary}
                 </p>
 
-                <div className="flex flex-wrap gap-2.5">
-                  <Button onClick={downloadReport} variant="outline" size="sm" className="rounded-full gap-2 text-xs">
-                    <FileDown className="h-3.5 w-3.5 text-primary" /> Download Doctor Report (.txt)
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    onClick={downloadDoctorPdf}
+                    size="sm"
+                    className="rounded-full gap-2 text-xs bg-primary text-primary-foreground hover:brightness-105 shadow-sm cursor-pointer w-full sm:w-auto"
+                  >
+                    <FileText className="h-4 w-4" /> Download Doctor-Ready Report (PDF)
                   </Button>
-                  <Button onClick={printReport} variant="outline" size="sm" className="rounded-full gap-2 text-xs">
-                    <Printer className="h-3.5 w-3.5 text-primary" /> Print / Save as PDF
+                  <Button
+                    onClick={printDoctorPdf}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full gap-2 text-xs cursor-pointer w-full sm:w-auto"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-primary" /> Print / View PDF
                   </Button>
                 </div>
 
@@ -611,162 +829,6 @@ function ResearchSimplifier() {
 
 type Severity = 1 | 2 | 3;
 type SeverityMap = Record<string, Severity>;
-type CycleRow = { id: string; entry_date: string; flow: string | null; mood: string | null; energy: number | null; symptoms: string[] | null; symptom_severities: SeverityMap | null; notes: string | null };
-
-const SEVERITY_META: Record<Severity, { label: string; tone: string; dot: string }> = {
-  1: { label: "mild",     tone: "bg-sage/20 text-sage border-sage/40",           dot: "bg-sage" },
-  2: { label: "moderate", tone: "bg-amber-100 text-amber-900 border-amber-300",  dot: "bg-amber-500" },
-  3: { label: "severe",   tone: "bg-rose-100 text-rose-900 border-rose-300",     dot: "bg-rose-500" },
-};
-
-const SYMPTOM_OPTIONS = [
-  "cramps", "acne", "mood swings", "fatigue", "bloating", "headache",
-  "breast tenderness", "cravings", "low energy", "anxiety", "insomnia",
-  "high libido", "low libido", "back pain", "nausea", "clear skin", "focused",
-];
-
-function CycleTracker() {
-  const [rows, setRows] = useState<CycleRow[]>([]);
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
-  const [flow, setFlow] = useState("");
-  const [mood, setMood] = useState("");
-  const [energy, setEnergy] = useState("");
-  const [notes, setNotes] = useState("");
-  const [severities, setSeverities] = useState<SeverityMap>({});
-  const [loading, setLoading] = useState(false);
-
-  async function load() {
-    const { data } = await supabase.from("cycle_entries").select("*").order("entry_date", { ascending: false }).limit(30);
-    setRows((data as CycleRow[]) ?? []);
-  }
-  useEffect(() => { load(); }, []);
-
-  // Cycle: off → mild (1) → moderate (2) → severe (3) → off
-  function cycleSymptom(s: string) {
-    setSeverities((cur) => {
-      const next = { ...cur };
-      const v = cur[s];
-      if (!v) next[s] = 1;
-      else if (v === 1) next[s] = 2;
-      else if (v === 2) next[s] = 3;
-      else delete next[s];
-      return next;
-    });
-  }
-  function clearSymptom(s: string) {
-    setSeverities((cur) => {
-      if (!cur[s]) return cur;
-      const next = { ...cur };
-      delete next[s];
-      return next;
-    });
-  }
-
-  async function save() {
-    setLoading(true);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { toast.error("Sign in required"); setLoading(false); return; }
-    const symptomKeys = Object.keys(severities);
-    const { error } = await supabase.from("cycle_entries").upsert({
-      user_id: u.user.id,
-      entry_date: entryDate,
-      flow: flow || null,
-      mood: mood || null,
-      energy: energy ? Number(energy) : null,
-      symptoms: symptomKeys.length ? symptomKeys : null,
-      symptom_severities: symptomKeys.length ? severities : null,
-      notes: notes || null,
-    }, { onConflict: "user_id,entry_date" });
-    setLoading(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Logged.");
-    setNotes("");
-    setSeverities({});
-    load();
-  }
-
-  return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader><CardTitle className="font-serif italic">Today's check-in</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="min-w-0"><Label>Date</Label><Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className="w-full min-w-0" /></div>
-            <div className="min-w-0"><Label>Flow</Label><Input value={flow} onChange={(e) => setFlow(e.target.value)} placeholder="none / light / heavy" className="w-full min-w-0" /></div>
-            <div className="min-w-0"><Label>Mood</Label><Input value={mood} onChange={(e) => setMood(e.target.value)} placeholder="calm / anxious…" className="w-full min-w-0" /></div>
-            <div className="min-w-0"><Label>Energy 1–10</Label><Input type="number" min={1} max={10} value={energy} onChange={(e) => setEnergy(e.target.value)} className="w-full min-w-0" /></div>
-          </div>
-          <div>
-            <Label>Symptoms today</Label>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {SYMPTOM_OPTIONS.map((s) => {
-                const sev = severities[s];
-                const meta = sev ? SEVERITY_META[sev] : null;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => cycleSymptom(s)}
-                    onContextMenu={(e) => { e.preventDefault(); clearSymptom(s); }}
-                    aria-pressed={!!sev}
-                    title={sev ? `${meta!.label} — tap to change, right-click to clear` : "Tap to add"}
-                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors flex items-center gap-1.5 ${
-                      sev ? meta!.tone : "bg-sand/40 text-earth border-transparent hover:border-earth/30"
-                    }`}
-                  >
-                    {sev
-                      ? <span className={`inline-block w-1.5 h-1.5 rounded-full ${meta!.dot}`} />
-                      : <span aria-hidden>+</span>}
-                    <span>{s}</span>
-                    {sev && <span className="text-[10px] opacity-70">· {meta!.label}</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-2">
-              Tap once for <span className="text-sage">mild</span>, again for <span className="text-amber-700">moderate</span>, again for <span className="text-rose-700">severe</span>, again to clear. Right-click to remove. Severity weights the cycle-phase correlations.
-            </p>
-          </div>
-          <div><Label>Notes</Label><Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
-          <Button onClick={save} disabled={loading} className="rounded-full bg-earth text-earth-foreground hover:brightness-110">Save entry</Button>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle className="font-serif italic">Recent</CardTitle></CardHeader>
-        <CardContent className="space-y-3 max-h-[420px] overflow-auto">
-          {rows.length === 0 && <p className="text-sm text-muted-foreground">No entries yet.</p>}
-          {rows.map((r) => (
-            <div key={r.id} className="rounded-xl border border-border p-3 text-sm">
-              <div className="flex justify-between mb-1">
-                <span className="font-medium">{r.entry_date}</span>
-                {r.flow && <Badge variant="outline">{r.flow}</Badge>}
-              </div>
-              <p className="text-muted-foreground text-xs">Mood: {r.mood ?? "—"} · Energy: {r.energy ?? "—"}</p>
-              {r.symptoms && r.symptoms.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {r.symptoms.map((s) => {
-                    const sev = (r.symptom_severities ?? {})[s] as Severity | undefined;
-                    const meta = sev ? SEVERITY_META[sev] : null;
-                    return (
-                      <Badge
-                        key={s}
-                        variant="outline"
-                        className={`text-[10px] ${meta ? meta.tone : ""}`}
-                      >
-                        {s}{meta ? ` · ${meta.label}` : ""}
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
-              {r.notes && <p className="text-xs mt-1">{r.notes}</p>}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cycle phase + hormone visualization
