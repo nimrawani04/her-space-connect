@@ -5,6 +5,7 @@ import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Flame, Sparkles, GraduationCap, ArrowRight, HeartHandshake, Baby, Activity, Microscope } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · HerSpace" }] }),
@@ -47,14 +48,14 @@ function Dashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Warm Sanctuary Greeting Header */}
-      <header className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/40 to-background border border-primary/15 shadow-sm overflow-hidden">
+      <header className="relative p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/40 to-background border border-primary/15 shadow-sm overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2 h-2 rounded-full bg-primary" />
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold font-sans">{today}</p>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
               {greeting}, {name}.
             </h1>
             <p className="text-sm text-muted-foreground mt-2 font-sans font-light max-w-xl">
@@ -146,7 +147,7 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground font-light leading-relaxed">
               {postCount ?? 12} supportive conversations are taking place right now across Safe Space. Share questions anonymously or lend advice to a sister.
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button asChild variant="default" className="rounded-full" size="sm">
                 <Link to="/community">Enter Safe Space</Link>
               </Button>
@@ -172,6 +173,158 @@ function Dashboard() {
             </Button>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Life Stages & Educational Academy Sanctuary Row */}
+      <div className="space-y-4 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="font-serif italic text-2xl text-foreground">Dedicated Life Stages &amp; Academy</h2>
+            <p className="text-xs text-muted-foreground font-light mt-0.5">
+              Comprehensive clinical tools and compassionate guides tailored to every stage of womanhood.
+            </p>
+          </div>
+          <Button asChild variant="ghost" size="sm" className="rounded-full text-xs text-primary self-start sm:self-auto">
+            <Link to="/library">Explore All Courses &rarr;</Link>
+          </Button>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* AI Care Pathway Navigator (New Feature) */}
+          <Card className="bg-gradient-to-br from-primary/15 via-card to-card border-primary/30 group hover:border-primary/50 transition-all flex flex-col justify-between shadow-xs">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                  <HeartHandshake className="w-3.5 h-3.5" /> Care Pathway
+                </span>
+                <Badge variant="outline" className="text-[10px] rounded-full border-primary/30 text-primary">
+                  Non-Dismissive
+                </Badge>
+              </div>
+              <CardTitle className="font-serif italic text-xl text-foreground mt-1">
+                Tell Your Story &amp; Get A Pathway
+              </CardTitle>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed mt-1">
+                Can&apos;t afford private care or feeling dismissed? AI understands your barriers and maps public, low-cost &amp; community options.
+              </p>
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
+              <Button asChild size="sm" className="rounded-full w-full text-xs bg-primary text-primary-foreground hover:brightness-105">
+                <Link to="/wellness" search={{ tab: "talk" }}>
+                  Find My Next Steps <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* At-Home Lab Test Integrations (New Feature) */}
+          <Card className="bg-gradient-to-br from-teal-500/10 via-card to-card border-teal-500/20 group hover:border-teal-500/40 transition-all flex flex-col justify-between">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1.5">
+                  <Microscope className="w-3.5 h-3.5" /> Lab Kits
+                </span>
+                <Badge variant="outline" className="text-[10px] rounded-full border-teal-500/30 text-teal-600 dark:text-teal-400">
+                  AMH &amp; Thyroid
+                </Badge>
+              </div>
+              <CardTitle className="font-serif italic text-xl text-foreground mt-1">
+                At-Home Lab Integrations
+              </CardTitle>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed mt-1">
+                Upload or log Modern Fertility, Everlywell, or clinic lab sheets for cycle-matched deep clinical insights.
+              </p>
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
+              <Button asChild variant="outline" size="sm" className="rounded-full w-full text-xs hover:border-teal-500/50">
+                <Link to="/health" search={{ tab: "labs" }}>
+                  Analyze My Lab Kit <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Perimenopause Navigator */}
+          <Card className="bg-gradient-to-br from-amber-500/10 via-card to-card border-amber-500/20 group hover:border-amber-500/40 transition-all flex flex-col justify-between">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5" /> Midlife Longevity
+                </span>
+                <Badge variant="outline" className="text-[10px] rounded-full border-amber-500/30 text-amber-600 dark:text-amber-400">
+                  STRAW+10
+                </Badge>
+              </div>
+              <CardTitle className="font-serif italic text-xl text-foreground mt-1">
+                Perimenopause Navigator
+              </CardTitle>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed mt-1">
+                Track vasomotor hot flashes, night sweats, sleep quality, brain fog, and calculate your clinical score.
+              </p>
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
+              <Button asChild variant="outline" size="sm" className="rounded-full w-full text-xs hover:border-amber-500/50">
+                <Link to="/health" search={{ tab: "perimenopause" }}>
+                  Open Perimenopause Hub <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Teen & First Period Support */}
+          <Card className="bg-gradient-to-br from-rose-500/10 via-card to-card border-rose-500/20 group hover:border-rose-500/40 transition-all flex flex-col justify-between">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                  <Baby className="w-3.5 h-3.5" /> Young Women
+                </span>
+                <Badge variant="outline" className="text-[10px] rounded-full border-rose-500/30 text-rose-600 dark:text-rose-400">
+                  Shame-Free
+                </Badge>
+              </div>
+              <CardTitle className="font-serif italic text-xl text-foreground mt-1">
+                Teen &amp; First Period Hub
+              </CardTitle>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed mt-1">
+                Track puberty milestones, understand cycle variability (21-45 days), and pack your school emergency kit.
+              </p>
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
+              <Button asChild variant="outline" size="sm" className="rounded-full w-full text-xs hover:border-rose-500/50">
+                <Link to="/health" search={{ tab: "teen" }}>
+                  Open Teen Sanctuary <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Educational Content Layer & Courses */}
+          <Card className="bg-gradient-to-br from-primary/10 via-card to-card border-primary/20 group hover:border-primary/40 transition-all flex flex-col justify-between sm:col-span-2 lg:col-span-1">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5" /> Academy &amp; Masterclasses
+                </span>
+                <Badge variant="outline" className="text-[10px] rounded-full border-primary/30 text-primary">
+                  6 Courses
+                </Badge>
+              </div>
+              <CardTitle className="font-serif italic text-xl text-foreground mt-1">
+                Women&apos;s Knowledge Academy
+              </CardTitle>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed mt-1">
+                Expert-led video masterclasses, guided cycle audio, and multi-module academies for Fertility, Birth &amp; Cycle.
+              </p>
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
+              <Button asChild variant="outline" className="rounded-full w-full text-xs hover:border-primary/50">
+                <Link to="/library">
+                  Browse Courses &amp; Audio <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

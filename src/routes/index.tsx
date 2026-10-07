@@ -194,7 +194,7 @@ function LandingPage() {
   const activePillarData = PILLARS[activePillar] || PILLARS[0];
 
   return (
-    <section className="relative w-full h-screen overflow-hidden bg-[#12080c] text-white select-none">
+    <section className="relative w-full min-h-screen min-h-dvh h-dvh overflow-hidden bg-[#12080c] text-white select-none">
       {/* ── Background Video Layer: Blooming Flower ── */}
       <video
         className="absolute inset-0 w-full h-full object-cover anim-fade-in filter contrast-[1.15] brightness-[1.05]"
@@ -505,7 +505,7 @@ function LandingPage() {
 
           {/* Panel */}
           <div
-            className={`relative h-full flex flex-col px-5 pt-24 pb-10 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+            className={`relative h-full flex flex-col px-5 pt-20 pb-8 overflow-y-auto max-h-dvh transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
               menuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
             }`}
           >
@@ -587,16 +587,16 @@ function LandingPage() {
 
         {/* ── Main Heading & Side Text ── */}
         <div
-          className="absolute left-5 md:left-[35px] top-[110px] sm:top-[130px] md:top-[145px] max-w-[340px] sm:max-w-[460px] md:max-w-[620px] pointer-events-auto anim-fade-up z-20"
+          className="absolute left-4 sm:left-6 md:left-[35px] top-[85px] sm:top-[120px] md:top-[145px] max-w-[calc(100vw-2rem)] sm:max-w-[460px] md:max-w-[620px] pointer-events-auto anim-fade-up z-20"
           style={{ animationDelay: "400ms" }}
         >
           {/* Private Sacred Haven Badge */}
-          <div className="inline-block bg-[#f472b6] text-[#14060c] font-sans text-[11px] md:text-[12px] leading-[14px] px-[7px] py-[3px] mb-[14px] font-bold uppercase tracking-wider shadow-sm">
+          <div className="inline-block bg-[#f472b6] text-[#14060c] font-sans text-[10px] sm:text-[11px] md:text-[12px] leading-[14px] px-[7px] py-[3px] mb-[10px] sm:mb-[14px] font-bold uppercase tracking-wider shadow-sm">
             A private sacred haven created specifically for women
           </div>
 
           {/* Main Title in Editorial Serif */}
-          <h1 className="font-serif italic text-white font-normal leading-[1.06] tracking-tight text-[36px] sm:text-[52px] md:text-[68px] drop-shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+          <h1 className="font-serif italic text-white font-normal leading-[1.08] tracking-tight text-[26px] min-[380px]:text-[32px] sm:text-[48px] md:text-[68px] drop-shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
             A quiet room for your health, safety and sisterhood.
           </h1>
         </div>

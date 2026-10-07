@@ -74,7 +74,7 @@ function Marketplace() {
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
-            06 · Sisterhood Trade & Services
+            Sisterhood Trade & Services
           </p>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">

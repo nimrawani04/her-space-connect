@@ -9,6 +9,7 @@ import {
   fallbackPredictCycle,
   fallbackGenerateHealthInsights,
   fallbackPregnancyCompanion,
+  fallbackChatMentalWellness,
 } from "./ai-fallback";
 
 function extractJson(raw: string): unknown {
@@ -342,5 +343,62 @@ Return the structured companion update.`,
   "disclaimer": string
 }`,
       fallback: () => fallbackPregnancyCompanion(data),
+    });
+  });
+
+// ---------------- Mental wellness chat companion ----------------
+
+const mentalWellnessInput = z.object({
+  message: z.string().trim().min(1).max(4000),
+  history: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string(),
+  })).optional(),
+});
+
+const mentalWellnessSchema = z.object({
+  reply: z.string(),
+  theme: z.string(),
+  suggestedActions: z.array(z.string()).max(4),
+  reflectionPrompt: z.string(),
+  groundingExercise: z.object({
+    name: z.string(),
+    instructions: z.array(z.string()),
+  }).optional(),
+});
+
+const MENTAL_WELLNESS_SYSTEM = `You are HerSpace Mental Wellness Companion — an empathetic, compassionate, psychologically grounded guide for women.
+You listen deeply, validate emotions without toxic positivity, and help women untangle complex feelings (stress, anxiety, burnout, relationship tensions, PMS/PMDD/hormonal moods, self-doubt, grief, life changes).
+You speak in a warm, grounded, conversational tone like a wise, compassionate sister and supportive wellness counselor.
+Directly address whatever the user shares. Never reply with a canned or unrelated medical referral unless they explicitly ask for healthcare navigation.
+Always return structured JSON:
+{
+  "reply": string (multi-paragraph, warm, addressing what they specifically shared),
+  "theme": string (concise theme of the conversation),
+  "suggestedActions": string[] (2-4 gentle, practical self-care steps),
+  "reflectionPrompt": string (one thoughtful journaling prompt),
+  "groundingExercise": optional { "name": string, "instructions": string[] }
+}
+If in acute danger or crisis, prioritize crisis helplines (988).`;
+
+export const chatMentalWellness = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => mentalWellnessInput.parse(d))
+  .handler(async ({ data }) => {
+    const historyText = data.history && data.history.length > 0
+      ? data.history.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n")
+      : "No previous messages.";
+
+    return await generateJson({
+      system: MENTAL_WELLNESS_SYSTEM,
+      prompt: `CONVERSATION HISTORY:\n${historyText}\n\nUSER'S LATEST MESSAGE:\n${data.message}\n\nRespond with empathetic guidance for HerSpace.`,
+      schema: mentalWellnessSchema,
+      schemaHint: `{
+  "reply": string,
+  "theme": string,
+  "suggestedActions": string[] (max 4),
+  "reflectionPrompt": string,
+  "groundingExercise": { "name": string, "instructions": string[] } (optional)
+}`,
+      fallback: () => fallbackChatMentalWellness(data),
     });
   });

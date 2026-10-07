@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Component, ReactNode, ErrorInfo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeJournal } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,30 +10,87 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { TalkToHerSpaceCompanion } from "@/components/wellness/TalkToHerSpaceCompanion";
 import { toast } from "sonner";
 import {
   LifeBuoy,
   Sparkles,
-  Wind,
   Heart,
   Lock,
   Calendar,
   Smile,
   BookHeart,
   RotateCcw,
-  Play,
-  Pause,
   ChevronRight,
   Shield,
   PhoneCall,
   CheckCircle2,
   Trash2,
+  Pencil,
+  MessageSquareHeart,
+  Mic,
+  AlertTriangle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/wellness")({
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   head: () => ({ meta: [{ title: "Mental Wellness & Reflection · HerSpace" }] }),
   component: Wellness,
 });
+
+class TabErrorBoundary extends Component<
+  { tabName?: string; children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { tabName?: string; children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Tab error in", this.props.tabName, error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="rounded-3xl border border-destructive/30 bg-card p-8 text-center space-y-4">
+          <div className="w-10 h-10 mx-auto rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground text-base">
+              Unable to load {this.props.tabName ?? "this section"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+              {this.state.error?.message || "An unexpected error occurred while rendering."}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="rounded-full text-xs"
+          >
+            Retry
+          </Button>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 type Entry = {
   id: string;
@@ -62,106 +119,8 @@ const GUIDED_PROMPTS = [
   "What feeling or expectation am I ready to exhale and release tonight?",
 ];
 
-function BreathingWidget() {
-  const [phase, setPhase] = useState<"Ready" | "Inhale" | "Hold" | "Exhale">("Ready");
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (!isRunning) {
-      setPhase("Ready");
-      setTimeLeft(0);
-      return;
-    }
-
-    let currentPhase: "Inhale" | "Hold" | "Exhale" = "Inhale";
-    let seconds = 4;
-    setPhase("Inhale");
-    setTimeLeft(4);
-
-    timerRef.current = setInterval(() => {
-      seconds -= 1;
-      if (seconds <= 0) {
-        if (currentPhase === "Inhale") {
-          currentPhase = "Hold";
-          seconds = 7;
-        } else if (currentPhase === "Hold") {
-          currentPhase = "Exhale";
-          seconds = 8;
-        } else {
-          currentPhase = "Inhale";
-          seconds = 4;
-        }
-        setPhase(currentPhase);
-      }
-      setTimeLeft(seconds);
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isRunning]);
-
-  return (
-    <Card className="rounded-3xl bg-card/90 border border-border/80 backdrop-blur-md shadow-xs overflow-hidden">
-      <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Wind className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-serif italic text-base text-foreground font-semibold">
-                Somatic Grounding Breath (4-7-8)
-              </h3>
-              <Badge variant="outline" className="text-[10px] rounded-full bg-secondary/40 border-border/60">
-                Nervous System
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-              Take 60 seconds to quiet cortisol and regulate vagal tone before writing.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-          {isRunning ? (
-            <div className="flex items-center gap-2 bg-secondary/40 border border-border/70 rounded-full px-4 py-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
-              <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-                {phase} {timeLeft > 0 ? `· ${timeLeft}s` : ""}
-              </span>
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground hidden md:inline">
-              Inhale 4s · Hold 7s · Exhale 8s
-            </span>
-          )}
-
-          <Button
-            size="sm"
-            variant={isRunning ? "outline" : "default"}
-            onClick={() => setIsRunning(!isRunning)}
-            className="rounded-full px-4 gap-1.5 text-xs shrink-0"
-          >
-            {isRunning ? (
-              <>
-                <Pause className="w-3.5 h-3.5" /> Pause
-              </>
-            ) : (
-              <>
-                <Play className="w-3.5 h-3.5" /> Begin Breath
-              </>
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function Wellness() {
+  const search = Route.useSearch();
   const analyze = useServerFn(analyzeJournal);
   const [content, setContent] = useState("");
   const [mood, setMood] = useState("");
@@ -170,6 +129,96 @@ function Wellness() {
   const [insight, setInsight] = useState<JournalResult | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (search?.tab === "journal") return "journal";
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("tab");
+      if (p === "journal") return "journal";
+    }
+    return "talk";
+  });
+
+  // Edit & Delete journal entry state
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editMood, setEditMood] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  function startEdit(entry: Entry) {
+    setEditingEntry(entry);
+    setEditContent(entry.content);
+    setEditMood(entry.mood ?? "");
+  }
+
+  async function saveEdit() {
+    if (!editingEntry) return;
+    if (editContent.trim().length < 5) {
+      toast.error("Please enter a few words for your entry.");
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("journal_entries")
+        .update({
+          content: editContent.trim(),
+          mood: editMood || null,
+        })
+        .eq("id", editingEntry.id);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Journal entry updated.");
+      setEditingEntry(null);
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || "Could not update entry.");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  function startDelete(entry: Entry) {
+    setDeletingEntry(entry);
+  }
+
+  async function confirmDelete() {
+    if (!deletingEntry) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("journal_entries")
+        .delete()
+        .eq("id", deletingEntry.id);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Journal entry deleted.");
+      if (selectedEntry?.id === deletingEntry.id) {
+        setSelectedEntry(null);
+      }
+      setDeletingEntry(null);
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || "Could not delete entry.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (search?.tab) {
+      setActiveTab(search.tab === "journal" ? "journal" : "talk");
+    }
+  }, [search?.tab]);
 
   async function load() {
     const { data } = await supabase
@@ -225,27 +274,77 @@ function Wellness() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Frosted Sanctuary Header */}
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
-            09 · Emotional Sanctuary &amp; Reflection
+            Emotional Sanctuary &amp; Reflection
           </p>
         </div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
-          Mental Wellness
-        </h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
-          A non-judgmental space to exhale, untangle feelings, and reflect. Your journal is private,
-          encrypted, and mirrored back with trauma-informed empathy.
-        </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+              Mental Wellness
+            </h1>
+            <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
+              A non-judgmental space to exhale, untangle feelings, speak freely to HerSpace, and reflect. Your voice and journey are held in sovereign privacy.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium pb-1 shrink-0">
+            <Button
+              onClick={() => setActiveTab("talk")}
+              size="sm"
+              variant={activeTab === "talk" ? "default" : "outline"}
+              className="rounded-full shadow-xs text-xs gap-1.5 font-medium cursor-pointer"
+            >
+              <MessageSquareHeart className="w-3.5 h-3.5" /> Talk to HerSpace
+            </Button>
+            <Button
+              onClick={() => setActiveTab("journal")}
+              size="sm"
+              variant={activeTab === "journal" ? "default" : "outline"}
+              className="rounded-full shadow-xs text-xs gap-1.5 font-medium cursor-pointer"
+            >
+              <BookHeart className="w-3.5 h-3.5" /> Journal
+            </Button>
+          </div>
+        </div>
       </header>
 
-      {/* Somatic Grounding Breath Widget */}
-      <BreathingWidget />
+      {/* Tabs Layout */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
+          <TabsList className="flex h-auto p-1.5 gap-1.5 bg-card/85 backdrop-blur-md border border-border/70 rounded-full w-max min-w-full sm:min-w-0">
+            <TabsTrigger
+              value="talk"
+              className="gap-2 shrink-0 rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            >
+              <MessageSquareHeart className="w-3.5 h-3.5" /> Talk to HerSpace
+            </TabsTrigger>
+            <TabsTrigger
+              value="journal"
+              className="gap-2 shrink-0 rounded-full text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            >
+              <BookHeart className="w-3.5 h-3.5" /> Journal
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      {/* Main Sanctuary Workspace */}
-      <div className="grid lg:grid-cols-12 gap-6 items-start">
+        <TabsContent value="talk" className="space-y-6">
+          <TabErrorBoundary tabName="Talk to HerSpace">
+            <TalkToHerSpaceCompanion
+              onSaveToJournal={(reflectionText) => {
+                setContent(reflectionText);
+                setActiveTab("journal");
+              }}
+            />
+          </TabErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="journal" className="space-y-6">
+          <TabErrorBoundary tabName="Journal">
+            {/* Main Sanctuary Workspace */}
+            <div className="grid lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Journal Writer */}
         <div className="lg:col-span-7 space-y-6">
           <Card className="rounded-3xl bg-card/90 border border-border/80 backdrop-blur-md shadow-xs overflow-hidden">
@@ -569,11 +668,32 @@ function Wellness() {
                         </div>
                       )}
 
-                      <div className="mt-2.5 flex justify-end">
+                      <div className="mt-3 pt-2.5 flex items-center justify-between border-t border-border/50 gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEdit(e)}
+                            className="h-7 px-2.5 text-[11px] rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/70 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3 mr-1 text-primary" /> Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startDelete(e)}
+                            className="h-7 px-2.5 text-[11px] rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1 text-destructive" /> Delete
+                          </Button>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => setSelectedEntry(isExpanded ? null : e)}
-                          className="text-[11px] font-medium text-primary hover:underline flex items-center gap-0.5"
+                          className="text-[11px] font-medium text-primary hover:underline flex items-center gap-0.5 cursor-pointer ml-auto"
                         >
                           {isExpanded ? "Collapse" : "Read full reflection"}
                           <ChevronRight
@@ -606,6 +726,115 @@ function Wellness() {
           </Card>
         </div>
       </div>
+          </TabErrorBoundary>
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit Journal Entry Dialog */}
+      <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
+        <DialogContent className="sm:max-w-lg rounded-3xl bg-card border border-border/80 p-5 sm:p-7 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif italic text-2xl text-foreground flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" /> Edit Journal Entry
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Revise your written reflection or update how you were feeling.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Mood reflection:</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {MOOD_PRESETS.map((m) => (
+                  <button
+                    key={m.label}
+                    type="button"
+                    onClick={() => setEditMood(editMood === m.label ? "" : m.label)}
+                    className={`px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${
+                      editMood === m.label
+                        ? "bg-primary text-primary-foreground border-primary font-medium"
+                        : "bg-secondary/40 text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
+                    }`}
+                  >
+                    <span>{m.emoji}</span> <span className="ml-1">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Reflection Content:</Label>
+              <Textarea
+                rows={6}
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                placeholder="Write your reflection here..."
+                className="rounded-2xl bg-background border-border/80 text-xs sm:text-sm p-3.5 resize-none leading-relaxed focus-visible:ring-primary"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditingEntry(null)}
+              className="rounded-full text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={saveEdit}
+              disabled={isUpdating}
+              className="rounded-full text-xs bg-primary text-primary-foreground hover:brightness-105"
+            >
+              {isUpdating ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(null)}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-card border border-border/80 p-5 sm:p-6 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif italic text-xl text-foreground flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" /> Delete Journal Entry?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed pt-1">
+              This reflection will be permanently removed from your private sanctuary archive. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deletingEntry && (
+            <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/60 text-xs text-foreground/80 line-clamp-3 italic">
+              &ldquo;{deletingEntry.content}&rdquo;
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeletingEntry(null)}
+              className="rounded-full text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="rounded-full text-xs"
+            >
+              {isDeleting ? "Deleting..." : "Delete Entry"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

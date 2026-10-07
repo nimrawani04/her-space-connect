@@ -183,12 +183,12 @@ export function Careers() {
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {announcement}
       </div>
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">05 · Opportunity & Growth</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Opportunity & Growth</p>
         </div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Careers & Opportunity</h1>
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Careers & Opportunity</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">Internships, scholarships, fellowships, grants, and competitions shared by the community — for women, by women.</p>
       </header>
 
@@ -196,21 +196,22 @@ export function Careers() {
         <Card className="md:col-span-2 space-y-4">
           <CardHeader>
             <CardTitle className="font-serif italic text-2xl">Open opportunities</CardTitle>
-            <div className="grid sm:grid-cols-[1fr_auto_auto_auto] gap-2 pt-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-4">
               <Input
                 placeholder="Search title or organization…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 min-w-[180px]"
               />
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="sm:w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All types</SelectItem>
                   {facets?.types.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={regionFilter} onValueChange={setRegionFilter}>
-                <SelectTrigger className="sm:w-[160px]"><SelectValue placeholder="Region" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Region" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All regions</SelectItem>
                   {facets?.regions.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
@@ -218,7 +219,7 @@ export function Careers() {
               </Select>
               <Button
                 variant="ghost"
-                className="rounded-full"
+                className="rounded-full w-full sm:w-auto"
                 disabled={activeFilters === 0}
                 onClick={() => { setSearch(""); setTypeFilter("all"); setRegionFilter("all"); }}
               >
@@ -236,13 +237,13 @@ export function Careers() {
               </p>
             )}
             {!(isFetching && !isFetchingNextPage) && opps.map((o) => (
-              <div key={o.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0">
-                <div>
-                  <div className="flex gap-2 mb-1"><Badge variant="outline">{o.type}</Badge><Badge variant="outline">{o.region}</Badge></div>
-                  <p className="font-medium">{o.title}</p>
-                  <p className="text-xs text-muted-foreground">{o.org}</p>
+              <div key={o.id} className="flex items-center justify-between gap-3 border-b border-border pb-3 last:border-0">
+                <div className="min-w-0 pr-2">
+                  <div className="flex flex-wrap gap-1.5 mb-1"><Badge variant="outline">{o.type}</Badge><Badge variant="outline">{o.region}</Badge></div>
+                  <p className="font-medium break-words">{o.title}</p>
+                  <p className="text-xs text-muted-foreground break-words">{o.org}</p>
                 </div>
-                <Button asChild size="sm" variant="outline" className="rounded-full" disabled={!o.url}>
+                <Button asChild size="sm" variant="outline" className="rounded-full shrink-0" disabled={!o.url}>
                   <a href={o.url ?? "#"} target="_blank" rel="noopener noreferrer">View</a>
                 </Button>
               </div>

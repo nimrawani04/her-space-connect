@@ -294,12 +294,12 @@ function Community() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Sanctuary Header Card */}
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-6 sm:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
-              02 · Sisterhood Community
+              Sisterhood Community
             </p>
           </div>
           <span
@@ -313,7 +313,7 @@ function Community() {
             {live ? "Live Real-Time Pulse" : "Connecting…"}
           </span>
         </div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
           Safe Space
         </h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
@@ -525,13 +525,13 @@ function Community() {
                     )}
                   </div>
 
-                  <CardTitle className="font-serif italic text-xl text-foreground mt-1">
+                  <CardTitle className="font-serif italic text-xl text-foreground mt-1 break-words">
                     {p.title}
                   </CardTitle>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90 font-light">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-foreground/90 font-light">
                     {p.body}
                   </p>
 
