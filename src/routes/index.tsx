@@ -46,6 +46,8 @@ export const Route = createFileRoute("/")({
 interface PillarNode {
   id: string;
   number: string;
+  color: string;
+  glow: string;
   navLabel: string;
   tag: string;
   title: string;
@@ -65,6 +67,8 @@ const PILLARS: PillarNode[] = [
   {
     id: "cycle",
     number: "01",
+    color: "#f472b6",
+    glow: "#ff4d88",
     navLabel: "CYCLE_INTELLIGENCE",
     tag: "[ CYCLE_INTELLIGENCE ]",
     title: "Hormonal & Cycle Intelligence",
@@ -73,18 +77,20 @@ const PILLARS: PillarNode[] = [
     squareLeft: "58%",
     squareDelay: "1200ms",
     labelTop: "11%",
-    labelLeft: "34%",
+    labelLeft: "54%",
     labelAnim: "anim-slide-left",
     labelDelay: "900ms",
     maxW: "max-w-[170px]",
     connectors: [
-      { x1: "44%", y1: "15%", x2: "52%", y2: "15%", delay: 1000 },
-      { x1: "52%", y1: "15%", x2: "58%", y2: "24%", delay: 1100 },
+      { x1: "54%", y1: "15%", x2: "58%", y2: "15%", delay: 1000 },
+      { x1: "58%", y1: "15%", x2: "58%", y2: "24%", delay: 1100 },
     ],
   },
   {
     id: "safety",
     number: "02",
+    color: "#fb923c",
+    glow: "#f97316",
     navLabel: "SISTERHOOD_SAFETY",
     tag: "[ SISTERHOOD_SAFETY ]",
     title: "Safety & Sisterhood Network",
@@ -105,6 +111,8 @@ const PILLARS: PillarNode[] = [
   {
     id: "sisterhood",
     number: "03",
+    color: "#c084fc",
+    glow: "#a855f7",
     navLabel: "UNCONDITIONAL_SPACE",
     tag: "[ UNCONDITIONAL_CIRCLE ]",
     title: "Unconditional Sisterhood",
@@ -125,6 +133,8 @@ const PILLARS: PillarNode[] = [
   {
     id: "mentorship",
     number: "04",
+    color: "#34d399",
+    glow: "#10b981",
     navLabel: "MENTORSHIP_GROWTH",
     tag: "[ MENTORSHIP_ELEVATION ]",
     title: "Mentorship & Elevation",
@@ -192,12 +202,24 @@ function LandingPage() {
   }, [navigate]);
 
   const activePillarData = PILLARS[activePillar] || PILLARS[0];
+  const currentColor = activePillarData.color || "#f472b6";
+  const currentGlow = activePillarData.glow || "#ff4d88";
 
   return (
-    <section className="relative w-full min-h-screen min-h-dvh h-dvh overflow-hidden bg-[#12080c] text-white select-none">
-      {/* ── Background Video Layer: Blooming Flower ── */}
+    <section className="relative w-full h-screen h-dvh overflow-hidden bg-[#12080c] text-white select-none">
+      {/* ── Background Video Layer: Blooming Flower / Jellyfish ── */}
       <video
-        className="absolute inset-0 w-full h-full object-cover anim-fade-in filter contrast-[1.15] brightness-[1.05]"
+        className="absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover object-center anim-fade-in filter contrast-[1.15] brightness-[1.05]"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          maxWidth: "none",
+          maxHeight: "none",
+          objectFit: "cover",
+          objectPosition: "center",
+        }}
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
         autoPlay
         muted
@@ -205,34 +227,38 @@ function LandingPage() {
         playsInline
       />
 
-      {/* ── Pink Flower Tint Blending Layers (Tints the flower petals radiant rose/pink) ── */}
-      {/* Color blend: infuses vibrant magenta/rose pink directly into the flower petals */}
+      {/* ── Flower/Jellyfish Tint Blending Layers (dynamically changes according to active sanctuary pillar) ── */}
+      {/* Color blend: infuses vibrant pillar color directly into the flower petals */}
       <div
-        className="absolute inset-0 pointer-events-none mix-blend-color z-[1]"
+        className="absolute inset-0 pointer-events-none mix-blend-color z-[1] transition-all duration-700"
         style={{
-          background:
-            "radial-gradient(ellipse 80% 80% at 55% 45%, #ff4d88 0%, #f43f5e 35%, #ec4899 65%, #9d174d 100%)",
+          background: `radial-gradient(ellipse 80% 80% at 50% 45%, ${currentGlow} 0%, ${currentColor} 35%, ${currentColor}99 65%, #12080c 100%)`,
           opacity: 0.95,
         }}
       />
 
-      {/* Screen blend: soft luminous rose-pink glow over the flower bloom highlights */}
+      {/* Screen blend: soft luminous colored glow over the flower bloom highlights */}
       <div
-        className="absolute inset-0 pointer-events-none mix-blend-screen z-[2]"
+        className="absolute inset-0 pointer-events-none mix-blend-screen z-[2] transition-all duration-700"
         style={{
-          background:
-            "radial-gradient(circle at 55% 45%, rgba(255, 130, 175, 0.45) 0%, rgba(244, 114, 182, 0.3) 40%, rgba(219, 39, 119, 0.15) 70%, transparent 100%)",
+          background: `radial-gradient(circle at 50% 45%, ${currentColor}cc 0%, ${currentColor}66 40%, ${currentColor}22 70%, transparent 100%)`,
           opacity: 0.85,
         }}
       />
 
       {/* Warm deep botanical vignette to preserve contrast and warm black background */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#14080e]/75 via-[#14080e]/35 to-[#12080c]/85 pointer-events-none z-[3]" />
-      <div className="absolute -top-32 -left-32 w-[30rem] h-[30rem] rounded-full bg-[#f472b6]/15 blur-[130px] pointer-events-none z-[3]" />
-      <div className="absolute top-1/3 -right-32 w-[32rem] h-[32rem] rounded-full bg-[#fb7185]/20 blur-[150px] pointer-events-none z-[3]" />
+      <div
+        className="hidden sm:block absolute -top-32 -left-32 w-[30rem] h-[30rem] rounded-full blur-[130px] pointer-events-none z-[3] transition-colors duration-700"
+        style={{ backgroundColor: `${currentColor}25` }}
+      />
+      <div
+        className="hidden sm:block absolute top-1/3 -right-32 w-[32rem] h-[32rem] rounded-full blur-[150px] pointer-events-none z-[3] transition-colors duration-700"
+        style={{ backgroundColor: `${currentGlow}30` }}
+      />
 
-      {/* ── Grid Lines & Plus Intersections ── */}
-      <div className="absolute inset-0 pointer-events-none z-10">
+      {/* ── Grid Lines & Plus Intersections (Desktop / Tablets) ── */}
+      <div className="absolute inset-0 pointer-events-none z-10 hidden md:block">
         {VERTICAL_GRID_POSITIONS.map((left, i) => (
           <div
             key={`v-grid-${i}`}
@@ -284,7 +310,7 @@ function LandingPage() {
                   y1={c.y1}
                   x2={c.x2}
                   y2={c.y2}
-                  stroke={isActive ? "#f472b6" : "rgba(255,255,255,0.22)"}
+                  stroke={isActive ? pillar.color : "rgba(255,255,255,0.22)"}
                   strokeWidth={isActive ? "1.5" : "1"}
                   vectorEffect="non-scaling-stroke"
                   className="transition-colors duration-500"
@@ -303,13 +329,16 @@ function LandingPage() {
               onClick={() => setActivePillar(i)}
               className={`absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border anim-scale-in pointer-events-auto cursor-pointer transition-all duration-500 group ${
                 isActive
-                  ? "border-[#f472b6] bg-[#f472b6]/15 shadow-[0_0_35px_rgba(244,114,182,0.45)] scale-105"
-                  : "border-white/70 hover:border-[#f472b6]/80 hover:bg-white/[0.04]"
+                  ? "scale-105"
+                  : "border-white/70 hover:bg-white/[0.04]"
               }`}
               style={{
                 top: pillar.squareTop,
                 left: pillar.squareLeft,
                 animationDelay: pillar.squareDelay,
+                borderColor: isActive ? pillar.color : undefined,
+                backgroundColor: isActive ? `${pillar.color}22` : undefined,
+                boxShadow: isActive ? `0 0 35px ${pillar.color}66` : undefined,
               }}
               role="button"
               tabIndex={0}
@@ -317,34 +346,32 @@ function LandingPage() {
             >
               {/* Corner reticle accents */}
               <div
-                className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 transition-colors ${
-                  isActive ? "border-[#f472b6]" : "border-white/70"
-                }`}
+                className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 transition-colors duration-500"
+                style={{ borderColor: isActive ? pillar.color : "rgba(255,255,255,0.7)" }}
               />
               <div
-                className={`absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 transition-colors ${
-                  isActive ? "border-[#f472b6]" : "border-white/70"
-                }`}
+                className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 transition-colors duration-500"
+                style={{ borderColor: isActive ? pillar.color : "rgba(255,255,255,0.7)" }}
               />
               <div
-                className={`absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 transition-colors ${
-                  isActive ? "border-[#f472b6]" : "border-white/70"
-                }`}
+                className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 transition-colors duration-500"
+                style={{ borderColor: isActive ? pillar.color : "rgba(255,255,255,0.7)" }}
               />
               <div
-                className={`absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 transition-colors ${
-                  isActive ? "border-[#f472b6]" : "border-white/70"
-                }`}
+                className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 transition-colors duration-500"
+                style={{ borderColor: isActive ? pillar.color : "rgba(255,255,255,0.7)" }}
               />
 
               {/* Luminous center pulse indicator */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <span
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    isActive
-                      ? "bg-[#f472b6] ring-4 ring-[#f472b6]/35 scale-125 shadow-[0_0_12px_#f472b6]"
-                      : "bg-white/60 group-hover:bg-[#f472b6]"
+                    isActive ? "scale-125" : "bg-white/60"
                   }`}
+                  style={{
+                    backgroundColor: isActive ? pillar.color : undefined,
+                    boxShadow: isActive ? `0 0 12px ${pillar.color}` : undefined,
+                  }}
                 />
               </div>
 
@@ -371,11 +398,12 @@ function LandingPage() {
               }}
             >
               <span
-                className={`font-sans text-[12px] md:text-[13px] leading-[15.6px] tracking-wide whitespace-nowrap block transition-colors duration-300 ${
-                  isActive
-                    ? "text-[#f472b6] font-semibold drop-shadow-[0_0_10px_rgba(244,114,182,0.5)]"
-                    : "text-white group-hover:text-[#f472b6]"
-                }`}
+                className="font-sans text-[12px] md:text-[13px] leading-[15.6px] tracking-wide whitespace-nowrap block transition-all duration-300"
+                style={{
+                  color: isActive ? pillar.color : "white",
+                  fontWeight: isActive ? 600 : 400,
+                  textShadow: isActive ? `0 0 12px ${pillar.color}88` : undefined,
+                }}
               >
                 {pillar.tag}
               </span>
@@ -392,7 +420,7 @@ function LandingPage() {
       </div>
 
       {/* ── Main Content Layer ── */}
-      <div className="relative z-20 w-full h-full pointer-events-none">
+      <div className="absolute inset-0 z-20 pointer-events-none">
         {/* Top Navigation */}
         <nav className="absolute top-0 left-0 w-full flex items-center justify-between px-5 md:px-[35px] py-5 md:py-[27px] pointer-events-auto z-30">
           {/* Left Group */}
@@ -585,29 +613,63 @@ function LandingPage() {
           </div>
         </div>
 
-        {/* ── Main Heading & Side Text ── */}
+        {/* ── Main Heading & Side Text (Desktop / Tablets) ── */}
         <div
-          className="absolute left-4 sm:left-6 md:left-[35px] top-[85px] sm:top-[120px] md:top-[145px] max-w-[calc(100vw-2rem)] sm:max-w-[460px] md:max-w-[620px] pointer-events-auto anim-fade-up z-20"
+          className="hidden md:block absolute left-6 md:left-[35px] top-[110px] md:top-[135px] max-w-[420px] md:max-w-[360px] lg:max-w-[480px] xl:max-w-[620px] pointer-events-auto anim-fade-up z-20"
           style={{ animationDelay: "400ms" }}
         >
           {/* Private Sacred Haven Badge */}
-          <div className="inline-block bg-[#f472b6] text-[#14060c] font-sans text-[10px] sm:text-[11px] md:text-[12px] leading-[14px] px-[7px] py-[3px] mb-[10px] sm:mb-[14px] font-bold uppercase tracking-wider shadow-sm">
+          <div
+            className="inline-block text-[#14060c] font-sans text-[11px] md:text-[12px] leading-[14px] px-[7px] py-[3px] mb-[10px] sm:mb-[14px] font-bold uppercase tracking-wider shadow-sm transition-colors duration-500"
+            style={{ backgroundColor: currentColor }}
+          >
             A private sacred haven created specifically for women
           </div>
 
           {/* Main Title in Editorial Serif */}
-          <h1 className="font-serif italic text-white font-normal leading-[1.08] tracking-tight text-[26px] min-[380px]:text-[32px] sm:text-[48px] md:text-[68px] drop-shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+          <h1 className="font-serif italic text-white font-normal leading-[1.08] tracking-tight text-[36px] md:text-[38px] lg:text-[50px] xl:text-[66px] drop-shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
             A quiet room for your health, safety and sisterhood.
           </h1>
         </div>
 
-        {/* ── Bottom Row ── */}
-        <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0 pointer-events-auto z-20">
+        {/* ── Mobile Sanctuary Editorial View (< md): Title above badge at bottom ── */}
+        <div
+          className="md:hidden absolute bottom-6 left-5 right-5 pointer-events-auto z-20 flex flex-col items-start gap-2.5 anim-fade-up"
+          style={{
+            animationDelay: "400ms",
+            paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          {/* Main Title: above */}
+          <h1 className="font-serif italic text-white font-normal leading-[1.12] tracking-tight text-[25px] min-[360px]:text-[28px] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)] max-w-sm">
+            A quiet room for your health, safety and sisterhood.
+          </h1>
+
+          {/* Sacred Haven Badge: in the bottom */}
+          <button
+            onClick={() => navigate({ to: "/auth", search: { mode: "signup" } })}
+            className="inline-flex items-center gap-1.5 text-[#14060c] font-sans text-[10px] sm:text-[11px] leading-[14px] px-3.5 py-1.5 font-bold uppercase tracking-wider shadow-md transition-all duration-300 active:scale-95 cursor-pointer rounded-xs"
+            style={{
+              backgroundColor: currentColor,
+              boxShadow: `0 0 20px ${currentColor}55`,
+            }}
+          >
+            <span>A private sacred haven created specifically for women</span>
+            <ArrowRight className="w-3 h-3 text-[#14060c]" />
+          </button>
+        </div>
+
+        {/* ── Bottom Row (Desktop / Tablets) ── */}
+        <div className="hidden md:flex absolute bottom-4 sm:bottom-6 md:bottom-[35px] left-4 sm:left-6 md:left-[35px] right-4 sm:right-6 md:right-[35px] flex-col md:flex-row items-stretch md:items-end justify-between gap-3 sm:gap-4 md:gap-0 pointer-events-auto z-20">
           {/* Left CTA Button */}
           <button
             onClick={() => navigate({ to: "/auth", search: { mode: "signup" } })}
-            className="bg-gradient-to-r from-[#ff7597] to-[#f472b6] hover:from-[#ff9ebb] hover:to-[#fbcfe8] text-[#14060c] px-[18px] md:px-[22px] py-[11px] md:py-[13px] flex items-center gap-[10px] transition-all duration-300 anim-fade-up cursor-pointer group shadow-[0_0_30px_rgba(244,114,182,0.35)] shrink-0"
-            style={{ animationDelay: "900ms" }}
+            className="w-full sm:w-auto text-[#14060c] px-[18px] md:px-[22px] py-[11px] md:py-[13px] flex items-center justify-center gap-[10px] transition-all duration-500 anim-fade-up cursor-pointer group shrink-0 order-2 md:order-1 font-bold"
+            style={{
+              animationDelay: "900ms",
+              background: `linear-gradient(to right, ${currentGlow}, ${currentColor})`,
+              boxShadow: `0 0 30px ${currentColor}55`,
+            }}
           >
             <span className="text-[#14060c] text-[16px] leading-none group-hover:rotate-45 transition-transform duration-300">
               &#10022;
@@ -619,16 +681,19 @@ function LandingPage() {
 
           {/* Right Info Card (Chamfered Corner SVG) */}
           <div
-            className="relative w-full sm:w-[290px] max-w-[290px] hidden sm:block anim-slide-right shrink-0"
+            className="relative w-full sm:w-[300px] md:w-[290px] max-w-full sm:max-w-[320px] md:max-w-[290px] block anim-slide-right shrink-0 order-1 md:order-2"
             style={{ animationDelay: "1100ms" }}
           >
             {/* Badge above card */}
-            <div className="font-sans text-[#14060c] text-[11px] leading-[15.6px] bg-[#f472b6] px-[7px] py-[2px] inline-block mb-[10px] font-bold uppercase tracking-wider">
+            <div
+              className="font-sans text-[#14060c] text-[10px] sm:text-[11px] leading-[15.6px] px-[7px] py-[2px] inline-block mb-[6px] sm:mb-[10px] font-bold uppercase tracking-wider transition-colors duration-500"
+              style={{ backgroundColor: currentColor }}
+            >
               SANCTUARY PILLARS // 0{activePillar + 1}
             </div>
 
             {/* Card Body */}
-            <div className="relative p-[20px] backdrop-blur-md">
+            <div className="relative p-3.5 sm:p-[20px] backdrop-blur-md">
               {/* Chamfered Border SVG Polygon */}
               <svg
                 className="absolute inset-0 w-full h-full pointer-events-none"
@@ -637,43 +702,52 @@ function LandingPage() {
               >
                 <polygon
                   points="0.5,0.5 289.5,0.5 289.5,169.5 30,169.5 0.5,139.5"
-                  fill="rgba(20, 8, 14, 0.85)"
-                  stroke="#f472b6"
+                  fill="rgba(20, 8, 14, 0.88)"
+                  stroke={currentColor}
                   strokeWidth="1"
                   vectorEffect="non-scaling-stroke"
+                  className="transition-all duration-500"
                 />
               </svg>
 
               {/* Dynamic pillar content updating on flower clicks */}
               <div className="relative z-10">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-sans text-[#f472b6] text-[12px] font-bold uppercase tracking-wider">
+                <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                  <span
+                    className="font-sans text-[11px] sm:text-[12px] font-bold uppercase tracking-wider truncate transition-colors duration-500"
+                    style={{ color: currentColor }}
+                  >
                     {activePillarData.tag}
                   </span>
                   {/* Indicator switchers */}
-                  <div className="flex items-center gap-1.5">
-                    {PILLARS.map((_, i) => (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {PILLARS.map((p, i) => (
                       <button
                         key={`dot-${i}`}
                         onClick={() => setActivePillar(i)}
-                        className={`w-1.5 h-1.5 transition-all cursor-pointer ${
+                        className={`w-2 h-2 sm:w-1.5 sm:h-1.5 transition-all cursor-pointer ${
                           activePillar === i
-                            ? "bg-[#f472b6] scale-125 shadow-[0_0_8px_#f472b6]"
+                            ? "scale-125"
                             : "bg-white/30 hover:bg-white/60"
                         }`}
+                        style={{
+                          backgroundColor: activePillar === i ? p.color : undefined,
+                          boxShadow: activePillar === i ? `0 0 8px ${p.color}` : undefined,
+                        }}
                         aria-label={`Select pillar ${i + 1}`}
                       />
                     ))}
                   </div>
                 </div>
 
-                <p className="font-sans text-white/80 text-[12.5px] leading-[18px] mb-[18px] min-h-[54px]">
+                <p className="font-sans text-white/80 text-[11.5px] sm:text-[12.5px] leading-[16px] sm:leading-[18px] mb-2 sm:mb-[18px] min-h-[40px] sm:min-h-[54px]">
                   {activePillarData.desc}
                 </p>
 
                 <button
                   onClick={() => navigate({ to: "/auth" })}
-                  className="font-sans text-[#f472b6] text-[12.5px] leading-[15.6px] font-semibold cursor-pointer hover:underline uppercase tracking-wider text-left flex items-center gap-1.5 group"
+                  className="font-sans text-[11.5px] sm:text-[12.5px] leading-[15.6px] font-semibold cursor-pointer hover:underline uppercase tracking-wider text-left flex items-center gap-1.5 group transition-colors duration-500"
+                  style={{ color: currentColor }}
                 >
                   <span>EXPLORE_PILLAR_DETAILS</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />

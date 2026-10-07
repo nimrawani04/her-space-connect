@@ -48,7 +48,7 @@ function Dashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Warm Sanctuary Greeting Header */}
-      <header className="relative p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/40 to-background border border-primary/15 shadow-sm overflow-hidden">
+      <header className="relative p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/15 via-secondary/30 to-card/60 backdrop-blur-md border border-primary/20 shadow-sm overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -79,21 +79,19 @@ function Dashboard() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Cycle & Body Card */}
         <Card className="md:col-span-2 relative overflow-hidden group hover:border-primary/30 transition-all">
-          <CardHeader className="flex flex-row items-start justify-between pb-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-primary">Body &amp; Rhythm</span>
-              </div>
-              <CardTitle className="font-serif italic text-2xl text-foreground">Today's Cycle Phase</CardTitle>
-              <p className="text-sm text-muted-foreground font-light">
-                Log a quick check-in to see emotional, hormonal, and physical patterns over time.
-              </p>
+          <CardHeader className="p-4 sm:p-6 pb-3 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary">Body &amp; Rhythm</span>
+              <Badge variant="soft" className="px-3 py-1 text-xs whitespace-nowrap shrink-0">
+                Follicular Phase
+              </Badge>
             </div>
-            <Badge variant="soft" className="px-3 py-1 text-xs">
-              Follicular Phase
-            </Badge>
+            <CardTitle className="font-serif italic text-2xl sm:text-3xl text-foreground">Today's Cycle Phase</CardTitle>
+            <p className="text-sm text-muted-foreground font-light">
+              Log a quick check-in to see emotional, hormonal, and physical patterns over time.
+            </p>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground font-medium">
                 <span>Phase Progress</span>
@@ -116,7 +114,7 @@ function Dashboard() {
 
         {/* Daily Journal Prompt */}
         <Card className="bg-gradient-to-br from-sage/10 via-card to-card border-sage/20 relative overflow-hidden group hover:border-sage/40 transition-all flex flex-col justify-between">
-          <CardHeader className="pb-3">
+          <CardHeader className="p-4 sm:p-6 pb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-sage dark:text-emerald-300">
               Mind &amp; Reflection
             </span>
@@ -124,7 +122,7 @@ function Dashboard() {
               Today's Journal Prompt
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4 flex-1 flex flex-col justify-between">
             <p className="font-serif italic text-lg text-foreground/90 leading-relaxed bg-background/50 p-4 rounded-2xl border border-border/50">
               &ldquo;What boundary served your peace best yesterday?&rdquo;
             </p>
@@ -136,14 +134,14 @@ function Dashboard() {
 
         {/* Sisterhood Safe Space Community Card */}
         <Card className="md:col-span-2 group hover:border-primary/30 transition-all">
-          <CardHeader className="pb-3">
+          <CardHeader className="p-4 sm:p-6 pb-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-primary">Safe Space Sisterhood</span>
               <span className="text-xs text-muted-foreground font-medium">100% Private Circle</span>
             </div>
             <CardTitle className="font-serif italic text-2xl text-foreground mt-1">Community &amp; Shared Wisdom</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
             <p className="text-sm text-muted-foreground font-light leading-relaxed">
               {postCount ?? 12} supportive conversations are taking place right now across Safe Space. Share questions anonymously or lend advice to a sister.
             </p>
@@ -160,11 +158,11 @@ function Dashboard() {
 
         {/* Mentorship */}
         <Card className="group hover:border-primary/30 transition-all flex flex-col justify-between">
-          <CardHeader className="pb-3">
+          <CardHeader className="p-4 sm:p-6 pb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sisterhood Network</span>
             <CardTitle className="font-serif italic text-2xl text-foreground mt-1">Mentor Match</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4 flex-1 flex flex-col justify-between">
             <p className="text-sm text-muted-foreground font-light leading-relaxed">
               Connect with experienced women leaders, founders, and guides ready to support your career and life goals.
             </p>

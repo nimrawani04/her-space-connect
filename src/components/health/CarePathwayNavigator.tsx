@@ -86,6 +86,7 @@ export default function CarePathwayNavigator() {
   // Voice Talk / Speech Recognition State
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const baseStoryRef = useRef<string>("");
 
   // Load history from localStorage on mount (100% data driven from user's real usage)
   useEffect(() => {
@@ -141,6 +142,7 @@ export default function CarePathwayNavigator() {
         recognitionRef.current.stop();
       }
       setIsListening(false);
+      baseStoryRef.current = "";
       toast.info("Microphone paused.");
       return;
     }
@@ -159,7 +161,11 @@ export default function CarePathwayNavigator() {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = "en-US";
+      recognition.maxAlternatives = 1;
+      recognition.lang =
+        typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US";
+
+      baseStoryRef.current = userStory;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -167,21 +173,38 @@ export default function CarePathwayNavigator() {
       };
 
       recognition.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
+        let finalTranscript = "";
+        let interimTranscript = "";
+
+        for (let i = 0; i < event.results.length; ++i) {
+          const item = event.results[i];
+          if (item && item[0]) {
+            if (item.isFinal) {
+              finalTranscript += item[0].transcript + " ";
+            } else {
+              interimTranscript += item[0].transcript + " ";
+            }
+          }
         }
-        setUserStory((prev) => (prev ? `${prev} ${transcript}` : transcript));
+
+        const spoken = (finalTranscript + interimTranscript).trim();
+        if (spoken) {
+          const base = baseStoryRef.current.trim();
+          const nextVal = base ? `${base} ${spoken}` : spoken;
+          setUserStory(nextVal.replace(/\s+/g, " "));
+        }
       };
 
       recognition.onerror = (e: any) => {
         console.warn("Speech error", e);
         setIsListening(false);
+        baseStoryRef.current = "";
         toast.error("Voice listening stopped. You can continue typing.");
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        baseStoryRef.current = "";
       };
 
       recognition.start();
@@ -189,6 +212,8 @@ export default function CarePathwayNavigator() {
     } catch (err) {
       console.error("Failed to initialize speech recognition", err);
       toast.error("Could not access microphone.");
+      setIsListening(false);
+      baseStoryRef.current = "";
     }
   };
 
