@@ -157,7 +157,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
-  errorComponent: ErrorComponent,
+  errorComponent: ErrorComponent as never,
 });
 
 function RootShell({ children }: { children: ReactNode }) {
@@ -268,7 +268,7 @@ function RootComponent() {
       
       // If signed in and on an unauthed page, redirect to destination
       if (
-        (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "USER_UPDATED") &&
+        (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event as string)) &&
         session?.user &&
         isUnauthedPage &&
         !redirecting

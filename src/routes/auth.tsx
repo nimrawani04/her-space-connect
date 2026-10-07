@@ -61,7 +61,7 @@ const credSchema = z.object({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const search = useSearch({ from: "/auth", strict: false });
+  const search = useSearch({ strict: false }) as { mode?: string };
   const [mode, setMode] = useState<"signin" | "signup">(search?.mode === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
