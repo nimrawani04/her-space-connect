@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/travel/inbox")({
     const router = useRouter();
     return (
       <div className="p-6 text-center space-y-3">
-        <p className="text-destructive">Could not load your inbox: {error.message}</p>
+        <p className="text-destructive">Could not load your inbox: {(error as Error).message}</p>
         <Button onClick={() => { reset(); router.invalidate(); }}>Try again</Button>
       </div>
     );
