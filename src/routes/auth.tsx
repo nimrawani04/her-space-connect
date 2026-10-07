@@ -226,7 +226,16 @@ function AuthPage() {
       {/* Background cinematic video with dark rich contrast and glowing pink flower blend */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <video
-          className="w-full h-full object-cover filter contrast-[1.18] brightness-[1.05]"
+          className="absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover filter contrast-[1.18] brightness-[1.05]"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            maxWidth: "none",
+            maxHeight: "none",
+            objectFit: "cover",
+          }}
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
           autoPlay
           muted

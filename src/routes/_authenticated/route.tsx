@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { useTheme } from "@/components/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarSignedUrl, initials } from "@/lib/avatar";
 import { authLog, performSignOut, resolveGuardUser } from "@/lib/auth-redirect";
@@ -249,6 +250,7 @@ function AuthedShell() {
   const { preferences: lifeStages } = useLifeStagePreferences();
   const { profile: pregnancyProfile } = usePregnancyProfile();
   const isPregnant = pregnancyProfile?.stage === "pregnant" || lifeStages.pregnancy;
+  const { accent } = useTheme();
 
   const visibleNav = useMemo(() => {
     return nav.filter((item) => {
@@ -268,25 +270,47 @@ function AuthedShell() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-dvh flex w-full text-foreground bg-background relative overflow-x-hidden">
-        {/* Ambient blooming floral background tinted dynamically with user's profile color */}
+      <div className="min-h-dvh flex w-full text-foreground bg-[#12080c] relative overflow-x-hidden">
+        {/* Full-screen ambient blooming floral/jellyfish background from top to bottom */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
           <video
-            className="w-full h-full object-cover scale-105 opacity-[0.45] dark:opacity-[0.38] filter contrast-110 saturate-125 transition-opacity"
+            className="absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover scale-105 opacity-[0.75] dark:opacity-[0.65] filter contrast-[1.15] brightness-[1.05] transition-opacity"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              maxWidth: "none",
+              maxHeight: "none",
+              objectFit: "cover",
+            }}
             src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
             autoPlay
             muted
             loop
             playsInline
           />
-          {/* Color wash that dynamically takes the user's selected profile accent color */}
+          {/* Color blend: infuses user's exact chosen accent color directly into all jellyfish petals */}
           <div
-            className="absolute inset-0 mix-blend-color opacity-70 transition-colors duration-500"
-            style={{ backgroundColor: "var(--primary)" }}
+            className="absolute inset-0 mix-blend-color opacity-90 transition-colors duration-700 pointer-events-none"
+            style={{ backgroundColor: accent }}
           />
-          {/* Subtle soft scrim preserving flower visibility while framing content */}
+          {/* Screen blend: glowing radiant highlights across the bloom */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-background/45 via-background/25 to-background/55 backdrop-blur-[1px] transition-colors duration-500"
+            className="absolute inset-0 mix-blend-screen opacity-80 transition-all duration-700 pointer-events-none"
+            style={{
+              background: `radial-gradient(circle at 55% 45%, ${accent}cc 0%, ${accent}55 40%, transparent 75%)`,
+            }}
+          />
+          {/* Warm deep botanical vignette to preserve contrast and warm background from top to bottom */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#14080e]/75 via-[#14080e]/35 to-[#12080c]/85 pointer-events-none transition-colors duration-500" />
+          <div
+            className="hidden sm:block absolute -top-32 -left-32 w-[30rem] h-[30rem] rounded-full blur-[130px] pointer-events-none transition-colors duration-700"
+            style={{ backgroundColor: `${accent}25` }}
+          />
+          <div
+            className="hidden sm:block absolute top-1/3 -right-32 w-[32rem] h-[32rem] rounded-full blur-[150px] pointer-events-none transition-colors duration-700"
+            style={{ backgroundColor: `${accent}30` }}
           />
         </div>
 

@@ -176,8 +176,19 @@
   h1 { line-height: var(--leading-display); letter-spacing: var(--tracking-display); }
   h2 { line-height: var(--leading-heading); }
   h3, h4 { line-height: var(--leading-subheading); }
-  h5, h6 { line-height: var(--leading-subheading); }
   p { line-height: var(--leading-body); }
+
+  /* Universal responsive defaults: fluid media elements by default, safely overridable by utility classes */
+  img, svg, video, canvas, audio, iframe, embed, object {
+    max-width: 100%;
+    height: auto;
+  }
+
+  pre, code, kbd, samp {
+    max-width: 100%;
+    overflow-x: auto;
+    word-break: break-word;
+  }
 }
 
 /* Shared measure + wrapping utilities. Use these anywhere copy needs a
@@ -232,18 +243,6 @@ body {
   max-width: 100vw;
   width: 100%;
   overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* Universal responsive resilience: prevent media, tables, and code blocks from blowing out viewports */
-img, svg, video, canvas, audio, iframe, embed, object {
-  max-width: 100%;
-  height: auto;
-}
-
-pre, code, kbd, samp {
-  max-width: 100%;
-  overflow-x: auto;
   word-break: break-word;
 }
 

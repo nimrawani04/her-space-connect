@@ -44,6 +44,8 @@ import {
   Heart,
   ChevronRight,
   Sparkle,
+  Download,
+  Printer,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/library")({
@@ -1009,6 +1011,10 @@ function Library() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [courseModalTab, setCourseModalTab] = useState<"studio" | "syllabus">("studio");
   const [activeModuleIndex, setActiveModuleIndex] = useState<number>(0);
+  const [moduleMediaMode, setModuleMediaMode] = useState<"video" | "audio" | "notes">("video");
+  const [isSpeakingLecture, setIsSpeakingLecture] = useState(false);
+  const [lectureAudioProgress, setLectureAudioProgress] = useState(0);
+  const [lecturePlaybackSpeed, setLecturePlaybackSpeed] = useState<number>(1.0);
 
   // Video masterclass state
   const [selectedVideo, setSelectedVideo] = useState<VideoWorkshop | null>(null);
@@ -1252,6 +1258,145 @@ function Library() {
       return next;
     });
     toast.success(`Module ${moduleNum} progress recorded & saved!`);
+  };
+
+  const getCourseVideoEmbed = (category: string) => {
+    switch (category) {
+      case "Fertility":
+        return "https://www.youtube-nocookie.com/embed/ayzN5f3qN8g";
+      case "Pregnancy":
+        return "https://www.youtube-nocookie.com/embed/8Uc398hnc24";
+      case "Birth":
+        return "https://www.youtube-nocookie.com/embed/8Uc398hnc24";
+      case "Cycle":
+        return "https://www.youtube-nocookie.com/embed/ayzN5f3qN8g";
+      case "Perimenopause":
+        return "https://www.youtube-nocookie.com/embed/sTNP3w3ExxA";
+      case "Teen":
+        return "https://www.youtube-nocookie.com/embed/zHkE_z9BffQ";
+      default:
+        return "https://www.youtube-nocookie.com/embed/ayzN5f3qN8g";
+    }
+  };
+
+  const toggleLectureAudio = (course: Course, module: CourseModule) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      toast.error("Speech synthesis is not supported in this browser.");
+      return;
+    }
+
+    if (isSpeakingLecture) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingLecture(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const lectureScript = `${course.title}. Module ${module.number}: ${module.title}. Presented by ${course.instructor}. ${module.description}. In this lesson, we examine core competencies including: ${module.topics.join(". ")}. Practice this guidance in your daily cycle observations and discuss any diagnostic questions with your healthcare provider.`;
+
+    const utterance = new SpeechSynthesisUtterance(lectureScript);
+    const voice = getMeditationVoice();
+    if (voice) utterance.voice = voice;
+    utterance.rate = 0.9 * lecturePlaybackSpeed;
+
+    utterance.onboundary = (e) => {
+      if (lectureScript.length > 0) {
+        setLectureAudioProgress(Math.min(99, Math.round((e.charIndex / lectureScript.length) * 100)));
+      }
+    };
+
+    utterance.onend = () => {
+      setIsSpeakingLecture(false);
+      setLectureAudioProgress(100);
+      toast.success(`Completed lecture narration: ${module.title}`);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeakingLecture(false);
+    };
+
+    setIsSpeakingLecture(true);
+    setLectureAudioProgress(10);
+    window.speechSynthesis.speak(utterance);
+    toast.info(`Now narrating: ${module.title}`);
+  };
+
+  const handleDownloadPdfGuide = (course: Course, module: CourseModule) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Please allow popups to download and print the PDF handbook.");
+      return;
+    }
+
+    const topicsHtml = module.topics.map((t) => `<li style="margin-bottom: 8px;"><strong>•</strong> ${t}</li>`).join("");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${course.title} - Module ${module.number} Clinical Handbook</title>
+          <style>
+            @page { size: A4; margin: 16mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; padding: 24px; max-width: 820px; margin: 0 auto; background: #fff; }
+            .header { border-bottom: 2px solid #e11d48; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .logo { font-size: 22px; font-weight: 700; color: #e11d48; letter-spacing: -0.02em; }
+            .sublogo { font-size: 11px; color: #64748b; margin-top: 2px; }
+            .badge { background: #ffe4e6; color: #be123c; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 9999px; }
+            h1 { font-size: 22px; color: #0f172a; margin: 0 0 6px 0; font-family: Georgia, serif; }
+            .instructor { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+            .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+            .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #e11d48; margin-top: 0; margin-bottom: 8px; letter-spacing: 0.05em; }
+            ul { margin: 8px 0; padding-left: 18px; }
+            .protocol-step { padding: 8px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
+            .protocol-step:last-child { border-bottom: none; }
+            .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="logo">HerSpace Clinical Academy</div>
+              <div class="sublogo">Evidence-Based Women's Life-Stage Academy &amp; Biomedical Research</div>
+            </div>
+            <span class="badge">Module ${module.number} · Duration: ${module.duration}</span>
+          </div>
+
+          <h1>${course.title}</h1>
+          <div class="instructor">Instructor: <strong>${course.instructor}</strong> (${course.instructorTitle}) · Category: ${course.category}</div>
+
+          <div class="card">
+            <div class="card-title">Lesson Overview &amp; Curriculum Focus</div>
+            <p style="margin: 0; font-size: 13.5px; color: #334155;">${module.description}</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Core Clinical Competencies &amp; Biological Targets</div>
+            <ul style="font-size: 13px; color: #334155;">${topicsHtml}</ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Clinical Study Notes &amp; Action Plan</div>
+            <div class="protocol-step"><strong>1. Biomarker &amp; Phase Mapping:</strong> Record and observe key physiological indicators daily using the HerSpace tracker.</div>
+            <div class="protocol-step"><strong>2. Targeted Nutrition &amp; Cellular Support:</strong> Support mitochondrial respiration, metabolic stability, and endocrine signaling.</div>
+            <div class="protocol-step"><strong>3. Clinical Consultation Checklist:</strong> Bring observed trends and questions to your OB/GYN, midwife, or endocrinologist.</div>
+          </div>
+
+          <div class="footer">
+            <span>HerSpace Sovereign Platform · Evidence-Based Women's Education</span>
+            <span>Use browser "Save as PDF" to download offline</span>
+          </div>
+
+          <script>
+            window.onload = function() {
+              setTimeout(function() { window.print(); }, 400);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    toast.success(`Generated printable PDF handbook for Module ${module.number}`);
   };
 
   // Filtered datasets with unified search and life-stage category filtering
@@ -2446,7 +2591,16 @@ function Library() {
       )}
 
       {/* UNIFIED COURSE ACADEMY & INTERACTIVE LEARNING STUDIO MODAL */}
-      <Dialog open={!!selectedCourse} onOpenChange={(open) => !open && setSelectedCourse(null)}>
+      <Dialog open={!!selectedCourse} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedCourse(null);
+          if (typeof window !== "undefined" && "speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+          }
+          setIsSpeakingLecture(false);
+          setLectureAudioProgress(0);
+        }
+      }}>
         <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-card border border-border/90 p-5 sm:p-7 md:p-8">
           {selectedCourse && (() => {
             const courseCompleted = completedModules[selectedCourse.id] || [];
@@ -2531,7 +2685,14 @@ function Library() {
                             <button
                               key={m.number}
                               type="button"
-                              onClick={() => setActiveModuleIndex(idx)}
+                              onClick={() => {
+                                setActiveModuleIndex(idx);
+                                if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                                  window.speechSynthesis.cancel();
+                                }
+                                setIsSpeakingLecture(false);
+                                setLectureAudioProgress(0);
+                              }}
                               className={`text-xs px-3.5 py-1.5 rounded-full flex items-center gap-2 shrink-0 transition-all border cursor-pointer ${
                                 isActive
                                   ? "bg-primary text-primary-foreground border-primary font-medium shadow-xs"
@@ -2548,7 +2709,7 @@ function Library() {
                       </div>
                     </div>
 
-                    {/* Active Module Studio Reader */}
+                    {/* Active Module Studio Reader & Multi-Format Studio */}
                     <div className="p-5 sm:p-6 rounded-3xl bg-secondary/30 border border-border/70 space-y-5">
                       <div className="flex items-center justify-between gap-2 flex-wrap border-b border-border/50 pb-3">
                         <div>
@@ -2559,31 +2720,183 @@ function Library() {
                             {currentModule.title}
                           </h3>
                         </div>
-                        <span className="text-xs font-mono text-muted-foreground bg-card px-2.5 py-1 rounded-full border border-border/60">
-                          Duration: {currentModule.duration}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-muted-foreground bg-card px-2.5 py-1 rounded-full border border-border/60">
+                            Duration: {currentModule.duration}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            type="button"
+                            onClick={() => handleDownloadPdfGuide(selectedCourse, currentModule)}
+                            className="rounded-full text-xs h-7.5 border-primary/30 text-primary hover:bg-primary/10 cursor-pointer shadow-xs"
+                            title="Generate and download printable PDF handbook"
+                          >
+                            <Download className="w-3.5 h-3.5 mr-1" /> PDF Handbook
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Multi-Format Studio Modality Switcher */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap bg-card/80 p-1.5 rounded-2xl border border-border/70">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setModuleMediaMode("video")}
+                            className={`text-xs px-3.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                              moduleMediaMode === "video"
+                                ? "bg-primary text-primary-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                            }`}
+                          >
+                            <Video className="w-3.5 h-3.5" /> Video Lecture
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModuleMediaMode("audio")}
+                            className={`text-xs px-3.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                              moduleMediaMode === "audio"
+                                ? "bg-primary text-primary-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                            }`}
+                          >
+                            <Headphones className="w-3.5 h-3.5" /> Audio Lecture (Narration)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModuleMediaMode("notes")}
+                            className={`text-xs px-3.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                              moduleMediaMode === "notes"
+                                ? "bg-primary text-primary-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                            }`}
+                          >
+                            <FileText className="w-3.5 h-3.5" /> Study Guide &amp; Protocol
+                          </button>
+                        </div>
+
+                        <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline">
+                          Select format to learn
                         </span>
                       </div>
 
-                      <div className="space-y-2.5">
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
-                          Module Clinical Overview &amp; Curriculum Notes:
-                        </h4>
-                        <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed font-light">
-                          {currentModule.description}
-                        </p>
-                      </div>
+                      {/* 1. VIDEO LECTURE EMBED */}
+                      {moduleMediaMode === "video" && (
+                        <div className="space-y-2 animate-in fade-in duration-200">
+                          <div className="rounded-2xl overflow-hidden bg-black aspect-video relative shadow-2xl border border-border/60">
+                            <iframe
+                              src={getCourseVideoEmbed(selectedCourse.category)}
+                              title={`${selectedCourse.title} - ${currentModule.title}`}
+                              className="w-full h-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground text-center font-light pt-1">
+                            High-definition streaming clinical lecture for Module {currentModule.number}. Full interactive playback enabled.
+                          </p>
+                        </div>
+                      )}
 
-                      <div className="space-y-2.5">
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
-                          Core Competencies Covered:
-                        </h4>
-                        <div className="grid sm:grid-cols-2 gap-2.5">
-                          {currentModule.topics.map((t, idx) => (
-                            <div key={idx} className="flex items-center gap-2.5 p-3 rounded-2xl bg-card border border-border/60 text-xs text-foreground">
-                              <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                              <span>{t}</span>
+                      {/* 2. AUDIO LECTURE PLAYER */}
+                      {moduleMediaMode === "audio" && (
+                        <div className="p-4 sm:p-5 rounded-2xl bg-primary/5 border border-primary/20 space-y-3.5 animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <Headphones className="w-4 h-4 text-primary" />
+                              <span className="text-xs font-semibold text-foreground">
+                                Spoken Lecture: {currentModule.title}
+                              </span>
                             </div>
-                          ))}
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              Narrated by Clinical Voice Engine · {currentModule.duration}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 bg-card p-3.5 rounded-xl border border-border/70">
+                            <Button
+                              size="sm"
+                              type="button"
+                              onClick={() => toggleLectureAudio(selectedCourse, currentModule)}
+                              className="rounded-full w-9 h-9 p-0 bg-primary text-primary-foreground hover:brightness-105 shrink-0"
+                            >
+                              {isSpeakingLecture ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                            </Button>
+
+                            <div className="flex-1 space-y-1">
+                              <Progress value={lectureAudioProgress} className="h-2 rounded-full" />
+                              <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                                <span>{isSpeakingLecture ? "Narrating clinical lesson…" : "Paused"}</span>
+                                <span>{lectureAudioProgress}% completed</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {[1.0, 1.25].map((speed) => (
+                                <button
+                                  key={speed}
+                                  type="button"
+                                  onClick={() => setLecturePlaybackSpeed(speed)}
+                                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
+                                    lecturePlaybackSpeed === speed
+                                      ? "bg-primary text-primary-foreground border-primary"
+                                      : "border-border/70 text-muted-foreground hover:text-foreground"
+                                  }`}
+                                >
+                                  {speed}x
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="p-3.5 rounded-xl bg-card/60 border border-border/50 text-xs text-muted-foreground italic font-serif leading-relaxed">
+                            &ldquo;{currentModule.description}&rdquo;
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. CLINICAL STUDY GUIDE & PROTOCOL */}
+                      <div className="space-y-3 pt-1">
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5" /> Module Clinical Overview &amp; Curriculum Notes:
+                          </h4>
+                          <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed font-light">
+                            {currentModule.description}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Core Competencies Covered:
+                          </h4>
+                          <div className="grid sm:grid-cols-2 gap-2.5">
+                            {currentModule.topics.map((t, idx) => (
+                              <div key={idx} className="flex items-center gap-2.5 p-3 rounded-2xl bg-card border border-border/60 text-xs text-foreground">
+                                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                                <span>{t}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Clinical Action Plan & Protocol Checklist */}
+                        <div className="p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-primary uppercase text-[10px] tracking-wider">
+                              Clinical Practice Protocol:
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadPdfGuide(selectedCourse, currentModule)}
+                              className="text-primary hover:underline text-[11px] font-medium flex items-center gap-1 cursor-pointer"
+                            >
+                              <Download className="w-3 h-3" /> Save to PDF Handbook &rarr;
+                            </button>
+                          </div>
+                          <p className="text-muted-foreground leading-relaxed text-[11px]">
+                            Track physiological markers daily in your Health Journal. Review observations across cycle days to identify metabolic and hormonal trends.
+                          </p>
                         </div>
                       </div>
 
@@ -2617,7 +2930,14 @@ function Library() {
                             variant="ghost"
                             size="sm"
                             disabled={activeModuleIndex === 0}
-                            onClick={() => setActiveModuleIndex((prev) => Math.max(0, prev - 1))}
+                            onClick={() => {
+                              setActiveModuleIndex((prev) => Math.max(0, prev - 1));
+                              if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                                window.speechSynthesis.cancel();
+                              }
+                              setIsSpeakingLecture(false);
+                              setLectureAudioProgress(0);
+                            }}
                             className="rounded-full text-xs cursor-pointer"
                           >
                             Previous Module
@@ -2627,7 +2947,14 @@ function Library() {
                             variant="ghost"
                             size="sm"
                             disabled={activeModuleIndex === selectedCourse.modules.length - 1}
-                            onClick={() => setActiveModuleIndex((prev) => Math.min(selectedCourse.modules.length - 1, prev + 1))}
+                            onClick={() => {
+                              setActiveModuleIndex((prev) => Math.min(selectedCourse.modules.length - 1, prev + 1));
+                              if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                                window.speechSynthesis.cancel();
+                              }
+                              setIsSpeakingLecture(false);
+                              setLectureAudioProgress(0);
+                            }}
                             className="rounded-full text-xs cursor-pointer"
                           >
                             Next Module <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -2770,30 +3097,6 @@ function Library() {
                   <Badge variant="outline" className="w-fit rounded-full text-xs bg-primary/10 text-primary border-primary/20">
                     {selectedVideo.category} · Clinical Masterclass
                   </Badge>
-                  <div className="flex items-center gap-1.5 bg-secondary/80 p-1 rounded-full border border-border/60">
-                    <button
-                      type="button"
-                      onClick={() => setVideoMode("embed")}
-                      className={`text-[11px] px-3 py-1 rounded-full transition-all cursor-pointer ${
-                        videoMode === "embed"
-                          ? "bg-primary text-primary-foreground font-medium shadow-xs"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      Stream (Embed)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVideoMode("player")}
-                      className={`text-[11px] px-3 py-1 rounded-full transition-all cursor-pointer ${
-                        videoMode === "player"
-                          ? "bg-primary text-primary-foreground font-medium shadow-xs"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      HD Video Player (MP4)
-                    </button>
-                  </div>
                 </div>
 
                 <DialogTitle className="font-serif italic text-2xl text-foreground leading-snug">
@@ -2804,41 +3107,15 @@ function Library() {
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Real Video Player Container */}
+              {/* Video Player Container */}
               <div className="rounded-2xl overflow-hidden bg-black aspect-video relative flex flex-col justify-center items-center shadow-2xl border border-border/60">
-                {videoMode === "player" ? (
-                  <video
-                    ref={videoRef}
-                    src={selectedVideo.videoUrl}
-                    controls
-                    playsInline
-                    className="w-full h-full object-contain"
-                    onError={() => {
-                      setVideoMode("embed");
-                      toast.info("Switched to high-definition stream player");
-                    }}
-                    onPlay={() => setIsVideoPlaying(true)}
-                    onPause={() => setIsVideoPlaying(false)}
-                    onTimeUpdate={(e) => {
-                      const v = e.currentTarget;
-                      if (v.duration) {
-                        setVideoProgress(Math.round((v.currentTime / v.duration) * 100));
-                      }
-                    }}
-                    onEnded={() => {
-                      setIsVideoPlaying(false);
-                      toast.success(`Completed workshop: ${selectedVideo.title}`);
-                    }}
-                  />
-                ) : (
-                  <iframe
-                    src={streamUrlWithTime || selectedVideo.embedUrl}
-                    title={selectedVideo.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                )}
+                <iframe
+                  src={streamUrlWithTime || selectedVideo.embedUrl}
+                  title={selectedVideo.title}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
               </div>
 
               {/* Video Chapters with interactive seeking */}
@@ -2862,11 +3139,7 @@ function Library() {
                         onClick={() => {
                           const parts = ch.time.split(":").map(Number);
                           const seconds = (parts[0] || 0) * 60 + (parts[1] || 0);
-                          if (videoRef.current && videoMode === "player") {
-                            videoRef.current.currentTime = seconds;
-                            videoRef.current.play().catch(() => {});
-                            setIsVideoPlaying(true);
-                          } else if (selectedVideo.embedUrl) {
+                          if (selectedVideo.embedUrl) {
                             const baseUrl = selectedVideo.embedUrl.split("?")[0];
                             setStreamUrlWithTime(`${baseUrl}?start=${seconds}&autoplay=1`);
                           }
@@ -2909,9 +3182,7 @@ function Library() {
                   onClick={() => {
                     setSelectedVideo(null);
                     setIsVideoPlaying(false);
-                    if (videoRef.current) {
-                      videoRef.current.pause();
-                    }
+                    setStreamUrlWithTime("");
                   }}
                   className="rounded-full text-xs"
                 >
