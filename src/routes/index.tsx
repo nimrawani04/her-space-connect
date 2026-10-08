@@ -422,40 +422,40 @@ function LandingPage() {
       {/* ── Main Content Layer ── */}
       <div className="absolute inset-0 z-20 pointer-events-none">
         {/* Top Navigation */}
-        <nav className="absolute top-0 left-0 w-full flex items-center justify-between px-5 md:px-[35px] py-5 md:py-[27px] pointer-events-auto z-30">
+        <nav className="absolute top-0 left-0 w-full flex items-center justify-between px-4 sm:px-6 lg:px-7 xl:px-9 py-4 sm:py-5 lg:py-6 pointer-events-auto z-30 max-w-full">
           {/* Left Group */}
-          <div className="flex items-center gap-5 xl:gap-[32px] mr-6 xl:mr-10">
+          <div className="flex items-center gap-3.5 xl:gap-7 mr-3 xl:mr-6 min-w-0 shrink">
             {/* Wordmark */}
             <div
               onClick={() => navigate({ to: "/" })}
-              className="flex items-center gap-3 anim-fade-up cursor-pointer group"
+              className="flex items-center gap-2.5 anim-fade-up cursor-pointer group shrink-0"
               style={{ animationDelay: "200ms" }}
             >
               <HerSpaceLogo size={28} className="transition-transform group-hover:scale-105" />
-              <span className="font-serif italic text-white text-[21px] md:text-[24px] tracking-tight whitespace-nowrap select-none font-normal">
+              <span className="font-serif italic text-white text-[20px] md:text-[23px] tracking-tight whitespace-nowrap select-none font-normal">
                 HerSpace
               </span>
             </div>
 
             {/* Desktop Nav Links */}
-            <div className="hidden lg:flex items-center gap-3.5 xl:gap-[20px]">
+            <div className="hidden lg:flex items-center gap-2 xl:gap-3.5 shrink-0">
               {PILLARS.map((pillar, i) => {
                 const isActive = activePillar === i;
                 return (
                   <button
                     key={pillar.id}
                     onClick={() => setActivePillar(i)}
-                    className="flex items-center gap-[4px] anim-fade-up group cursor-pointer bg-transparent border-0 p-0"
+                    className="flex items-center gap-1 anim-fade-up group cursor-pointer bg-transparent border-0 p-0 transition-opacity hover:opacity-100 whitespace-nowrap shrink-0"
                     style={{ animationDelay: `${350 + i * 100}ms` }}
                   >
-                    <span className="font-sans text-[#f472b6]/90 text-[12px] leading-[15.6px] font-medium">
+                    <span className="font-mono text-[#f472b6]/80 text-[10px] xl:text-[10.5px] leading-none font-medium shrink-0">
                       {pillar.number}.
                     </span>
                     <span
-                      className={`font-sans text-[11px] xl:text-[12.5px] leading-[15.6px] tracking-wider transition-colors uppercase ${
+                      className={`font-sans text-[9.5px] xl:text-[10.5px] leading-none tracking-wider transition-colors uppercase whitespace-nowrap shrink-0 ${
                         isActive
                           ? "text-[#f472b6] font-semibold"
-                          : "text-white/90 hover:text-[#f472b6]"
+                          : "text-white/75 hover:text-[#f472b6]"
                       }`}
                     >
                       {pillar.navLabel}
@@ -468,24 +468,26 @@ function LandingPage() {
 
           {/* Right Group */}
           <div
-            className="hidden lg:flex items-center gap-3 xl:gap-[12px] ml-auto anim-slide-right"
+            className="hidden lg:flex items-center gap-2.5 xl:gap-3.5 ml-auto anim-slide-right shrink-0"
             style={{ animationDelay: "600ms" }}
           >
             <button
               onClick={() => navigate({ to: "/auth" })}
-              className="font-sans text-white/90 text-[13px] leading-[15.6px] hover:text-[#f472b6] transition-colors cursor-pointer whitespace-nowrap"
+              className="font-sans text-white/90 text-[12px] xl:text-[13px] leading-none hover:text-[#f472b6] transition-colors cursor-pointer whitespace-nowrap"
             >
               Sign In
             </button>
-            <span className="font-sans text-white/70 text-[13px] leading-[15.6px] ml-2 xl:ml-[16px] whitespace-nowrap">
-              STATUS:
-            </span>
-            <div className="bg-[#f472b6] rounded-[3px] px-[6px] py-[2px] text-[#14060c] font-sans text-[11px] xl:text-[12px] leading-[15.6px] font-bold tracking-wide whitespace-nowrap">
-              SANCTUARY_ACTIVE
+            <div className="hidden xl:flex items-center gap-1.5 whitespace-nowrap">
+              <span className="font-sans text-white/70 text-[12px] xl:text-[13px] leading-none">
+                STATUS:
+              </span>
+              <div className="bg-[#f472b6] rounded-[3px] px-[6px] py-[2px] text-[#14060c] font-sans text-[11px] leading-tight font-bold tracking-wide">
+                SANCTUARY_ACTIVE
+              </div>
             </div>
             <button
               onClick={() => navigate({ to: "/auth", search: { mode: "signup" } })}
-              className="bg-white/10 hover:bg-[#f472b6]/20 hover:border-[#f472b6]/40 border border-white/20 text-white hover:text-pink-100 px-3.5 py-1.5 font-sans text-[12px] uppercase tracking-wider transition-all duration-200 cursor-pointer ml-1 whitespace-nowrap"
+              className="bg-white/10 hover:bg-[#f472b6]/20 hover:border-[#f472b6]/40 border border-white/20 text-white hover:text-pink-100 px-3 py-1.5 font-sans text-[11.5px] xl:text-[12px] uppercase tracking-wider transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0"
             >
               Join Sanctuary
             </button>
@@ -615,47 +617,47 @@ function LandingPage() {
 
         {/* ── Main Heading & Side Text (Desktop / Tablets) ── */}
         <div
-          className="hidden md:block absolute left-6 md:left-[35px] top-[110px] md:top-[135px] max-w-[420px] md:max-w-[360px] lg:max-w-[480px] xl:max-w-[620px] pointer-events-auto anim-fade-up z-20"
+          className="hidden md:block absolute left-6 md:left-[35px] top-[110px] md:top-[135px] max-w-[320px] lg:max-w-[380px] xl:max-w-[440px] pointer-events-auto anim-fade-up z-20"
           style={{ animationDelay: "400ms" }}
         >
           {/* Private Sacred Haven Badge */}
           <div
-            className="inline-block text-[#14060c] font-sans text-[11px] md:text-[12px] leading-[14px] px-[7px] py-[3px] mb-[10px] sm:mb-[14px] font-bold uppercase tracking-wider shadow-sm transition-colors duration-500"
+            className="inline-block text-[#14060c] font-sans text-[10px] md:text-[10.5px] leading-[14px] px-2 py-[2.5px] mb-2 sm:mb-2.5 font-bold uppercase tracking-wider shadow-sm transition-colors duration-500 rounded-xs"
             style={{ backgroundColor: currentColor }}
           >
             A private sacred haven created specifically for women
           </div>
 
           {/* Main Title in Editorial Serif */}
-          <h1 className="font-serif italic text-white font-normal leading-[1.08] tracking-tight text-[36px] md:text-[38px] lg:text-[50px] xl:text-[66px] drop-shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+          <h1 className="font-serif italic text-white font-normal leading-[1.12] tracking-tight text-[26px] md:text-[30px] lg:text-[36px] xl:text-[44px] drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)]">
             A quiet room for your health, safety and sisterhood.
           </h1>
         </div>
 
         {/* ── Mobile Sanctuary Editorial View (< md): Title above badge at bottom ── */}
         <div
-          className="md:hidden absolute bottom-6 left-5 right-5 pointer-events-auto z-20 flex flex-col items-start gap-2.5 anim-fade-up"
+          className="md:hidden absolute bottom-6 left-5 right-5 pointer-events-auto z-20 flex flex-col items-start gap-2 anim-fade-up"
           style={{
             animationDelay: "400ms",
             paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
           }}
         >
           {/* Main Title: above */}
-          <h1 className="font-serif italic text-white font-normal leading-[1.12] tracking-tight text-[25px] min-[360px]:text-[28px] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)] max-w-sm">
+          <h1 className="font-serif italic text-white font-normal leading-[1.14] tracking-tight text-[20px] min-[360px]:text-[22px] drop-shadow-[0_4px_20px_rgba(0,0,0,0.9)] max-w-xs">
             A quiet room for your health, safety and sisterhood.
           </h1>
 
           {/* Sacred Haven Badge: in the bottom */}
           <button
             onClick={() => navigate({ to: "/auth", search: { mode: "signup" } })}
-            className="inline-flex items-center gap-1.5 text-[#14060c] font-sans text-[10px] sm:text-[11px] leading-[14px] px-3.5 py-1.5 font-bold uppercase tracking-wider shadow-md transition-all duration-300 active:scale-95 cursor-pointer rounded-xs"
+            className="inline-flex items-center gap-1.5 text-[#14060c] font-sans text-[9px] min-[360px]:text-[10px] leading-[13px] px-3 py-1 font-bold uppercase tracking-wider shadow-md transition-all duration-300 active:scale-95 cursor-pointer rounded-xs"
             style={{
               backgroundColor: currentColor,
-              boxShadow: `0 0 20px ${currentColor}55`,
+              boxShadow: `0 0 16px ${currentColor}55`,
             }}
           >
             <span>A private sacred haven created specifically for women</span>
-            <ArrowRight className="w-3 h-3 text-[#14060c]" />
+            <ArrowRight className="w-2.5 h-2.5 text-[#14060c]" />
           </button>
         </div>
 
