@@ -214,6 +214,27 @@ export default function SafetyMap() {
     };
   }, [loadPatterns]);
 
+  // Live updates: refresh colors/patterns as soon as any sister reports
+  useEffect(() => {
+    const channel = supabase
+      .channel("safety-map-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "safety_map_reports" },
+        () => loadPatterns()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "safe_places" },
+        () => loadPatterns()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadPatterns]);
+
   // Render Map layers: Safe places (green), world benchmarks (green), & patterns (rose/amber)
   useEffect(() => {
     const L = LRef.current;
