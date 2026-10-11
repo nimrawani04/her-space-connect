@@ -397,62 +397,53 @@ export default function SafetyMap() {
     const userId = u.user?.id;
     const isSafeSelection = CATEGORIES[category]?.isSafe ?? false;
 
+    if (!userId) {
+      setBusy(false);
+      toast.error("Please sign in to share a report.");
+      return;
+    }
+
     if (isSafeSelection) {
       // 1. Submit Safe Place with Green indicator
       const placeName = areaLabel.trim() || "Safe Community Haven";
       const notesText = note.trim() || "Reported safe haven with active visibility.";
 
-      try {
-        if (userId) {
-          await db.from("safe_places").insert({
-            submitted_by: userId,
-            name: placeName,
-            place_type: category,
-            city: "Community Reported",
-            country: "Global",
-            lat: target.lat,
-            lng: target.lng,
-            safety_score: 9.5,
-            women_friendly_score: 9.8,
-            notes: notesText,
-          });
-        }
-      } catch {
-        // Fallback continues
-      }
+      const { error } = await db.from("safe_places").insert({
+        submitted_by: userId,
+        name: placeName,
+        place_type: category,
+        city: "Community Reported",
+        country: "Global",
+        lat: target.lat,
+        lng: target.lng,
+        safety_score: 9.5,
+        women_friendly_score: 9.8,
+        notes: notesText,
+      });
 
-      // Add to local map state immediately
-      setSafePlaces((prev) => [
-        {
-          id: `local-${Date.now()}`,
-          name: placeName,
-          lat: target.lat,
-          lng: target.lng,
-          place_type: CATEGORIES[category]?.label ?? "Safe Haven",
-          city: "Community Reported",
-          country: "Global",
-          notes: notesText,
-        },
-        ...prev,
-      ]);
+      if (error) {
+        setBusy(false);
+        toast.error("Couldn't save this safe place. Please try again.");
+        return;
+      }
 
       toast.success("Safe place marked! Highlighted in green on the map.");
     } else {
       // 2. Submit Concern / Hazard Pattern
-      try {
-        if (userId) {
-          await db.from("safety_map_reports").insert({
-            user_id: userId,
-            category,
-            time_window: timeWindow,
-            cell_lat: target.lat,
-            cell_lng: target.lng,
-            area_label: areaLabel.trim() || null,
-            note: note.trim() || null,
-          });
-        }
-      } catch {
-        // Fallback continues
+      const { error } = await db.from("safety_map_reports").insert({
+        user_id: userId,
+        category,
+        time_window: timeWindow,
+        cell_lat: target.lat,
+        cell_lng: target.lng,
+        area_label: areaLabel.trim() || null,
+        note: note.trim() || null,
+      });
+
+      if (error) {
+        setBusy(false);
+        toast.error("Couldn't save your report. Please try again.");
+        return;
       }
 
       toast.success("Notice shared anonymously. Joins community safety pattern.");
