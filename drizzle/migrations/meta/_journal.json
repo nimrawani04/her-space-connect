@@ -8,6 +8,13 @@
       "when": 1791703435187,
       "tag": "0000_grant_safety_map_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791703755383,
+      "tag": "0001_enable_realtime_safety_map",
+      "breakpoints": true
     }
   ]
 }
