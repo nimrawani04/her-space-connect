@@ -4,6 +4,7 @@ import { hasSupabaseBrowserConfig } from "@/integrations/supabase/config";
 
 type Mode = "light" | "dark" | "system";
 export type Background = "plain" | "warm" | "sage" | "dusk" | "grain" | "gradient";
+export type AnimationMode = "subtle" | "bloom" | "off";
 type ThemeCtx = {
   mode: Mode;
   setMode: (m: Mode) => void;
@@ -12,6 +13,8 @@ type ThemeCtx = {
   resetAccent: () => void;
   background: Background;
   setBackground: (b: Background) => void;
+  animation: AnimationMode;
+  setAnimation: (a: AnimationMode) => void;
 };
 
 const DEFAULT_ACCENT = "#c86d74"; // rose clay / warm terracotta rose
@@ -81,15 +84,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<Mode>("light");
   const [accent, setAccentState] = useState<string>(DEFAULT_ACCENT);
   const [background, setBackgroundState] = useState<Background>(DEFAULT_BG);
+  const [animation, setAnimationState] = useState<AnimationMode>("subtle");
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const m = (localStorage.getItem("hs-theme-mode") as Mode | null) ?? "light";
     const a = localStorage.getItem("hs-theme-accent") ?? DEFAULT_ACCENT;
     const b = (localStorage.getItem("hs-theme-bg") as Background | null) ?? DEFAULT_BG;
+    const anim = (localStorage.getItem("hs-theme-anim") as AnimationMode | null) ?? "subtle";
     setModeState(m);
     setAccentState(a);
     setBackgroundState(b);
+    setAnimationState(anim);
     applyMode(m);
     if (a !== DEFAULT_ACCENT) applyAccent(a);
     applyBackground(b);
@@ -182,9 +188,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyBackground(b);
     void persist({ background_style: b });
   };
+  const setAnimation = (a: AnimationMode) => {
+    setAnimationState(a);
+    localStorage.setItem("hs-theme-anim", a);
+  };
 
   return (
-    <ThemeContext.Provider value={{ mode, setMode, accent, setAccent, resetAccent, background, setBackground }}>
+    <ThemeContext.Provider
+      value={{
+        mode,
+        setMode,
+        accent,
+        setAccent,
+        resetAccent,
+        background,
+        setBackground,
+        animation,
+        setAnimation,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

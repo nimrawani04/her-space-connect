@@ -260,10 +260,23 @@ function Community() {
       prev.map((p) => (p.id === post.id ? { ...p, like_count: updatedCount } : p))
     );
     try {
-      await supabase
-        .from("community_posts")
-        .update({ like_count: updatedCount })
-        .eq("id", post.id);
+      // First attempt secure atomic increment via RPC
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)("increment_community_post_like", {
+        p_post_id: post.id,
+      });
+
+      if (!error && typeof data === "number") {
+        setPosts((prev) =>
+          prev.map((p) => (p.id === post.id ? { ...p, like_count: data } : p))
+        );
+      } else if (error) {
+        // Fallback to direct update if RPC is not yet migrated
+        await supabase
+          .from("community_posts")
+          .update({ like_count: updatedCount })
+          .eq("id", post.id);
+      }
     } catch {
       // Ignore background error
     }
@@ -313,7 +326,7 @@ function Community() {
             {live ? "Live Real-Time Pulse" : "Connecting…"}
           </span>
         </div>
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif italic text-foreground tracking-tight break-normal">
           Safe Space
         </h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">

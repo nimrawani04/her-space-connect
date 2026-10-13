@@ -227,9 +227,9 @@ export function Mentorship() {
             Leadership, Craft &amp; Sisterhood Mentorship
           </p>
         </div>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif italic text-foreground tracking-tight break-normal">
               Mentorship &amp; Services
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
@@ -237,7 +237,7 @@ export function Mentorship() {
               Hire independent female professionals or book 1-on-1 mentorship sessions.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground shrink-0 font-medium pb-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-medium pb-1 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/70">
               <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Private Sanctuary
             </span>
@@ -249,7 +249,7 @@ export function Mentorship() {
       </header>
 
       {/* Main Grid: "List Me" Form + Directory List */}
-      <div className="grid lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Form to List Yourself */}
         <Card className="lg:col-span-5 rounded-3xl bg-card/90 border border-border/80 backdrop-blur-md shadow-xs">
           <CardHeader className="pb-4">
@@ -275,7 +275,7 @@ export function Mentorship() {
                   placeholder="e.g. Nimra Wani"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="rounded-xl"
+                  className="rounded-xl text-base sm:text-sm"
                   required
                 />
               </div>
@@ -288,7 +288,7 @@ export function Mentorship() {
                   placeholder="e.g. Tutor · AI & Health Specialist"
                   value={headline}
                   onChange={(e) => setHeadline(e.target.value)}
-                  className="rounded-xl"
+                  className="rounded-xl text-base sm:text-sm"
                   required
                 />
               </div>
@@ -299,12 +299,12 @@ export function Mentorship() {
                     <DollarSign className="w-3.5 h-3.5 text-primary" /> Rate ($/hr or Free)
                   </Label>
                   <Input
-                    placeholder="e.g. 50 (leave empty for free)"
-                    type="number"
-                    min={0}
+                    placeholder="e.g. 50 or Free"
+                    type="text"
+                    inputMode="text"
                     value={rate}
                     onChange={(e) => setRate(e.target.value)}
-                    className="rounded-xl"
+                    className="rounded-xl text-base sm:text-sm"
                   />
                 </div>
 
@@ -316,7 +316,7 @@ export function Mentorship() {
                     placeholder="e.g. Remote, London, NYC"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="rounded-xl"
+                    className="rounded-xl text-base sm:text-sm"
                     required
                   />
                 </div>
@@ -330,7 +330,7 @@ export function Mentorship() {
                   placeholder="e.g. AI, Healthcare, Python, Tutoring"
                   value={expertise}
                   onChange={(e) => setExpertise(e.target.value)}
-                  className="rounded-xl"
+                  className="rounded-xl text-base sm:text-sm"
                   required
                 />
               </div>
@@ -344,7 +344,7 @@ export function Mentorship() {
                   placeholder="Describe your background and the specific services, consultation, or tutoring you offer to sisters..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  className="rounded-xl text-sm"
+                  className="rounded-xl text-base sm:text-sm leading-relaxed"
                 />
               </div>
 

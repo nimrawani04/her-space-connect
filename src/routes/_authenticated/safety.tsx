@@ -72,7 +72,7 @@ function Safety() {
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Community Safety Network</p>
         </div>
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">Safety Network</h1>
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight break-normal">Safety Network</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
           Safe havens, reviews by women for women, and community alerts. Your peace of mind matters everywhere.
         </p>

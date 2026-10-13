@@ -281,9 +281,9 @@ function Wellness() {
             Emotional Sanctuary &amp; Reflection
           </p>
         </div>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif italic text-foreground tracking-tight break-normal">
               Mental Wellness
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">

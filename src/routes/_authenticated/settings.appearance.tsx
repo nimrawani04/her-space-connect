@@ -27,7 +27,7 @@ const BACKGROUNDS: { id: Background; name: string; desc: string }[] = [
 ];
 
 function AppearancePage() {
-  const { mode, setMode, accent, setAccent, resetAccent, background, setBackground } = useTheme();
+  const { mode, setMode, accent, setAccent, resetAccent, background, setBackground, animation, setAnimation } = useTheme();
   const [displayName, setDisplayName] = useState("");
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -236,6 +236,37 @@ function AppearancePage() {
                       {background === b.id && <Badge variant="outline" className="text-[10px]">Active</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{b.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Ambient Motion</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Control background animations for legibility, battery, or phone performance.</p>
+                </div>
+              </div>
+              <div className="mt-2 grid sm:grid-cols-3 gap-3">
+                {[
+                  { id: "subtle", name: "Subtle (Recommended)", desc: "Soft ambient aura, highest text contrast, smooth on all devices" },
+                  { id: "bloom", name: "Rich Bloom", desc: "Vibrant botanical jellyfish bloom" },
+                  { id: "off", name: "Off / Static", desc: "No animations, saves battery and fastest speed on mobile" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setAnimation(item.id as any)}
+                    className={`text-left rounded-xl border p-3 transition-colors ${
+                      animation === item.id ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:bg-accent"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{item.name}</p>
+                      {animation === item.id && <Badge variant="outline" className="text-[10px]">Active</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
                   </button>
                 ))}
               </div>

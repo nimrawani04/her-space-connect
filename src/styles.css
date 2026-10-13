@@ -172,6 +172,8 @@
     /* text-wrap: pretty prevents orphaned last-line words. Supported in
        Chrome 117+, Safari 17.5+, Firefox 121+. Older engines ignore it. */
     text-wrap: pretty;
+    overflow-wrap: normal;
+    word-break: normal;
   }
   h1 { line-height: var(--leading-display); letter-spacing: var(--tracking-display); }
   h2 { line-height: var(--leading-heading); }

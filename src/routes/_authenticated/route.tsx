@@ -250,7 +250,7 @@ function AuthedShell() {
   const { preferences: lifeStages } = useLifeStagePreferences();
   const { profile: pregnancyProfile } = usePregnancyProfile();
   const isPregnant = pregnancyProfile?.stage === "pregnant" || lifeStages.pregnancy;
-  const { accent } = useTheme();
+  const { accent, animation } = useTheme();
 
   const visibleNav = useMemo(() => {
     return nav.filter((item) => {
@@ -268,49 +268,63 @@ function AuthedShell() {
     { to: "/library", icon: BookOpen, label: "Library" },
   ], [lifeStages.pregnancy]);
 
+  // Dynamic opacity based on animation intensity setting
+  const videoOpacity =
+    animation === "off"
+      ? 0
+      : animation === "bloom"
+      ? "opacity-[0.40] dark:opacity-[0.45]"
+      : "opacity-[0.20] dark:opacity-[0.28]";
+
   return (
     <SidebarProvider>
-      <div className="min-h-dvh flex w-full text-foreground bg-[#12080c] relative overflow-x-hidden">
-        {/* Full-screen ambient blooming floral/jellyfish background from top to bottom */}
+      <div className="min-h-dvh flex w-full text-foreground bg-background dark:bg-[#12080c] relative overflow-x-hidden">
+        {/* Full-screen ambient blooming background with hardware-accelerated contrast veil */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
-          <video
-            className="absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover scale-105 opacity-[0.75] dark:opacity-[0.65] filter contrast-[1.15] brightness-[1.05] transition-opacity"
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              maxWidth: "none",
-              maxHeight: "none",
-              objectFit: "cover",
-            }}
-            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-          {/* Color blend: infuses user's exact chosen accent color directly into all jellyfish petals */}
+          {animation !== "off" && (
+            <video
+              className={`absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover ${videoOpacity} transition-opacity duration-700 motion-reduce:hidden`}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                maxWidth: "none",
+                maxHeight: "none",
+                objectFit: "cover",
+              }}
+              src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          )}
+          {/* Color blend: infuses user's exact chosen accent color softly into ambient backdrop */}
+          {animation !== "off" && (
+            <div
+              className="hidden sm:block absolute inset-0 mix-blend-color opacity-70 transition-colors duration-700 pointer-events-none"
+              style={{ backgroundColor: accent }}
+            />
+          )}
+          {/* Subtle screen blend highlight on larger displays only (zero mobile frame drops) */}
+          {animation === "bloom" && (
+            <div
+              className="hidden sm:block absolute inset-0 mix-blend-screen opacity-50 transition-all duration-700 pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 55% 45%, ${accent}aa 0%, ${accent}33 40%, transparent 75%)`,
+              }}
+            />
+          )}
+          {/* Solid contrast veil to guarantee 100% text readability over all cards and themes */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95 dark:from-[#14080e]/85 dark:via-[#14080e]/60 dark:to-[#12080c]/90 pointer-events-none transition-colors duration-500" />
           <div
-            className="absolute inset-0 mix-blend-color opacity-90 transition-colors duration-700 pointer-events-none"
-            style={{ backgroundColor: accent }}
-          />
-          {/* Screen blend: glowing radiant highlights across the bloom */}
-          <div
-            className="absolute inset-0 mix-blend-screen opacity-80 transition-all duration-700 pointer-events-none"
-            style={{
-              background: `radial-gradient(circle at 55% 45%, ${accent}cc 0%, ${accent}55 40%, transparent 75%)`,
-            }}
-          />
-          {/* Warm deep botanical vignette to preserve contrast and warm background from top to bottom */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#14080e]/75 via-[#14080e]/35 to-[#12080c]/85 pointer-events-none transition-colors duration-500" />
-          <div
-            className="hidden sm:block absolute -top-32 -left-32 w-[30rem] h-[30rem] rounded-full blur-[130px] pointer-events-none transition-colors duration-700"
-            style={{ backgroundColor: `${accent}25` }}
+            className="hidden md:block absolute -top-32 -left-32 w-[24rem] h-[24rem] rounded-full blur-[100px] pointer-events-none transition-colors duration-700"
+            style={{ backgroundColor: `${accent}18` }}
           />
           <div
-            className="hidden sm:block absolute top-1/3 -right-32 w-[32rem] h-[32rem] rounded-full blur-[150px] pointer-events-none transition-colors duration-700"
-            style={{ backgroundColor: `${accent}30` }}
+            className="hidden md:block absolute top-1/3 -right-32 w-[26rem] h-[26rem] rounded-full blur-[120px] pointer-events-none transition-colors duration-700"
+            style={{ backgroundColor: `${accent}20` }}
           />
         </div>
 

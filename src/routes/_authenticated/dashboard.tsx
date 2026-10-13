@@ -48,7 +48,7 @@ function Dashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Warm Sanctuary Greeting Header */}
-      <header className="relative p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/15 via-secondary/30 to-card/60 backdrop-blur-md border border-primary/20 shadow-sm overflow-hidden">
+      <header className="relative p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/20 via-card/95 to-card/98 backdrop-blur-md border border-primary/25 shadow-sm overflow-hidden [background-clip:padding-box]">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
