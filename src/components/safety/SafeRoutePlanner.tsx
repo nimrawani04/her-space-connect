@@ -45,6 +45,7 @@ import {
   calculateSafeRoutes,
   submitTripFeedback,
 } from "@/lib/safe-routing";
+import LocationAutocompleteInput from "./LocationAutocompleteInput";
 import {
   GLOBAL_HIERARCHY_COUNTRIES,
   CountryInfo,
@@ -271,25 +272,111 @@ export default function SafeRoutePlanner({
   async function searchLocation(text: string, isStart: boolean) {
     if (!text.trim()) return;
     try {
-      // Scope query with state and country for precision
-      const contextQuery = `${text}, ${selectedState ? selectedState.name + ", " : ""}${selectedCountry.name}`;
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
-          contextQuery
-        )}`
-      );
+      const qLower = text.toLowerCase().trim();
+      const queryWords = qLower.split(/\s+/).filter(Boolean);
+
+      // 1. Instant check in selected state's curated landmarks
+      const matchedLandmark = selectedState.landmarks?.find((lm) => {
+        const target = `${lm.name} ${lm.subtitle}`.toLowerCase();
+        return queryWords.every((w) => target.includes(w));
+      });
+
+      if (matchedLandmark) {
+        const newPoint: SafeRoutePoint = {
+          lat: matchedLandmark.lat,
+          lng: matchedLandmark.lng,
+          label: matchedLandmark.name,
+        };
+        if (isStart) {
+          setStartPoint(newPoint);
+          setStartQuery(newPoint.label || text);
+          if (onZoomToLocation) onZoomToLocation(newPoint.lat, newPoint.lng, 15, newPoint.label);
+          computeRoutes(newPoint, endPoint);
+        } else {
+          setEndPoint(newPoint);
+          setEndQuery(newPoint.label || text);
+          if (onZoomToLocation) onZoomToLocation(newPoint.lat, newPoint.lng, 15, newPoint.label);
+          computeRoutes(startPoint, newPoint);
+        }
+        toast.success(`Set ${isStart ? "Start" : "Destination"}: ${newPoint.label}`);
+        return;
+      }
+
+      // 2. Check safe places in-memory
+      const foundSafePlace = safePlaces.find((sp) => {
+        const target = sp.name.toLowerCase();
+        return queryWords.every((w) => target.includes(w));
+      });
+      if (foundSafePlace) {
+        const newPoint: SafeRoutePoint = {
+          lat: foundSafePlace.lat,
+          lng: foundSafePlace.lng,
+          label: foundSafePlace.name,
+        };
+        if (isStart) {
+          setStartPoint(newPoint);
+          setStartQuery(newPoint.label || text);
+          if (onZoomToLocation) onZoomToLocation(newPoint.lat, newPoint.lng, 15, newPoint.label);
+          computeRoutes(newPoint, endPoint);
+        } else {
+          setEndPoint(newPoint);
+          setEndQuery(newPoint.label || text);
+          if (onZoomToLocation) onZoomToLocation(newPoint.lat, newPoint.lng, 15, newPoint.label);
+          computeRoutes(startPoint, newPoint);
+        }
+        toast.success(`Set ${isStart ? "Start" : "Destination"}: ${newPoint.label}`);
+        return;
+      }
+
+      // 3. Clean stopwords (like "of", "the", "in") for Nominatim
+      const cleaned = text
+        .replace(/\b(of|the|in|at|near|and)\b/gi, " ")
+        .replace(/[,.-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const params = new URLSearchParams({
+        format: "json",
+        limit: "1",
+        q: cleaned,
+      });
+
+      if (selectedCountry.code) {
+        params.set("countrycodes", selectedCountry.code.toLowerCase());
+      }
+      if (selectedState.lat && selectedState.lng) {
+        params.set(
+          "viewbox",
+          `${selectedState.lng - 0.75},${selectedState.lat + 0.6},${selectedState.lng + 0.75},${selectedState.lat - 0.6}`
+        );
+        params.set("bounded", "0");
+      }
+
+      let res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
       let data = await res.json();
 
-      // Fallback to raw text search if scoped search yielded nothing
+      // Fallback 1: scoped text search with state and country
       if (!data || data.length === 0) {
-        const fallbackRes = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(text)}`
-        );
+        const contextParams = new URLSearchParams({
+          format: "json",
+          limit: "1",
+          q: `${cleaned}, ${selectedState.name}`,
+        });
+        if (selectedCountry.code) contextParams.set("countrycodes", selectedCountry.code.toLowerCase());
+        const fallbackRes = await fetch(`https://nominatim.openstreetmap.org/search?${contextParams.toString()}`);
         data = await fallbackRes.json();
       }
 
+      // Fallback 2: raw original text search
       if (!data || data.length === 0) {
-        toast.error("Location not found. Try typing another place.");
+        const rawRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(text)}`
+        );
+        data = await rawRes.json();
+      }
+
+      if (!data || data.length === 0) {
+        toast.error("Location not found. Try choosing from the suggestions dropdown as you type.");
         return;
       }
 
@@ -297,7 +384,7 @@ export default function SafeRoutePlanner({
       const newPoint: SafeRoutePoint = {
         lat: Number(hit.lat),
         lng: Number(hit.lon),
-        label: hit.display_name.split(",").slice(0, 2).join(","),
+        label: hit.name || hit.display_name.split(",").slice(0, 2).join(","),
       };
 
       if (isStart) {
@@ -785,12 +872,32 @@ export default function SafeRoutePlanner({
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Input
+                    <LocationAutocompleteInput
                       value={startQuery}
-                      onChange={(e) => setStartQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && searchLocation(startQuery, true)}
-                      placeholder={`Enter start place in ${selectedState.name}…`}
-                      className="text-xs h-9 rounded-xl bg-background"
+                      onChange={setStartQuery}
+                      onSelect={(item) => {
+                        const p: SafeRoutePoint = {
+                          lat: item.lat,
+                          lng: item.lng,
+                          label: item.name,
+                        };
+                        setStartPoint(p);
+                        setStartQuery(item.name);
+                        if (onZoomToLocation) {
+                          onZoomToLocation(p.lat, p.lng, 15, item.name);
+                        }
+                        computeRoutes(p, endPoint);
+                        toast.success(`Starting point set: ${item.name}`);
+                      }}
+                      placeholder={`Type half or full keyword (e.g. Sanat, Station, College)…`}
+                      contextCountry={selectedCountry.name}
+                      contextState={selectedState.name}
+                      countryCode={selectedCountry.code}
+                      stateLat={selectedState.lat}
+                      stateLng={selectedState.lng}
+                      stateLandmarks={selectedState.landmarks || []}
+                      safePlaces={safePlaces}
+                      accentColor="pink"
                     />
                     <Button
                       size="sm"
@@ -798,6 +905,7 @@ export default function SafeRoutePlanner({
                       type="button"
                       onClick={() => searchLocation(startQuery, true)}
                       className="h-9 px-2.5 rounded-xl shrink-0"
+                      title="Search manually or pick from dropdown"
                     >
                       <Search className="w-3.5 h-3.5" />
                     </Button>
@@ -836,12 +944,32 @@ export default function SafeRoutePlanner({
                     </button>
                   </div>
                   <div className="flex gap-2">
-                    <Input
+                    <LocationAutocompleteInput
                       value={endQuery}
-                      onChange={(e) => setEndQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && searchLocation(endQuery, false)}
-                      placeholder={`Enter destination place in ${selectedState.name}…`}
-                      className="text-xs h-9 rounded-xl bg-background"
+                      onChange={setEndQuery}
+                      onSelect={(item) => {
+                        const p: SafeRoutePoint = {
+                          lat: item.lat,
+                          lng: item.lng,
+                          label: item.name,
+                        };
+                        setEndPoint(p);
+                        setEndQuery(item.name);
+                        if (onZoomToLocation) {
+                          onZoomToLocation(p.lat, p.lng, 15, item.name);
+                        }
+                        computeRoutes(startPoint, p);
+                        toast.success(`Destination set: ${item.name}`);
+                      }}
+                      placeholder={`Type half or full keyword (e.g. Centr, Univ, Nishat)…`}
+                      contextCountry={selectedCountry.name}
+                      contextState={selectedState.name}
+                      countryCode={selectedCountry.code}
+                      stateLat={selectedState.lat}
+                      stateLng={selectedState.lng}
+                      stateLandmarks={selectedState.landmarks || []}
+                      safePlaces={safePlaces}
+                      accentColor="purple"
                     />
                     <Button
                       size="sm"
@@ -849,6 +977,7 @@ export default function SafeRoutePlanner({
                       type="button"
                       onClick={() => searchLocation(endQuery, false)}
                       className="h-9 px-2.5 rounded-xl shrink-0"
+                      title="Search manually or pick from dropdown"
                     >
                       <Search className="w-3.5 h-3.5" />
                     </Button>

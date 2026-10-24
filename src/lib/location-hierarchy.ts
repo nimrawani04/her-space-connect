@@ -1,8 +1,17 @@
+export type PopularLandmark = {
+  name: string;
+  subtitle: string;
+  lat: number;
+  lng: number;
+  type?: string;
+};
+
 export type StateInfo = {
   name: string;
   lat: number;
   lng: number;
   zoom: number;
+  landmarks?: PopularLandmark[];
   samplePlaces?: Array<{
     name: string;
     startName: string;
@@ -146,6 +155,121 @@ export const GLOBAL_HIERARCHY_COUNTRIES: CountryInfo[] = [
             endName: "Mindspace Female Escort Station",
             startCoord: [17.4504, 78.3808],
             endCoord: [17.441, 78.381],
+          },
+        ],
+      },
+      {
+        name: "Jammu & Kashmir (Srinagar)",
+        lat: 34.0837,
+        lng: 74.7973,
+        zoom: 11,
+        samplePlaces: [
+          {
+            name: "Sanat Nagar NH1 ➔ Central University of Kashmir",
+            startName: "India Post Sanat Nagar, NH1",
+            endName: "Central University of Kashmir, Ganderbal",
+            startCoord: [34.0343, 74.8004],
+            endCoord: [34.2343, 74.7237],
+          },
+          {
+            name: "Lal Chowk ➔ Kashmir University Hazratbal",
+            startName: "Lal Chowk Clock Tower Promenade",
+            endName: "University of Kashmir Naseem Bagh",
+            startCoord: [34.0722, 74.8105],
+            endCoord: [34.1283, 74.8407],
+          },
+          {
+            name: "Dalgate Boulevard ➔ Nishat Waterfront Sanctuary",
+            startName: "Dalgate Boulevard Safe Walk",
+            endName: "Nishat Garden Safe Haven",
+            startCoord: [34.0845, 74.8322],
+            endCoord: [34.1245, 74.8812],
+          },
+        ],
+        landmarks: [
+          {
+            name: "India Post Sanat Nagar, NH1",
+            subtitle: "Chanapora, Srinagar, Jammu & Kashmir",
+            lat: 34.0343,
+            lng: 74.8004,
+            type: "post_office",
+          },
+          {
+            name: "Central University of Kashmir",
+            subtitle: "Ganderbal / Green Campus, Jammu & Kashmir",
+            lat: 34.2343,
+            lng: 74.7237,
+            type: "university",
+          },
+          {
+            name: "University of Kashmir, Hazratbal",
+            subtitle: "Hazratbal, Srinagar, Jammu & Kashmir",
+            lat: 34.1283,
+            lng: 74.8407,
+            type: "university",
+          },
+          {
+            name: "Government College for Women, M.A. Road",
+            subtitle: "M.A. Road, Lal Chowk, Srinagar",
+            lat: 34.0755,
+            lng: 74.8152,
+            type: "college",
+          },
+          {
+            name: "Lal Chowk (Ghanta Ghar)",
+            subtitle: "City Center, Srinagar, Jammu & Kashmir",
+            lat: 34.0722,
+            lng: 74.8105,
+            type: "landmark",
+          },
+          {
+            name: "Nishat Mughal Gardens Boulevard",
+            subtitle: "Foreshore Rd, Srinagar, Jammu & Kashmir",
+            lat: 34.1245,
+            lng: 74.8812,
+            type: "park",
+          },
+          {
+            name: "Hazratbal Dargah Sanctuary",
+            subtitle: "Dal Lake North, Hazratbal, Srinagar",
+            lat: 34.1296,
+            lng: 74.8431,
+            type: "place_of_worship",
+          },
+          {
+            name: "SKIMS Medical Institute & Hospital",
+            subtitle: "Soura, Srinagar, Jammu & Kashmir",
+            lat: 34.1352,
+            lng: 74.7981,
+            type: "hospital",
+          },
+          {
+            name: "SMHS Hospital Emergency Care",
+            subtitle: "Karan Nagar, Srinagar",
+            lat: 34.087,
+            lng: 74.801,
+            type: "hospital",
+          },
+          {
+            name: "Batamaloo Transit & Safe Corridor",
+            subtitle: "Batamaloo, Srinagar",
+            lat: 34.0712,
+            lng: 74.7935,
+            type: "transit",
+          },
+          {
+            name: "Srinagar International Airport (Sheikh ul-Alam)",
+            subtitle: "Humhama, Budgam, Jammu & Kashmir",
+            lat: 33.9871,
+            lng: 74.7744,
+            type: "airport",
+          },
+          {
+            name: "Shalimar Bagh Promenade",
+            subtitle: "Boulevard, Srinagar",
+            lat: 34.1495,
+            lng: 74.8725,
+            type: "park",
           },
         ],
       },

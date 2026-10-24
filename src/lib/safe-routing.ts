@@ -463,11 +463,38 @@ export async function calculateSafeRoutes(
   const drivingSpeedKmH = 32.0;
   const speed = transportMode === "driving" ? drivingSpeedKmH : walkingSpeedKmH;
 
+  // Helper to fetch an alternative route through a real-road snapped waypoint
+  async function fetchOSRMRouteWithWaypoint(
+    prof: string,
+    wpLat: number,
+    wpLng: number
+  ) {
+    try {
+      const wpUrl = `https://router.project-osrm.org/route/v1/${prof}/${start.lng},${start.lat};${wpLng},${wpLat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=false`;
+      const wpRes = await fetch(wpUrl, { signal: AbortSignal.timeout(3500) });
+      if (!wpRes.ok) return null;
+      const wpData = await wpRes.json();
+      if (!wpData.routes || wpData.routes.length === 0) return null;
+      const r = wpData.routes[0];
+      const coords: [number, number][] = (r.geometry.coordinates || []).map(
+        (c: [number, number]) => [c[1], c[0]]
+      );
+      if (coords.length < 2) return null;
+      return {
+        coordinates: coords,
+        distanceKm: Number((r.distance / 1000).toFixed(2)),
+        durationMin: Math.max(1, Math.round(r.duration / 60)),
+      };
+    } catch {
+      return null;
+    }
+  }
+
   let osrmRoutes: Array<{ coordinates: [number, number][]; distanceKm: number; durationMin: number }> = [];
 
   // Attempt real OSRM fetch
+  const profile = transportMode === "driving" ? "driving" : "foot";
   try {
-    const profile = transportMode === "driving" ? "driving" : "foot";
     const url = `https://router.project-osrm.org/route/v1/${profile}/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
     const res = await fetch(url, { signal: AbortSignal.timeout(4500) });
     if (res.ok) {
@@ -475,7 +502,6 @@ export async function calculateSafeRoutes(
       if (data.routes && data.routes.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         osrmRoutes = data.routes.map((r: any) => {
-          // OSRM returns coordinates as [lng, lat] GeoJSON, flip to [lat, lng] for Leaflet
           const coords: [number, number][] = (r.geometry.coordinates || []).map(
             (c: [number, number]) => [c[1], c[0]]
           );
@@ -488,140 +514,233 @@ export async function calculateSafeRoutes(
       }
     }
   } catch {
-    // If OSRM timeout or offline, use fallback geometries
+    // If OSRM timeout or offline
   }
 
-  // Determine optimal detour offset that avoids hazard patterns and guides through safe havens
-  let safeOffset = 0.14;
-  let dangerOffset = -0.16;
+  // If fewer than 3 routes, attempt to find real road detours through real street waypoints
+  if (osrmRoutes.length > 0 && osrmRoutes.length < 3) {
+    const mainCoords = osrmRoutes[0].coordinates;
+    const testPoints: Array<{ lat: number; lng: number }> = [];
 
-  if (hazardPatterns.length > 0) {
-    const testPos = generateOffsetGeometry(start, end, 0.14, 6);
-    const testNeg = generateOffsetGeometry(start, end, -0.14, 6);
-    const posDist = Math.min(
-      ...hazardPatterns.map((h) => minDistanceToPolylineM(h.cell_lat, h.cell_lng, testPos))
-    );
-    const negDist = Math.min(
-      ...hazardPatterns.map((h) => minDistanceToPolylineM(h.cell_lat, h.cell_lng, testNeg))
-    );
-    if (posDist < negDist) {
-      safeOffset = -0.18;
-      dangerOffset = 0.12;
-    } else {
-      safeOffset = 0.18;
-      dangerOffset = -0.12;
+    // 1. Try real hazard coordinates reported by sisters in the corridor
+    hazardPatterns.slice(0, 3).forEach((hz) => {
+      testPoints.push({ lat: hz.cell_lat, lng: hz.cell_lng });
+    });
+
+    // 2. Sample points along primary real road and shift slightly to find parallel real streets
+    const fractions = [0.25, 0.5, 0.75];
+    fractions.forEach((f) => {
+      const idx = Math.floor(mainCoords.length * f);
+      const pt = mainCoords[idx];
+      if (pt) {
+        testPoints.push({ lat: pt[0] + 0.015, lng: pt[1] + 0.025 });
+        testPoints.push({ lat: pt[0] - 0.015, lng: pt[1] - 0.025 });
+        testPoints.push({ lat: pt[0] + 0.03, lng: pt[1] - 0.015 });
+      }
+    });
+
+    for (const wp of testPoints) {
+      if (osrmRoutes.length >= 3) break;
+      const extra = await fetchOSRMRouteWithWaypoint(profile, wp.lat, wp.lng);
+      if (extra && extra.coordinates.length > 2) {
+        const isDuplicate = osrmRoutes.some(
+          (ex) => Math.abs(ex.distanceKm - extra.distanceKm) < 0.35
+        );
+        if (!isDuplicate) {
+          osrmRoutes.push(extra);
+        }
+      }
     }
   }
 
-  // Ensure we have at least 3 distinct route geometries to compare (Safest, Quickest, Dangerous)
-  const geomSafest: [number, number][] =
-    osrmRoutes.length > 1
-      ? osrmRoutes[1].coordinates
-      : osrmRoutes.length === 1
-        ? osrmRoutes[0].coordinates
-        : generateOffsetGeometry(start, end, safeOffset, 10);
+  // Fallback ONLY when network is completely offline / unit tests (no internet)
+  if (osrmRoutes.length === 0) {
+    osrmRoutes = [
+      {
+        coordinates: generateOffsetGeometry(start, end, 0.12, 10),
+        distanceKm: Number((directKm * 1.08).toFixed(2)),
+        durationMin: Math.round(((directKm * 1.08) / speed) * 60) || 5,
+      },
+      {
+        coordinates: generateOffsetGeometry(start, end, 0.0, 8),
+        distanceKm: Number(directKm.toFixed(2)),
+        durationMin: Math.round((directKm / speed) * 60) || 4,
+      },
+      {
+        coordinates: generateOffsetGeometry(start, end, -0.12, 9),
+        distanceKm: Number((directKm * 0.95).toFixed(2)),
+        durationMin: Math.round(((directKm * 0.95) / speed) * 60) || 3,
+      },
+    ];
+  }
 
-  const geomQuickest: [number, number][] =
-    osrmRoutes.length > 0
-      ? osrmRoutes[0].coordinates
-      : generateOffsetGeometry(start, end, 0.0, 8);
+  // If we have real road routes, evaluate each real road route strictly on its physical path
+  const evaluatedRealRoutes = osrmRoutes.map((r, index) => {
+    // If multiple routes, first is primary, others are alternatives
+    const role: RouteType =
+      index === 0
+        ? "safest"
+        : index === 1
+          ? "quickest"
+          : "dangerous";
 
-  const geomDangerous: [number, number][] =
-    osrmRoutes.length > 2
-      ? osrmRoutes[2].coordinates
-      : generateOffsetGeometry(start, end, dangerOffset, 9);
+    const ev = evaluateRouteSafety(
+      r.coordinates,
+      safePlaces,
+      hazardPatterns,
+      tripFeedbacks,
+      role
+    );
 
-  // Evaluate each route
-  const safestEval = evaluateRouteSafety(
-    geomSafest,
-    safePlaces,
-    hazardPatterns,
-    tripFeedbacks,
-    "safest"
-  );
-  const quickestEval = evaluateRouteSafety(
-    geomQuickest,
-    safePlaces,
-    hazardPatterns,
-    tripFeedbacks,
-    "quickest"
-  );
-  const dangerousEval = evaluateRouteSafety(
-    geomDangerous,
-    safePlaces,
-    hazardPatterns,
-    tripFeedbacks,
-    "dangerous"
-  );
+    return {
+      raw: r,
+      eval: ev,
+    };
+  });
 
-  // Calculate durations & distances
-  const baseSafestKm = Number((directKm * 1.08).toFixed(2));
-  const baseQuickestKm = Number(directKm.toFixed(2));
-  const baseDangerousKm = Number((directKm * 0.94).toFixed(2)); // shortcuts can be shorter in distance but darker/secluded
+  // Sort real routes by safety score so the safest real road is always Pink
+  evaluatedRealRoutes.sort((a, b) => b.eval.safetyScore - a.eval.safetyScore);
 
-  const safestMin = Math.round((baseSafestKm / speed) * 60) || 5;
-  const quickestMin = Math.round((baseQuickestKm / speed) * 60) || 4;
-  const dangerousMin = Math.round((baseDangerousKm / speed) * 60) || 3;
+  const results: RouteOption[] = [];
 
-  const safestRoute: RouteOption = {
+  if (evaluatedRealRoutes.length === 0) {
+    return results;
+  }
+
+  // 1. Safest Route (Pink) - highest safety score on real roads
+  const safestItem = evaluatedRealRoutes[0];
+  results.push({
     id: "safest",
     name: "Safest Route (Sanctuary Path)",
     type: "safest",
-    color: "#ec4899", // Vibrant Rose Pink (Safest Route)
+    color: "#ec4899", // Vibrant Rose Pink
     glowColor: "rgba(236, 72, 153, 0.45)",
-    distanceKm: baseSafestKm,
-    durationMin: safestMin,
-    safetyScore: safestEval.safetyScore,
-    lightingScore: safestEval.lightingScore,
-    coordinates: geomSafest,
-    safeHavensCount: safestEval.safeHavensCount,
-    hazardsCount: safestEval.hazardsCount,
-    feedbackCount: safestEval.feedbackCount,
-    perks: safestEval.perks,
-    warnings: safestEval.warnings,
-    sisterVerified: safestEval.sisterVerified,
-    safetyVerdict: safestEval.safetyVerdict,
-  };
+    distanceKm: safestItem.raw.distanceKm,
+    durationMin: safestItem.raw.durationMin,
+    safetyScore: safestItem.eval.safetyScore,
+    lightingScore: safestItem.eval.lightingScore,
+    coordinates: safestItem.raw.coordinates,
+    safeHavensCount: safestItem.eval.safeHavensCount,
+    hazardsCount: safestItem.eval.hazardsCount,
+    feedbackCount: safestItem.eval.feedbackCount,
+    perks: safestItem.eval.perks,
+    warnings: safestItem.eval.warnings,
+    sisterVerified: safestItem.eval.sisterVerified,
+    safetyVerdict: safestItem.eval.safetyVerdict,
+  });
 
-  const quickestRoute: RouteOption = {
-    id: "quickest",
-    name: "Quickest Direct Route",
-    type: "quickest",
-    color: "#0284c7", // Sky/Cyan Blue
-    glowColor: "rgba(2, 132, 199, 0.45)",
-    distanceKm: baseQuickestKm,
-    durationMin: quickestMin,
-    safetyScore: quickestEval.safetyScore,
-    lightingScore: quickestEval.lightingScore,
-    coordinates: geomQuickest,
-    safeHavensCount: quickestEval.safeHavensCount,
-    hazardsCount: quickestEval.hazardsCount,
-    feedbackCount: quickestEval.feedbackCount,
-    perks: quickestEval.perks,
-    warnings: quickestEval.warnings,
-    sisterVerified: quickestEval.sisterVerified,
-    safetyVerdict: quickestEval.safetyVerdict,
-  };
+  // If 3 or more real road routes exist:
+  // - Quickest = fastest real street route among remaining
+  // - Dangerous = caution route with lowest safety / highest hazard among remaining
+  if (evaluatedRealRoutes.length >= 3) {
+    const remaining = evaluatedRealRoutes.slice(1);
+    // Sort by duration/distance for quickest
+    const sortedByQuick = [...remaining].sort(
+      (a, b) => a.raw.durationMin - b.raw.durationMin || a.raw.distanceKm - b.raw.distanceKm
+    );
+    const quickestItem = sortedByQuick[0];
 
-  const dangerousRoute: RouteOption = {
-    id: "dangerous",
-    name: "Caution Shortcut (Not Recommended)",
-    type: "dangerous",
-    color: "#e11d48", // Crimson Rose
-    glowColor: "rgba(225, 29, 72, 0.45)",
-    distanceKm: baseDangerousKm,
-    durationMin: dangerousMin,
-    safetyScore: dangerousEval.safetyScore,
-    lightingScore: dangerousEval.lightingScore,
-    coordinates: geomDangerous,
-    safeHavensCount: dangerousEval.safeHavensCount,
-    hazardsCount: dangerousEval.hazardsCount,
-    feedbackCount: dangerousEval.feedbackCount,
-    perks: dangerousEval.perks,
-    warnings: dangerousEval.warnings,
-    sisterVerified: false,
-    safetyVerdict: dangerousEval.safetyVerdict,
-  };
+    // Sort by safety score ascending for dangerous
+    const sortedByDanger = [...remaining].sort(
+      (a, b) => a.eval.safetyScore - b.eval.safetyScore
+    );
+    // If the danger item happens to be identical to quickest, pick the other one
+    const dangerItem =
+      sortedByDanger.length > 1 && sortedByDanger[0] === quickestItem
+        ? sortedByDanger[1]
+        : sortedByDanger[0];
 
-  return [safestRoute, quickestRoute, dangerousRoute];
+    results.push({
+      id: "quickest",
+      name: "Quickest Direct Route",
+      type: "quickest",
+      color: "#0284c7", // Sky/Cyan Blue
+      glowColor: "rgba(2, 132, 199, 0.45)",
+      distanceKm: quickestItem.raw.distanceKm,
+      durationMin: quickestItem.raw.durationMin,
+      safetyScore: quickestItem.eval.safetyScore,
+      lightingScore: quickestItem.eval.lightingScore,
+      coordinates: quickestItem.raw.coordinates,
+      safeHavensCount: quickestItem.eval.safeHavensCount,
+      hazardsCount: quickestItem.eval.hazardsCount,
+      feedbackCount: quickestItem.eval.feedbackCount,
+      perks: quickestItem.eval.perks,
+      warnings: quickestItem.eval.warnings,
+      sisterVerified: quickestItem.eval.sisterVerified,
+      safetyVerdict: quickestItem.eval.safetyVerdict,
+    });
+
+    results.push({
+      id: "dangerous",
+      name: "Caution Shortcut (Not Recommended)",
+      type: "dangerous",
+      color: "#e11d48", // Crimson Rose
+      glowColor: "rgba(225, 29, 72, 0.45)",
+      distanceKm: dangerItem.raw.distanceKm,
+      durationMin: dangerItem.raw.durationMin,
+      safetyScore: Math.min(dangerItem.eval.safetyScore, 4.8),
+      lightingScore: dangerItem.eval.lightingScore,
+      coordinates: dangerItem.raw.coordinates,
+      safeHavensCount: dangerItem.eval.safeHavensCount,
+      hazardsCount: dangerItem.eval.hazardsCount,
+      feedbackCount: dangerItem.eval.feedbackCount,
+      perks: dangerItem.eval.perks,
+      warnings: [
+        "Passes through lower visibility or secluded corridors",
+        ...dangerItem.eval.warnings,
+      ],
+      sisterVerified: false,
+      safetyVerdict: "High Risk · Avoid / Use Caution",
+    });
+  } else if (evaluatedRealRoutes.length === 2) {
+    // If only 2 real road routes exist:
+    const secondItem = evaluatedRealRoutes[1];
+    // If the second route has low safety (<= 6.5) or hazards, display it as Caution / Avoid
+    if (secondItem.eval.safetyScore <= 6.5 || secondItem.eval.hazardsCount > 0) {
+      results.push({
+        id: "dangerous",
+        name: "Caution / Avoid Route",
+        type: "dangerous",
+        color: "#e11d48",
+        glowColor: "rgba(225, 29, 72, 0.45)",
+        distanceKm: secondItem.raw.distanceKm,
+        durationMin: secondItem.raw.durationMin,
+        safetyScore: Math.min(secondItem.eval.safetyScore, 4.8),
+        lightingScore: secondItem.eval.lightingScore,
+        coordinates: secondItem.raw.coordinates,
+        safeHavensCount: secondItem.eval.safeHavensCount,
+        hazardsCount: secondItem.eval.hazardsCount,
+        feedbackCount: secondItem.eval.feedbackCount,
+        perks: secondItem.eval.perks,
+        warnings: [
+          "Passes through lower visibility or secluded corridors",
+          ...secondItem.eval.warnings,
+        ],
+        sisterVerified: false,
+        safetyVerdict: secondItem.eval.safetyVerdict,
+      });
+    } else {
+      results.push({
+        id: "quickest",
+        name: "Quickest Direct Route",
+        type: "quickest",
+        color: "#0284c7",
+        glowColor: "rgba(2, 132, 199, 0.45)",
+        distanceKm: secondItem.raw.distanceKm,
+        durationMin: secondItem.raw.durationMin,
+        safetyScore: secondItem.eval.safetyScore,
+        lightingScore: secondItem.eval.lightingScore,
+        coordinates: secondItem.raw.coordinates,
+        safeHavensCount: secondItem.eval.safeHavensCount,
+        hazardsCount: secondItem.eval.hazardsCount,
+        feedbackCount: secondItem.eval.feedbackCount,
+        perks: secondItem.eval.perks,
+        warnings: secondItem.eval.warnings,
+        sisterVerified: secondItem.eval.sisterVerified,
+        safetyVerdict: secondItem.eval.safetyVerdict,
+      });
+    }
+  }
+
+  return results;
 }
