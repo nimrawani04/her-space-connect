@@ -414,8 +414,8 @@ function AuthedShell() {
 
           {/* Main content viewport with bottom padding on mobile for floating bar */}
           <main
-            className="flex-1 p-3 sm:p-6 md:p-10 pb-36 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden"
-            style={{ paddingBottom: "max(9rem, calc(7rem + env(safe-area-inset-bottom, 0px)))" }}
+            className="flex-1 p-2.5 sm:p-6 md:p-10 pb-44 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden"
+            style={{ paddingBottom: "max(11rem, calc(9rem + env(safe-area-inset-bottom, 0px)))" }}
           >
             <Outlet />
           </main>

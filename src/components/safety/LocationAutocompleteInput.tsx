@@ -260,7 +260,7 @@ export default function LocationAutocompleteInput({
   }
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className}`}>
+    <div ref={containerRef} className={`relative min-w-0 w-full ${className}`}>
       <div className="relative flex items-center">
         <Input
           value={value}
@@ -285,7 +285,7 @@ export default function LocationAutocompleteInput({
 
       {/* Autocomplete Dropdown */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-card/95 backdrop-blur-md rounded-2xl border border-border shadow-xl overflow-hidden max-h-[260px] overflow-y-auto animate-in fade-in-50 zoom-in-95 duration-150">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-card/95 backdrop-blur-md rounded-2xl border border-border shadow-xl overflow-hidden max-h-[210px] sm:max-h-[260px] overflow-y-auto animate-in fade-in-50 zoom-in-95 duration-150">
           <div className="p-1.5 space-y-0.5">
             <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
               <span>Matching Locations</span>

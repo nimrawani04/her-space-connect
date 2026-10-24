@@ -656,92 +656,154 @@ export default function SafetyMap() {
     loadPatterns();
   }
 
+  const [mobileLayoutMode, setMobileLayoutMode] = useState<"both" | "planner" | "map">("both");
+  const [showMobileLegends, setShowMobileLegends] = useState(false);
+
+  // Invalidate Leaflet map size on responsive layout or tab changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      mapRef.current?.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [mobileLayoutMode, activeTab]);
+
   const selectedCategoryMeta = CATEGORIES[category] ?? CATEGORIES.safe_haven;
 
   return (
-    <div className="space-y-4">
+    <div className="w-full max-w-full min-w-0 space-y-4 pb-36 sm:pb-12">
       {/* Top Mode Bar: Safe Route Navigator vs Explore Havens */}
-      <div className="flex items-center justify-between flex-wrap gap-2 p-1.5 rounded-2xl bg-card border border-border/70 shadow-xs">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between flex-wrap gap-2 p-1.5 rounded-2xl bg-card border border-border/70 shadow-xs w-full max-w-full min-w-0">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto min-w-0">
           <button
             type="button"
             onClick={() => setActiveTab("navigate")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-initial min-w-0 flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
               activeTab === "navigate"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Compass className="w-4 h-4" />
-            Safe Route Navigator
+            <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Safe Route Navigator</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("explore")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-initial min-w-0 flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
               activeTab === "explore"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            Explore &amp; Share Havens
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Explore Havens</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground pr-2">
+        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground pr-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="hidden sm:inline">Real-time corridor scoring active</span>
+          <span>Real-time corridor scoring active</span>
         </div>
       </div>
 
+      {/* Mobile/Tablet View Switcher (Visible only below lg) */}
+      {activeTab === "navigate" && (
+        <div className="lg:hidden flex items-center justify-center p-1 rounded-2xl bg-secondary/80 border border-border/70 shadow-xs w-full max-w-full min-w-0">
+          <button
+            type="button"
+            onClick={() => setMobileLayoutMode("both")}
+            className={`flex-1 min-w-0 py-1.5 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
+              mobileLayoutMode === "both"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className="text-pink-600 font-bold shrink-0">📱</span>
+            <span className="truncate">Split View</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileLayoutMode("planner")}
+            className={`flex-1 min-w-0 py-1.5 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
+              mobileLayoutMode === "planner"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Navigation className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+            <span className="truncate">Plan Route</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileLayoutMode("map")}
+            className={`flex-1 min-w-0 py-1.5 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
+              mobileLayoutMode === "map"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span className="truncate">Full Map</span>
+          </button>
+        </div>
+      )}
+
       {/* Main Grid Layout */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Map Column (2 spans) */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="rounded-3xl border border-border/80 shadow-xs overflow-hidden relative">
-            <CardContent className="p-4 sm:p-5 space-y-3">
+      <div className="grid lg:grid-cols-3 gap-4 lg:gap-6 w-full max-w-full min-w-0">
+        {/* Map Column (2 spans on desktop, conditional on mobile) */}
+        <div
+          className={`space-y-4 lg:col-span-2 w-full max-w-full min-w-0 ${
+            activeTab === "navigate" && mobileLayoutMode === "planner" ? "hidden lg:block" : "block"
+          }`}
+        >
+          <Card className="rounded-3xl border border-border/80 shadow-xs overflow-hidden relative w-full max-w-full min-w-0">
+            <CardContent className="p-3 sm:p-5 space-y-3 w-full max-w-full min-w-0">
               {/* Search and Location controls */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <form onSubmit={searchPlace} className="flex gap-2 flex-1">
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center w-full max-w-full min-w-0">
+                <form onSubmit={searchPlace} className="flex gap-2 flex-1 w-full min-w-0">
                   <Input
                     placeholder="Type a city, road, or area…"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="rounded-full bg-background text-sm"
+                    className="rounded-full bg-background text-xs sm:text-sm h-9 min-w-0 flex-1"
                   />
                   <Button
                     type="submit"
                     variant="outline"
                     size="icon"
-                    className="rounded-full shrink-0"
+                    className="rounded-full shrink-0 h-9 w-9"
                     aria-label="Search place"
                   >
                     <Search className="h-4 w-4" />
                   </Button>
                 </form>
-                <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground shrink-0 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground shrink-0 cursor-pointer self-start sm:self-auto">
                   <Switch checked={useLocation} onCheckedChange={setUseLocation} />
-                  <LocateFixed className="h-3.5 w-3.5 text-primary" /> Use my location
+                  <LocateFixed className="h-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="whitespace-nowrap">Use my location</span>
                 </label>
               </div>
 
               {/* Quick World Benchmark Jump Chips */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Navigation className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="font-semibold text-foreground">World Safe Zones:</span>
-                  <span className="text-[11px]">Explore global safety benchmarks</span>
+              <div className="space-y-1 pt-0.5 w-full min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground w-full min-w-0">
+                  <Navigation className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-semibold text-foreground text-[11px] sm:text-xs shrink-0">
+                    World Safe Zones:
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] truncate">
+                    Explore global safety benchmarks
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none w-full max-w-full min-w-0">
                   {WORLD_SAFETY_BENCHMARKS.map((bm) => (
                     <button
                       key={bm.name}
                       type="button"
                       onClick={() => flyToBenchmark(bm.lat, bm.lng, bm.name)}
-                      className="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all font-medium flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all font-medium flex items-center gap-1 cursor-pointer"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                       {bm.city}
                     </button>
                   ))}
@@ -750,34 +812,40 @@ export default function SafetyMap() {
 
               {/* Pin Picking Indicator Banner if user clicked Pick on map */}
               {pinMode && (
-                <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/30 text-xs text-primary flex items-center justify-between animate-pulse">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <MapPin className="w-4 h-4" />
-                    {pinMode === "start"
-                      ? "📍 Tap anywhere on the map to set Starting Point (A)"
-                      : "📍 Tap anywhere on the map to set Destination (B)"}
+                <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/30 text-xs text-primary flex items-center justify-between animate-pulse w-full min-w-0">
+                  <span className="flex items-center gap-1.5 font-medium min-w-0 truncate">
+                    <MapPin className="w-4 h-4 shrink-0" />
+                    <span className="truncate">
+                      {pinMode === "start"
+                        ? "📍 Tap map to set Starting Point (A)"
+                        : "📍 Tap map to set Destination (B)"}
+                    </span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setPinMode(null)}
-                    className="text-[11px] underline font-semibold cursor-pointer"
+                    className="text-[11px] underline font-semibold cursor-pointer shrink-0 ml-2"
                   >
                     Cancel
                   </button>
                 </div>
               )}
 
-              {/* Leaflet Map Canvas */}
+              {/* Leaflet Map Canvas with Responsive Height */}
               <div
                 ref={mapEl}
-                className="h-[440px] sm:h-[550px] w-full rounded-2xl overflow-hidden border border-border z-0 shadow-inner"
+                className={`w-full max-w-full rounded-2xl overflow-hidden border border-border z-0 shadow-inner transition-all duration-200 min-w-0 ${
+                  activeTab === "navigate" && mobileLayoutMode === "map"
+                    ? "h-[calc(100dvh-260px)] min-h-[380px]"
+                    : "h-[250px] xs:h-[280px] sm:h-[360px] lg:h-[550px]"
+                }`}
               />
 
-              {/* Route Signals & Map Legend */}
-              <div className="space-y-2 pt-2 border-t border-border/60">
+              {/* Desktop Legends (always visible on lg:) */}
+              <div className="hidden lg:block space-y-2 pt-2 border-t border-border/60 w-full min-w-0">
                 {/* Route Corridors Legend */}
                 {routes.length > 0 && (
-                  <div className="p-2.5 rounded-xl bg-secondary/50 border border-border/60 flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-secondary/50 border border-border/60 flex items-center justify-between flex-wrap gap-2 text-xs w-full min-w-0">
                     <span className="font-semibold text-foreground flex items-center gap-1">
                       <Compass className="w-3.5 h-3.5 text-primary" /> Route Comparison:
                     </span>
@@ -799,7 +867,7 @@ export default function SafetyMap() {
                 )}
 
                 {/* Point Marks Legend */}
-                <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground w-full min-w-0">
                   <span className="font-semibold text-foreground flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Ground Signals:
                   </span>
@@ -820,11 +888,25 @@ export default function SafetyMap() {
                   ))}
                 </div>
               </div>
+
+              {/* Mobile Quick Action Pills if in Map Mode */}
+              {activeTab === "navigate" && mobileLayoutMode === "map" && (
+                <div className="lg:hidden pt-1 flex justify-center w-full min-w-0">
+                  <Button
+                    size="sm"
+                    type="button"
+                    onClick={() => setMobileLayoutMode("both")}
+                    className="rounded-full bg-pink-600 text-white text-xs font-semibold px-4 h-8 shadow-md"
+                  >
+                    🚶‍♀️ Open Route Planner
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Informational Guidance */}
-          <Card className="rounded-2xl border border-border/80">
+          {/* Desktop Informational Guidance */}
+          <Card className="hidden lg:block rounded-2xl border border-border/80 w-full min-w-0">
             <CardContent className="p-4 flex gap-3 text-xs sm:text-sm text-muted-foreground">
               <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
               <p>
@@ -837,7 +919,11 @@ export default function SafetyMap() {
         </div>
 
         {/* Sidebar Column: Safe Route Planner OR Explore & Report Form */}
-        <div className="space-y-4">
+        <div
+          className={`space-y-4 w-full max-w-full min-w-0 ${
+            activeTab === "navigate" && mobileLayoutMode === "map" ? "hidden lg:block" : "block"
+          }`}
+        >
           {activeTab === "navigate" ? (
             <SafeRoutePlanner
               safePlaces={safePlaces}

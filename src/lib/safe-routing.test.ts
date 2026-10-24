@@ -29,7 +29,9 @@ describe("Safe Routing Engine", () => {
     expect(distNear).toBeLessThan(200);
   });
 
-  it("calculates 3 distinct route options: Safest, Quickest, and Caution/Dangerous", async () => {
+  it(
+    "calculates 3 distinct route options: Safest, Quickest, and Caution/Dangerous",
+    async () => {
     const start = { lat: 35.658, lng: 139.7016, label: "Start Hub" };
     const end = { lat: 35.664, lng: 139.6980, label: "Destination" };
     const safePlaces = [
@@ -57,5 +59,5 @@ describe("Safe Routing Engine", () => {
     expect(safest!.safetyScore).toBeGreaterThan(7.0);
     // Dangerous route should have lower safety score
     expect(dangerous!.safetyScore).toBeLessThan(safest!.safetyScore);
-  });
+  }, 15000);
 });

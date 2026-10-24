@@ -607,73 +607,74 @@ export default function SafeRoutePlanner({
   }, [allFeedbacks]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full min-w-0">
       {/* 3-Step Hierarchical Location Navigator */}
-      <Card className="rounded-3xl border border-border/80 shadow-xs bg-card/95 backdrop-blur-md overflow-hidden">
-        <CardHeader className="pb-3 border-b border-border/50">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-              <Navigation className="w-4 h-4 text-pink-600" /> Location &amp; Safe Route
+      <Card className="rounded-3xl border border-border/80 shadow-xs bg-card/95 backdrop-blur-md overflow-hidden w-full max-w-full min-w-0">
+        <CardHeader className="p-3.5 sm:p-4 pb-2.5 sm:pb-3 border-b border-border/50 w-full min-w-0">
+          <div className="flex items-center justify-between gap-2 w-full min-w-0">
+            <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-1.5 truncate min-w-0">
+              <Navigation className="w-4 h-4 text-pink-600 shrink-0" />
+              <span className="truncate">Location &amp; Safe Route</span>
             </CardTitle>
             <Badge
               variant="outline"
-              className="text-[11px] font-medium bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/30 flex items-center gap-1"
+              className="text-[10px] sm:text-[11px] font-medium bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/30 flex items-center gap-1 shrink-0"
             >
-              <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
-              Pink = Safest Corridor
+              <Heart className="w-2.5 h-2.5 fill-pink-500 text-pink-500 shrink-0" />
+              <span className="hidden min-[380px]:inline">Pink = </span>Safest
             </Badge>
           </div>
 
           {/* Stepper Navigation Indicator */}
-          <div className="flex items-center gap-1 pt-2">
+          <div className="flex items-center gap-1 pt-2 w-full max-w-full min-w-0">
             <button
               type="button"
               onClick={() => setHierarchyStep(1)}
-              className={`flex-1 text-left px-2 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              className={`flex-1 text-left px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border min-w-0 ${
                 hierarchyStep === 1
                   ? "bg-pink-600 text-white border-pink-700 shadow-xs"
                   : "bg-secondary text-foreground hover:bg-secondary/80 border-border"
               }`}
             >
-              <span className="block text-[10px] opacity-80 uppercase">Step 1</span>
-              <span className="truncate block">
-                {selectedCountry.flag} {selectedCountry.name}
+              <span className="block text-[9px] sm:text-[10px] opacity-80 uppercase leading-none">Step 1</span>
+              <span className="truncate block mt-0.5 font-medium">
+                {selectedCountry.flag} <span className="hidden min-[380px]:inline">{selectedCountry.name}</span><span className="min-[380px]:hidden">{selectedCountry.code}</span>
               </span>
             </button>
 
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
 
             <button
               type="button"
               onClick={() => setHierarchyStep(2)}
-              className={`flex-1 text-left px-2 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              className={`flex-1 text-left px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border min-w-0 ${
                 hierarchyStep === 2
                   ? "bg-pink-600 text-white border-pink-700 shadow-xs"
                   : "bg-secondary text-foreground hover:bg-secondary/80 border-border"
               }`}
             >
-              <span className="block text-[10px] opacity-80 uppercase">Step 2</span>
-              <span className="truncate block">📍 {selectedState.name}</span>
+              <span className="block text-[9px] sm:text-[10px] opacity-80 uppercase leading-none">Step 2</span>
+              <span className="truncate block mt-0.5 font-medium">📍 {selectedState.name}</span>
             </button>
 
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
 
             <button
               type="button"
               onClick={() => setHierarchyStep(3)}
-              className={`flex-1 text-left px-2 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              className={`flex-1 text-left px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border min-w-0 ${
                 hierarchyStep === 3
                   ? "bg-pink-600 text-white border-pink-700 shadow-xs"
                   : "bg-secondary text-foreground hover:bg-secondary/80 border-border"
               }`}
             >
-              <span className="block text-[10px] opacity-80 uppercase">Step 3</span>
-              <span className="truncate block">🚶‍♀️ Routes</span>
+              <span className="block text-[9px] sm:text-[10px] opacity-80 uppercase leading-none">Step 3</span>
+              <span className="truncate block mt-0.5 font-medium">🚶‍♀️ Routes</span>
             </button>
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 sm:p-5 space-y-4">
+        <CardContent className="p-3.5 sm:p-5 space-y-4 w-full max-w-full min-w-0">
           {/* STEP 1: Select Country View */}
           {hierarchyStep === 1 && (
             <div className="space-y-3 animate-in fade-in-50 duration-200">
@@ -825,16 +826,16 @@ export default function SafeRoutePlanner({
                   <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-pink-500" /> Popular Corridors in {selectedState.name}:
                   </span>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none w-full max-w-full min-w-0">
                     {selectedState.samplePlaces.map((sample, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => handleApplySampleCorridor(sample)}
-                        className="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap bg-secondary hover:bg-pink-500/10 hover:border-pink-500/40 border border-border/70 transition-all font-medium text-foreground flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap shrink-0 bg-secondary hover:bg-pink-500/10 hover:border-pink-500/40 border border-border/70 transition-all font-medium text-foreground flex items-center gap-1 cursor-pointer"
                       >
-                        <Heart className="w-3 h-3 text-pink-500" />
-                        {sample.name}
+                        <Heart className="w-3 h-3 text-pink-500 shrink-0" />
+                        <span className="truncate">{sample.name}</span>
                       </button>
                     ))}
                   </div>
@@ -842,21 +843,21 @@ export default function SafeRoutePlanner({
               )}
 
               {/* Start & Destination inputs with Pin picking */}
-              <div className="space-y-3 relative">
+              <div className="space-y-3 relative w-full max-w-full min-w-0">
                 {/* Start Point Input */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-1 w-full min-w-0">
+                  <div className="flex items-center justify-between flex-wrap gap-1.5 w-full min-w-0">
                     <label className="text-xs font-semibold flex items-center gap-1 text-pink-700 dark:text-pink-400">
-                      <span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block shadow-xs shadow-pink-500/50" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block shadow-xs shadow-pink-500/50 shrink-0" />
                       Starting Point (A)
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         type="button"
                         onClick={useCurrentLocation}
                         className="text-[11px] text-pink-600 hover:underline flex items-center gap-1 cursor-pointer font-medium"
                       >
-                        <LocateFixed className="w-3 h-3" /> GPS Location
+                        <LocateFixed className="w-3 h-3 shrink-0" /> GPS
                       </button>
                       <button
                         type="button"
@@ -867,11 +868,11 @@ export default function SafeRoutePlanner({
                             : "text-muted-foreground border-border hover:bg-secondary"
                         }`}
                       >
-                        {pinMode === "start" ? "Tap map now" : "Pick on map"}
+                        {pinMode === "start" ? "Tap map" : "Pick on map"}
                       </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 w-full max-w-full min-w-0">
                     <LocationAutocompleteInput
                       value={startQuery}
                       onChange={setStartQuery}
@@ -898,6 +899,7 @@ export default function SafeRoutePlanner({
                       stateLandmarks={selectedState.landmarks || []}
                       safePlaces={safePlaces}
                       accentColor="pink"
+                      className="flex-1 min-w-0"
                     />
                     <Button
                       size="sm"
@@ -925,10 +927,10 @@ export default function SafeRoutePlanner({
                 </div>
 
                 {/* Destination Input */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-1 w-full min-w-0">
+                  <div className="flex items-center justify-between flex-wrap gap-1.5 w-full min-w-0">
                     <label className="text-xs font-semibold flex items-center gap-1 text-purple-700 dark:text-purple-400">
-                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block shadow-xs shadow-purple-500/50" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block shadow-xs shadow-purple-500/50 shrink-0" />
                       Destination (B)
                     </label>
                     <button
@@ -940,10 +942,10 @@ export default function SafeRoutePlanner({
                           : "text-muted-foreground border-border hover:bg-secondary"
                       }`}
                     >
-                      {pinMode === "end" ? "Tap map now" : "Pick on map"}
+                      {pinMode === "end" ? "Tap map" : "Pick on map"}
                     </button>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 w-full max-w-full min-w-0">
                     <LocationAutocompleteInput
                       value={endQuery}
                       onChange={setEndQuery}
@@ -970,6 +972,7 @@ export default function SafeRoutePlanner({
                       stateLandmarks={selectedState.landmarks || []}
                       safePlaces={safePlaces}
                       accentColor="purple"
+                      className="flex-1 min-w-0"
                     />
                     <Button
                       size="sm"
@@ -986,7 +989,7 @@ export default function SafeRoutePlanner({
               </div>
 
               {/* Mode & Recalculate */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
                 <div className="flex items-center gap-1 bg-secondary/80 p-0.5 rounded-xl border border-border/60">
                   <button
                     type="button"
@@ -1023,7 +1026,7 @@ export default function SafeRoutePlanner({
                   type="button"
                   disabled={loadingRoutes}
                   onClick={() => computeRoutes()}
-                  className="rounded-xl h-8 text-xs font-semibold px-3 bg-pink-600 hover:bg-pink-700 text-white cursor-pointer"
+                  className="rounded-xl h-8 text-xs font-semibold px-3 bg-pink-600 hover:bg-pink-700 text-white cursor-pointer ml-auto sm:ml-0"
                 >
                   {loadingRoutes ? "Analyzing..." : "Find Routes"}
                 </Button>
@@ -1098,12 +1101,12 @@ export default function SafeRoutePlanner({
       )}
 
       {/* Route Options Comparison Cards: Pink represents Safest */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-          <span className="font-semibold text-foreground flex items-center gap-1">
+      <div className="space-y-3 w-full max-w-full min-w-0">
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1 w-full min-w-0">
+          <span className="font-semibold text-foreground flex items-center gap-1 shrink-0">
             <Layers className="w-3.5 h-3.5 text-pink-600" /> Corridors (Pink = Safest):
           </span>
-          <span>{sisterFeedbackStats} Sister Reviews Loaded</span>
+          <span className="truncate text-[11px]">{sisterFeedbackStats} Sister Reviews Loaded</span>
         </div>
 
         {routes.map((r) => {
@@ -1116,7 +1119,7 @@ export default function SafeRoutePlanner({
             <div
               key={r.id}
               onClick={() => onActiveRouteSelected(r)}
-              className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+              className={`p-3 sm:p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden w-full max-w-full min-w-0 ${
                 isSelected
                   ? isSafest
                     ? "border-pink-500 bg-pink-500/10 shadow-sm ring-2 ring-pink-500/60"
@@ -1127,8 +1130,8 @@ export default function SafeRoutePlanner({
               }`}
             >
               {/* Header with Title and Score */}
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="space-y-0.5">
+              <div className="flex items-start justify-between gap-2 mb-2 w-full min-w-0">
+                <div className="space-y-0.5 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {isSafest && (
                       <Badge className="bg-pink-600 hover:bg-pink-700 text-white text-[10px] font-semibold flex items-center gap-1 shadow-xs">
@@ -1154,13 +1157,13 @@ export default function SafeRoutePlanner({
                       </Badge>
                     )}
                   </div>
-                  <h4 className="font-semibold text-sm text-foreground pt-0.5">{r.name}</h4>
-                  <p className="text-xs text-muted-foreground">{r.safetyVerdict}</p>
+                  <h4 className="font-semibold text-sm text-foreground pt-0.5 truncate">{r.name}</h4>
+                  <p className="text-xs text-muted-foreground truncate">{r.safetyVerdict}</p>
                 </div>
 
                 {/* Score Pill */}
                 <div
-                  className={`px-2.5 py-1 rounded-xl text-center shrink-0 border ${
+                  className={`px-2 py-1 rounded-xl text-center shrink-0 border ${
                     isSafest
                       ? "bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-500/40 font-bold"
                       : r.safetyScore >= 6.5
@@ -1168,23 +1171,23 @@ export default function SafeRoutePlanner({
                         : "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40"
                   }`}
                 >
-                  <p className="text-base font-bold font-mono leading-none">{r.safetyScore}</p>
-                  <p className="text-[9px] uppercase font-semibold tracking-wider mt-0.5">Safety</p>
+                  <p className="text-sm sm:text-base font-bold font-mono leading-none">{r.safetyScore}</p>
+                  <p className="text-[8.5px] uppercase font-semibold tracking-wider mt-0.5">Safety</p>
                 </div>
               </div>
 
               {/* Metrics Grid */}
-              <div className="grid grid-cols-3 gap-2 py-2 my-1 border-y border-border/50 text-xs">
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">Distance &amp; ETA</span>
-                  <span className="font-semibold text-foreground">
+              <div className="grid grid-cols-3 gap-1 sm:gap-2 py-2 my-1 border-y border-border/50 text-[10px] sm:text-xs w-full min-w-0">
+                <div className="min-w-0">
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground block truncate">Distance &amp; ETA</span>
+                  <span className="font-semibold text-foreground truncate block">
                     {r.distanceKm} km · {r.durationMin}m
                   </span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">Street Lighting</span>
+                <div className="min-w-0">
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground block truncate">Street Lighting</span>
                   <span
-                    className={`font-semibold ${
+                    className={`font-semibold truncate block ${
                       r.lightingScore >= 80
                         ? "text-pink-600 dark:text-pink-400"
                         : r.lightingScore >= 60
@@ -1195,32 +1198,32 @@ export default function SafeRoutePlanner({
                     {r.lightingScore}% Lit
                   </span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">Sister Audits</span>
-                  <span className="font-semibold text-foreground">
+                <div className="min-w-0">
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground block truncate">Sister Audits</span>
+                  <span className="font-semibold text-foreground truncate block">
                     {r.feedbackCount > 0 ? `${r.feedbackCount} reviews` : "Active corridor"}
                   </span>
                 </div>
               </div>
 
               {/* Perks & Warnings bullets */}
-              <div className="space-y-1 text-[11px] pt-1">
+              <div className="space-y-1 text-[11px] pt-1 w-full min-w-0">
                 {r.perks.slice(0, 2).map((perk, idx) => (
-                  <p key={idx} className="text-pink-700 dark:text-pink-300 flex items-center gap-1.5">
+                  <p key={idx} className="text-pink-700 dark:text-pink-300 flex items-center gap-1.5 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-pink-500 shrink-0" />
-                    {perk}
+                    <span className="truncate">{perk}</span>
                   </p>
                 ))}
                 {r.warnings.slice(0, 2).map((warn, idx) => (
-                  <p key={idx} className="text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                  <p key={idx} className="text-rose-700 dark:text-rose-300 flex items-center gap-1.5 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                    {warn}
+                    <span className="truncate">{warn}</span>
                   </p>
                 ))}
               </div>
 
               {/* Action Button */}
-              <div className="pt-3 flex items-center justify-end">
+              <div className="pt-2 sm:pt-3 flex items-center justify-end w-full min-w-0">
                 <Button
                   size="sm"
                   type="button"
@@ -1228,9 +1231,9 @@ export default function SafeRoutePlanner({
                     e.stopPropagation();
                     handleStartJourneyClick(r);
                   }}
-                  className={`rounded-xl text-xs font-semibold h-8 px-4 cursor-pointer ${
+                  className={`w-full sm:w-auto rounded-xl text-xs font-semibold h-8.5 px-4 cursor-pointer shadow-xs ${
                     isSafest
-                      ? "bg-pink-600 hover:bg-pink-700 text-white"
+                      ? "bg-pink-600 hover:bg-pink-700 text-white shadow-pink-500/20"
                       : isQuickest
                         ? "bg-sky-600 hover:bg-sky-700 text-white"
                         : "bg-rose-600 hover:bg-rose-700 text-white"
@@ -1247,7 +1250,7 @@ export default function SafeRoutePlanner({
 
       {/* Post-Trip Feedback Dialog */}
       <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
-        <DialogContent className="max-w-md rounded-3xl p-6">
+        <DialogContent className="max-w-md w-[95vw] rounded-3xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
