@@ -11,7 +11,25 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { LocateFixed, Search, Users, Info, ShieldCheck, MapPin, Sparkles, Navigation } from "lucide-react";
+import {
+  LocateFixed,
+  Search,
+  Users,
+  Info,
+  ShieldCheck,
+  MapPin,
+  Sparkles,
+  Navigation,
+  Compass,
+  AlertTriangle,
+  Zap,
+} from "lucide-react";
+import SafeRoutePlanner from "./SafeRoutePlanner";
+import {
+  RouteOption,
+  TripFeedback,
+  loadAllTripFeedbacks,
+} from "@/lib/safe-routing";
 
 // Categories divided into Safe Havens (Green signal) and Concerns (Amber/Rose)
 const CATEGORIES: Record<string, { label: string; color: string; isSafe: boolean }> = {
@@ -121,10 +139,16 @@ export default function SafetyMap() {
   const mapRef = useRef<Leaflet.Map | null>(null);
   const LRef = useRef<typeof Leaflet | null>(null);
   const layerRef = useRef<Leaflet.LayerGroup | null>(null);
+  const routesLayerRef = useRef<Leaflet.LayerGroup | null>(null);
   const pinRef = useRef<Leaflet.CircleMarker | null>(null);
 
+  // Navigation mode vs explore & report mode
+  const [activeTab, setActiveTab] = useState<"navigate" | "explore">("navigate");
+
+  // Safety map data
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [safePlaces, setSafePlaces] = useState<SafePlaceMarker[]>([]);
+  const [allFeedbacks, setAllFeedbacks] = useState<TripFeedback[]>([]);
   const [useLocation, setUseLocation] = useState(false);
   const [query, setQuery] = useState("");
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
@@ -133,6 +157,35 @@ export default function SafetyMap() {
   const [areaLabel, setAreaLabel] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Safe routing state
+  const [routes, setRoutes] = useState<RouteOption[]>([]);
+  const [activeRoute, setActiveRoute] = useState<RouteOption | null>(null);
+  const [pinMode, setPinMode] = useState<"start" | "end" | "report" | null>(null);
+  const pinModeRef = useRef<"start" | "end" | "report" | null>(null);
+  pinModeRef.current = pinMode;
+
+  const [simulatedPos, setSimulatedPos] = useState<[number, number] | null>(null);
+
+  // Zoom smoothly to selected country / state / place
+  const handleZoomToLocation = useCallback(
+    (lat: number, lng: number, zoom: number, label?: string) => {
+      if (mapRef.current) {
+        mapRef.current.flyTo([lat, lng], zoom, { duration: 1.5 });
+      }
+    },
+    []
+  );
+
+  // Load sister trip feedbacks
+  const refreshFeedbacks = useCallback(async () => {
+    try {
+      const fbs = await loadAllTripFeedbacks();
+      setAllFeedbacks(fbs);
+    } catch {
+      // silent catch
+    }
+  }, []);
 
   // Load community hazard patterns and safe places
   const loadPatterns = useCallback(async () => {
@@ -192,19 +245,23 @@ export default function SafetyMap() {
       if (cancelled || !mapEl.current || mapRef.current) return;
       LRef.current = L;
 
-      const map = L.map(mapEl.current, { zoomControl: true }).setView([20.59, 78.96], 4);
+      const map = L.map(mapEl.current, { zoomControl: true }).setView([35.658, 139.7016], 14);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap contributors",
         maxZoom: 18,
       }).addTo(map);
 
       layerRef.current = L.layerGroup().addTo(map);
-      map.on("click", (e: Leaflet.LeafletMouseEvent) =>
-        setPin({ lat: e.latlng.lat, lng: e.latlng.lng })
-      );
+      routesLayerRef.current = L.layerGroup().addTo(map);
+
+      map.on("click", (e: Leaflet.LeafletMouseEvent) => {
+        setPin({ lat: e.latlng.lat, lng: e.latlng.lng });
+      });
+
       map.on("moveend", () => loadPatterns());
       mapRef.current = map;
       loadPatterns();
+      refreshFeedbacks();
     })();
 
     return () => {
@@ -212,9 +269,9 @@ export default function SafetyMap() {
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [loadPatterns]);
+  }, [loadPatterns, refreshFeedbacks]);
 
-  // Live updates: refresh colors/patterns as soon as any sister reports
+  // Live updates: refresh patterns and feedbacks as soon as any sister reports
   useEffect(() => {
     const channel = supabase
       .channel("safety-map-live")
@@ -228,12 +285,21 @@ export default function SafetyMap() {
         { event: "*", schema: "public", table: "safe_places" },
         () => loadPatterns()
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "route_safety_feedback" },
+        () => refreshFeedbacks()
+      )
       .subscribe();
+
+    const handleLocalFeedback = () => refreshFeedbacks();
+    window.addEventListener("herspace-feedback-updated", handleLocalFeedback);
 
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener("herspace-feedback-updated", handleLocalFeedback);
     };
-  }, [loadPatterns]);
+  }, [loadPatterns, refreshFeedbacks]);
 
   // Render Map layers: Safe places (green), world benchmarks (green), & patterns (rose/amber)
   useEffect(() => {
@@ -245,7 +311,6 @@ export default function SafetyMap() {
 
     // 1. Draw Real-World Benchmark Safe Zones (Green highlights)
     WORLD_SAFETY_BENCHMARKS.forEach((bm) => {
-      // Glowing green safety zone radius
       L.circle([bm.lat, bm.lng], {
         radius: 750,
         color: "#10b981",
@@ -268,7 +333,6 @@ export default function SafetyMap() {
         )
         .addTo(layer);
 
-      // Center green signal pulse pin
       L.circleMarker([bm.lat, bm.lng], {
         radius: 7,
         color: "#059669",
@@ -333,6 +397,123 @@ export default function SafetyMap() {
         .addTo(layer);
     });
   }, [patterns, safePlaces]);
+
+  // Render Routes layer: Safest (Emerald), Quickest (Cyan), Dangerous (Rose/Amber)
+  useEffect(() => {
+    const L = LRef.current;
+    const routesLayer = routesLayerRef.current;
+    const map = mapRef.current;
+    if (!L || !routesLayer || !map) return;
+
+    routesLayer.clearLayers();
+
+    if (routes.length === 0) return;
+
+    let selectedPolyline: Leaflet.Polyline | null = null;
+
+    // Render routes with background glow and distinctive strokes
+    routes.forEach((route) => {
+      const isSelected = activeRoute?.id === route.id;
+
+      // Glow border under selected route
+      if (isSelected) {
+        L.polyline(route.coordinates, {
+          color: route.color,
+          weight: 10,
+          opacity: 0.35,
+          lineCap: "round",
+          lineJoin: "round",
+        }).addTo(routesLayer);
+      }
+
+      const poly = L.polyline(route.coordinates, {
+        color: route.color,
+        weight: isSelected ? 6 : 4,
+        opacity: isSelected ? 0.95 : 0.65,
+        dashArray:
+          route.type === "safest"
+            ? undefined
+            : route.type === "quickest"
+              ? "7, 6"
+              : "3, 5",
+        lineCap: "round",
+        lineJoin: "round",
+      });
+
+      poly.bindPopup(`
+        <div style="font-family: inherit; font-size: 13px; line-height: 1.4;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${route.color};"></span>
+            <strong style="color:${route.color}; font-size:14px;">${route.name}</strong>
+          </div>
+          <div style="margin:4px 0; font-size:12px;">
+            <b>Safety Score:</b> ${route.safetyScore}/10 (${route.safetyVerdict})<br/>
+            <b>Lighting:</b> ${route.lightingScore}% Lit<br/>
+            <b>Distance:</b> ${route.distanceKm} km · ${route.durationMin} mins
+          </div>
+          <div style="font-size:11px; color:#4b5563; margin-top:4px;">
+            ${route.perks.join("<br/>")}
+            ${route.warnings.length > 0 ? `<br/><span style="color:#e11d48;">${route.warnings.join("<br/>")}</span>` : ""}
+          </div>
+        </div>
+      `);
+
+      poly.on("click", () => setActiveRoute(route));
+      poly.addTo(routesLayer);
+
+      if (isSelected) {
+        selectedPolyline = poly;
+        poly.bringToFront();
+      }
+    });
+
+    // Add Start (A) and Destination (B) custom markers
+    if (activeRoute && activeRoute.coordinates.length > 0) {
+      const startCoord = activeRoute.coordinates[0];
+      const endCoord = activeRoute.coordinates[activeRoute.coordinates.length - 1];
+
+      // Start Marker (A) - Pink Sanctuary theme
+      const startIcon = L.divIcon({
+        className: "custom-route-marker-a",
+        html: `<div style="background:#ec4899; color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; border:2px solid #ffffff; box-shadow:0 3px 8px rgba(236,72,153,0.45);">A</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      });
+      L.marker(startCoord, { icon: startIcon }).addTo(routesLayer).bindTooltip("Starting Point (A)", { permanent: false });
+
+      // Destination Marker (B)
+      const endIcon = L.divIcon({
+        className: "custom-route-marker-b",
+        html: `<div style="background:#7c3aed; color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; border:2px solid #ffffff; box-shadow:0 3px 8px rgba(0,0,0,0.35);">B</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      });
+      L.marker(endCoord, { icon: endIcon }).addTo(routesLayer).bindTooltip("Destination (B)", { permanent: false });
+    }
+
+    // Render live simulated walker position if present
+    if (simulatedPos) {
+      const walkerIcon = L.divIcon({
+        className: "custom-walker-icon",
+        html: `<div style="background:#ec4899; color:#fff; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid #ffffff; box-shadow:0 0 16px #ec4899; animation:pulse 1s infinite;"><span style="font-size:16px;">🚶‍♀️</span></div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+      });
+      L.marker(simulatedPos, { icon: walkerIcon }).addTo(routesLayer);
+    }
+
+    // Fit map bounds to encompass the selected route
+    if (selectedPolyline) {
+      try {
+        const bounds = selectedPolyline.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [45, 45], maxZoom: 16 });
+        }
+      } catch {
+        // silent catch
+      }
+    }
+  }, [routes, activeRoute, simulatedPos]);
 
   // Draw pending user pin
   useEffect(() => {
@@ -425,7 +606,6 @@ export default function SafetyMap() {
     }
 
     if (isSafeSelection) {
-      // 1. Submit Safe Place with Green indicator
       const placeName = areaLabel.trim() || "Safe Community Haven";
       const notesText = note.trim() || "Reported safe haven with active visibility.";
 
@@ -450,7 +630,6 @@ export default function SafetyMap() {
 
       toast.success("Safe place marked! Highlighted in green on the map.");
     } else {
-      // 2. Submit Concern / Hazard Pattern
       const { error } = await db.from("safety_map_reports").insert({
         user_id: userId,
         category,
@@ -480,291 +659,396 @@ export default function SafetyMap() {
   const selectedCategoryMeta = CATEGORIES[category] ?? CATEGORIES.safe_haven;
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6">
-      {/* Map Column */}
-      <div className="lg:col-span-2 space-y-4">
-        <Card className="rounded-3xl border border-border/80 shadow-xs overflow-hidden">
-          <CardContent className="p-4 sm:p-5 space-y-3">
-            {/* Search and Location controls */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-              <form onSubmit={searchPlace} className="flex gap-2 flex-1">
-                <Input
-                  placeholder="Type a city, road, or area…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="rounded-full bg-background text-sm"
-                />
-                <Button
-                  type="submit"
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full shrink-0"
-                  aria-label="Search place"
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </form>
-              <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground shrink-0 cursor-pointer">
-                <Switch checked={useLocation} onCheckedChange={setUseLocation} />
-                <LocateFixed className="h-3.5 w-3.5 text-primary" /> Use my location
-              </label>
-            </div>
+    <div className="space-y-4">
+      {/* Top Mode Bar: Safe Route Navigator vs Explore Havens */}
+      <div className="flex items-center justify-between flex-wrap gap-2 p-1.5 rounded-2xl bg-card border border-border/70 shadow-xs">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setActiveTab("navigate")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+              activeTab === "navigate"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Compass className="w-4 h-4" />
+            Safe Route Navigator
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("explore")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+              activeTab === "explore"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Explore &amp; Share Havens
+          </button>
+        </div>
 
-            {/* Quick World Benchmark Jump Chips */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Navigation className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="font-semibold text-foreground">World Safe Zones:</span>
-                <span className="text-[11px]">Explore global safety benchmarks</span>
-              </div>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                {WORLD_SAFETY_BENCHMARKS.map((bm) => (
-                  <button
-                    key={bm.name}
-                    type="button"
-                    onClick={() => flyToBenchmark(bm.lat, bm.lng, bm.name)}
-                    className="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all font-medium flex items-center gap-1 cursor-pointer"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {bm.city}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Leaflet Map Canvas */}
-            <div
-              ref={mapEl}
-              className="h-[430px] sm:h-[540px] w-full rounded-2xl overflow-hidden border border-border z-0 shadow-inner"
-            />
-
-            {/* Map Legend */}
-            <div className="flex flex-wrap gap-2 pt-1 border-t border-border/60">
-              <div className="w-full flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                <span className="font-semibold text-foreground flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Live Signal Legend:
-                </span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                  Green = Safe Havens &amp; Benchmarks
-                </span>
-              </div>
-              {Object.entries(CATEGORIES).map(([k, c]) => (
-                <span
-                  key={k}
-                  className="flex items-center gap-1.5 text-[11px] text-muted-foreground px-2 py-0.5 rounded-full bg-secondary/50 border border-border/50"
-                >
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ background: c.color }}
-                  />
-                  {c.label}
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Informational Guidance */}
-        <Card className="rounded-2xl border border-border/80">
-          <CardContent className="p-4 flex gap-3 text-xs sm:text-sm text-muted-foreground">
-            <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-            <p>
-              This map highlights <strong className="text-foreground">Safe Havens in green signals</strong> alongside aggregated community safety patterns. When sisters mark a spot as safe, it illuminates with a green marker. Concern patterns appear after independent community reports. Locations are rounded for privacy.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground pr-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="hidden sm:inline">Real-time corridor scoring active</span>
+        </div>
       </div>
 
-      {/* Report / Mark Location Column */}
-      <div className="space-y-4">
-        <Card className="rounded-3xl border border-border/80 shadow-xs">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-serif italic text-2xl flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" /> Share what you noticed
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Mark a safe haven with a green signal or report a caution pattern for sisters.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={submit} className="space-y-3.5">
-              <div className="p-2.5 rounded-xl bg-secondary/50 border border-border/70 text-xs text-muted-foreground flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary shrink-0" />
-                <span>
-                  {pin
-                    ? "✓ Spot chosen on the map."
-                    : "Tap any spot on the map, or we will use the map's current center."}
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">What type of notice?</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <div className="px-2 py-1 text-[11px] font-semibold text-emerald-600">
-                      Safe Haven &amp; Secure Spots (Green Signal)
-                    </div>
-                    {Object.entries(CATEGORIES)
-                      .filter(([, c]) => c.isSafe)
-                      .map(([k, c]) => (
-                        <SelectItem key={k} value={k}>
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="w-2 h-2 rounded-full inline-block"
-                              style={{ background: c.color }}
-                            />
-                            {c.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-
-                    <div className="px-2 py-1 text-[11px] font-semibold text-rose-600 mt-1 border-t border-border/60">
-                      Caution &amp; Safety Patterns
-                    </div>
-                    {Object.entries(CATEGORIES)
-                      .filter(([, c]) => !c.isSafe)
-                      .map(([k, c]) => (
-                        <SelectItem key={k} value={k}>
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="w-2 h-2 rounded-full inline-block"
-                              style={{ background: c.color }}
-                            />
-                            {c.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Time of observation</Label>
-                <Select value={timeWindow} onValueChange={setTimeWindow}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {Object.entries(TIMES).map(([k, t]) => (
-                      <SelectItem key={k} value={k}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Place or Area Name (optional)</Label>
-                <Input
-                  maxLength={120}
-                  value={areaLabel}
-                  onChange={(e) => setAreaLabel(e.target.value)}
-                  placeholder={
-                    selectedCategoryMeta.isSafe
-                      ? "e.g. 24/7 Lit Medical Clinic or Sister Cafe"
-                      : "e.g. Station Road underpass"
-                  }
-                  className="rounded-xl text-sm"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Details or Tips (optional)</Label>
-                <Textarea
-                  rows={3}
-                  maxLength={280}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder={
-                    selectedCategoryMeta.isSafe
-                      ? "Describe why this spot is safe (well-lit, friendly staff, emergency refuge)..."
-                      : "Describe the place or lighting, not individual persons."
-                  }
-                  className="rounded-xl text-sm"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={busy}
-                className={`w-full rounded-full transition-all duration-200 ${
-                  selectedCategoryMeta.isSafe
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-earth text-earth-foreground hover:brightness-110"
-                }`}
-              >
-                {selectedCategoryMeta.isSafe ? "Mark Safe (Green Signal)" : "Add Notice Anonymously"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Live Patterns & Safe Spots List */}
-        <Card className="rounded-3xl border border-border/80 shadow-xs">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Active Spots in this View
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {patterns.length === 0 && safePlaces.length === 0 && (
-              <p className="text-xs text-muted-foreground p-3 text-center">
-                Pan the map or use the world safe zone chips above to view active spots.
-              </p>
-            )}
-
-            {/* List safe places */}
-            {safePlaces.slice(0, 4).map((sp) => (
-              <button
-                key={sp.id}
-                type="button"
-                onClick={() => mapRef.current?.setView([sp.lat, sp.lng], 15)}
-                className="w-full text-left rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 hover:bg-emerald-500/10 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 truncate">
-                    {sp.name}
-                  </span>
-                  <Badge variant="outline" className="ml-auto text-[10px] text-emerald-700 border-emerald-500/40">
-                    Safe Haven
-                  </Badge>
-                </div>
-                {sp.notes && <p className="text-[11px] text-muted-foreground mt-1 truncate">{sp.notes}</p>}
-              </button>
-            ))}
-
-            {/* List concern patterns */}
-            {patterns.slice(0, 6).map((p, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => mapRef.current?.setView([p.cell_lat, p.cell_lng], 16)}
-                className="w-full text-left rounded-xl border border-border p-2.5 hover:bg-muted transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ background: CATEGORIES[p.category]?.color }}
+      {/* Main Grid Layout */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Map Column (2 spans) */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card className="rounded-3xl border border-border/80 shadow-xs overflow-hidden relative">
+            <CardContent className="p-4 sm:p-5 space-y-3">
+              {/* Search and Location controls */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                <form onSubmit={searchPlace} className="flex gap-2 flex-1">
+                  <Input
+                    placeholder="Type a city, road, or area…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="rounded-full bg-background text-sm"
                   />
-                  <span className="text-xs font-medium truncate">
-                    {CATEGORIES[p.category]?.label ?? p.category}
-                  </span>
-                  <Badge variant="outline" className="ml-auto text-[10px]">
-                    {p.reporters} sisters
-                  </Badge>
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full shrink-0"
+                    aria-label="Search place"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </form>
+                <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground shrink-0 cursor-pointer">
+                  <Switch checked={useLocation} onCheckedChange={setUseLocation} />
+                  <LocateFixed className="h-3.5 w-3.5 text-primary" /> Use my location
+                </label>
+              </div>
+
+              {/* Quick World Benchmark Jump Chips */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Navigation className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="font-semibold text-foreground">World Safe Zones:</span>
+                  <span className="text-[11px]">Explore global safety benchmarks</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Mostly {TIMES[p.time_window]?.toLowerCase() ?? p.time_window}
-                </p>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {WORLD_SAFETY_BENCHMARKS.map((bm) => (
+                    <button
+                      key={bm.name}
+                      type="button"
+                      onClick={() => flyToBenchmark(bm.lat, bm.lng, bm.name)}
+                      className="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all font-medium flex items-center gap-1 cursor-pointer"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      {bm.city}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pin Picking Indicator Banner if user clicked Pick on map */}
+              {pinMode && (
+                <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/30 text-xs text-primary flex items-center justify-between animate-pulse">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <MapPin className="w-4 h-4" />
+                    {pinMode === "start"
+                      ? "📍 Tap anywhere on the map to set Starting Point (A)"
+                      : "📍 Tap anywhere on the map to set Destination (B)"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPinMode(null)}
+                    className="text-[11px] underline font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {/* Leaflet Map Canvas */}
+              <div
+                ref={mapEl}
+                className="h-[440px] sm:h-[550px] w-full rounded-2xl overflow-hidden border border-border z-0 shadow-inner"
+              />
+
+              {/* Route Signals & Map Legend */}
+              <div className="space-y-2 pt-2 border-t border-border/60">
+                {/* Route Corridors Legend */}
+                {routes.length > 0 && (
+                  <div className="p-2.5 rounded-xl bg-secondary/50 border border-border/60 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <span className="font-semibold text-foreground flex items-center gap-1">
+                      <Compass className="w-3.5 h-3.5 text-primary" /> Route Comparison:
+                    </span>
+                    <div className="flex items-center gap-3 flex-wrap text-[11px]">
+                      <span className="flex items-center gap-1.5 text-pink-700 dark:text-pink-300 font-semibold">
+                        <span className="w-3 h-1.5 rounded-full bg-pink-500 shadow-xs shadow-pink-500/50" />
+                        Safest Route ({routes.find((r) => r.type === "safest")?.safetyScore || "9.5"}/10)
+                      </span>
+                      <span className="flex items-center gap-1.5 text-sky-700 dark:text-sky-300 font-medium">
+                        <span className="w-3 h-1 rounded-full bg-sky-500" />
+                        Most Quickest ({routes.find((r) => r.type === "quickest")?.safetyScore || "7.4"}/10)
+                      </span>
+                      <span className="flex items-center gap-1.5 text-rose-700 dark:text-rose-300 font-medium">
+                        <span className="w-3 h-1 rounded-full bg-rose-500" />
+                        Caution / Avoid ({routes.find((r) => r.type === "dangerous")?.safetyScore || "3.8"}/10)
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Point Marks Legend */}
+                <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-foreground flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Ground Signals:
+                  </span>
+                  <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" /> Verified Safe Havens
+                  </span>
+                  {Object.entries(CATEGORIES).map(([k, c]) => (
+                    <span
+                      key={k}
+                      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/50 border border-border/50"
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ background: c.color }}
+                      />
+                      {c.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Informational Guidance */}
+          <Card className="rounded-2xl border border-border/80">
+            <CardContent className="p-4 flex gap-3 text-xs sm:text-sm text-muted-foreground">
+              <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              <p>
+                Our routing engine dynamically audits streets for{" "}
+                <strong className="text-foreground">safe havens, continuous lighting, and real-time sister feedback</strong>.
+                When sisters rate routes after completing journeys, the corridor weights update live for every woman in our network.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar Column: Safe Route Planner OR Explore & Report Form */}
+        <div className="space-y-4">
+          {activeTab === "navigate" ? (
+            <SafeRoutePlanner
+              safePlaces={safePlaces}
+              hazardPatterns={patterns}
+              allFeedbacks={allFeedbacks}
+              onRoutesCalculated={(calcRoutes) => setRoutes(calcRoutes)}
+              onActiveRouteSelected={(r) => setActiveRoute(r)}
+              onStartJourney={(r) => setActiveRoute(r)}
+              onSimulatePositionChange={(pos) => setSimulatedPos(pos)}
+              activeRoute={activeRoute}
+              mapPin={pin}
+              onSetPinMode={setPinMode}
+              pinMode={pinMode}
+              onRefreshData={() => {
+                loadPatterns();
+                refreshFeedbacks();
+              }}
+              onZoomToLocation={handleZoomToLocation}
+            />
+          ) : (
+            <>
+              {/* Report / Mark Location Column */}
+              <Card className="rounded-3xl border border-border/80 shadow-xs">
+                <CardHeader className="pb-3">
+                  <CardTitle className="font-serif italic text-2xl flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" /> Share what you noticed
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Mark a safe haven with a green signal or report a caution pattern for sisters.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={submit} className="space-y-3.5">
+                    <div className="p-2.5 rounded-xl bg-secondary/50 border border-border/70 text-xs text-muted-foreground flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary shrink-0" />
+                      <span>
+                        {pin
+                          ? "✓ Spot chosen on the map."
+                          : "Tap any spot on the map, or we will use the map's current center."}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">What type of notice?</Label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <div className="px-2 py-1 text-[11px] font-semibold text-emerald-600">
+                            Safe Haven &amp; Secure Spots (Green Signal)
+                          </div>
+                          {Object.entries(CATEGORIES)
+                            .filter(([, c]) => c.isSafe)
+                            .map(([k, c]) => (
+                              <SelectItem key={k} value={k}>
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className="w-2 h-2 rounded-full inline-block"
+                                    style={{ background: c.color }}
+                                  />
+                                  {c.label}
+                                </span>
+                              </SelectItem>
+                            ))}
+
+                          <div className="px-2 py-1 text-[11px] font-semibold text-rose-600 mt-1 border-t border-border/60">
+                            Caution &amp; Safety Patterns
+                          </div>
+                          {Object.entries(CATEGORIES)
+                            .filter(([, c]) => !c.isSafe)
+                            .map(([k, c]) => (
+                              <SelectItem key={k} value={k}>
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className="w-2 h-2 rounded-full inline-block"
+                                    style={{ background: c.color }}
+                                  />
+                                  {c.label}
+                                </span>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Time of observation</Label>
+                      <Select value={timeWindow} onValueChange={setTimeWindow}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {Object.entries(TIMES).map(([k, t]) => (
+                            <SelectItem key={k} value={k}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Place or Area Name (optional)</Label>
+                      <Input
+                        maxLength={120}
+                        value={areaLabel}
+                        onChange={(e) => setAreaLabel(e.target.value)}
+                        placeholder={
+                          selectedCategoryMeta.isSafe
+                            ? "e.g. 24/7 Lit Medical Clinic or Sister Cafe"
+                            : "e.g. Station Road underpass"
+                        }
+                        className="rounded-xl text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Details or Tips (optional)</Label>
+                      <Textarea
+                        rows={3}
+                        maxLength={280}
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder={
+                          selectedCategoryMeta.isSafe
+                            ? "Describe why this spot is safe (well-lit, friendly staff, emergency refuge)..."
+                            : "Describe the place or lighting, not individual persons."
+                        }
+                        className="rounded-xl text-sm"
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={busy}
+                      className={`w-full rounded-full transition-all duration-200 cursor-pointer ${
+                        selectedCategoryMeta.isSafe
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-earth text-earth-foreground hover:brightness-110"
+                      }`}
+                    >
+                      {selectedCategoryMeta.isSafe ? "Mark Safe (Green Signal)" : "Add Notice Anonymously"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Active Spots in View */}
+              <Card className="rounded-3xl border border-border/80 shadow-xs">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" /> Active Spots in this View
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {patterns.length === 0 && safePlaces.length === 0 && (
+                    <p className="text-xs text-muted-foreground p-3 text-center">
+                      Pan the map or use the world safe zone chips above to view active spots.
+                    </p>
+                  )}
+
+                  {safePlaces.slice(0, 4).map((sp) => (
+                    <button
+                      key={sp.id}
+                      type="button"
+                      onClick={() => mapRef.current?.setView([sp.lat, sp.lng], 15)}
+                      className="w-full text-left rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
+                        <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 truncate">
+                          {sp.name}
+                        </span>
+                        <Badge variant="outline" className="ml-auto text-[10px] text-emerald-700 border-emerald-500/40">
+                          Safe Haven
+                        </Badge>
+                      </div>
+                      {sp.notes && <p className="text-[11px] text-muted-foreground mt-1 truncate">{sp.notes}</p>}
+                    </button>
+                  ))}
+
+                  {patterns.slice(0, 6).map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => mapRef.current?.setView([p.cell_lat, p.cell_lng], 16)}
+                      className="w-full text-left rounded-xl border border-border p-2.5 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ background: CATEGORIES[p.category]?.color }}
+                        />
+                        <span className="text-xs font-medium truncate">
+                          {CATEGORIES[p.category]?.label ?? p.category}
+                        </span>
+                        <Badge variant="outline" className="ml-auto text-[10px]">
+                          {p.reporters} sisters
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Mostly {TIMES[p.time_window]?.toLowerCase() ?? p.time_window}
+                      </p>
+                    </button>
+                  ))}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
