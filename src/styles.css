@@ -256,29 +256,50 @@ body {
 }
 
 html.bg-warm {
+  background-color: color-mix(in oklab, var(--earth) 20%, var(--background));
   background-image: 
-    radial-gradient(at 15% 15%, color-mix(in oklab, var(--earth) 30%, transparent), transparent 60%),
-    radial-gradient(at 85% 85%, color-mix(in oklab, #fce0e0 65%, transparent), transparent 60%);
+    radial-gradient(at 15% 15%, color-mix(in oklab, var(--earth) 50%, transparent), transparent 60%),
+    radial-gradient(at 85% 85%, color-mix(in oklab, #f7b5be 70%, transparent), transparent 60%),
+    radial-gradient(at 50% 30%, color-mix(in oklab, var(--sand) 70%, transparent), transparent 70%);
 }
 html.bg-sage {
+  background-color: color-mix(in oklab, var(--sage) 22%, var(--background));
   background-image: 
-    radial-gradient(at 80% 12%, color-mix(in oklab, var(--sage) 35%, transparent), transparent 55%),
-    radial-gradient(at 12% 88%, color-mix(in oklab, var(--sand) 90%, transparent), transparent 55%);
+    radial-gradient(at 85% 10%, color-mix(in oklab, var(--sage) 55%, transparent), transparent 60%),
+    radial-gradient(at 10% 90%, color-mix(in oklab, var(--sage) 45%, transparent), transparent 60%),
+    radial-gradient(at 50% 50%, color-mix(in oklab, var(--sand) 85%, transparent), transparent 70%);
 }
 html.bg-dusk {
+  background-color: color-mix(in oklab, var(--earth) 18%, var(--background));
   background-image: 
-    linear-gradient(180deg, color-mix(in oklab, var(--earth) 24%, var(--background)) 0%, color-mix(in oklab, #f5ccd3 25%, var(--background)) 50%, var(--background) 100%);
+    linear-gradient(180deg, color-mix(in oklab, var(--earth) 35%, var(--background)) 0%, color-mix(in oklab, #f0abb6 40%, var(--background)) 50%, var(--background) 100%);
 }
 html.bg-gradient {
+  background-color: color-mix(in oklab, var(--earth) 14%, color-mix(in oklab, var(--sage) 14%, var(--background)));
   background-image: 
-    radial-gradient(circle at 10% 20%, color-mix(in oklab, var(--earth) 28%, transparent), transparent 45%),
-    radial-gradient(circle at 90% 80%, color-mix(in oklab, var(--sage) 28%, transparent), transparent 45%),
-    radial-gradient(circle at 50% 50%, color-mix(in oklab, #fcdada 35%, transparent), transparent 60%);
+    radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--earth) 45%, transparent), transparent 50%),
+    radial-gradient(circle at 88% 82%, color-mix(in oklab, var(--sage) 48%, transparent), transparent 50%),
+    radial-gradient(circle at 50% 50%, color-mix(in oklab, #fcd5d5 50%, transparent), transparent 65%);
 }
 html.bg-grain {
+  background-color: color-mix(in oklab, var(--earth) 12%, var(--background));
   background-image:
-    radial-gradient(color-mix(in oklab, var(--foreground) 16%, transparent) 1px, transparent 1px);
+    radial-gradient(color-mix(in oklab, var(--foreground) 24%, transparent) 1px, transparent 1px);
   background-size: 8px 8px;
+}
+
+/* Maintain dark mode nocturnal depths */
+html.dark.bg-warm, .dark html.bg-warm {
+  background-color: color-mix(in oklab, var(--earth) 20%, var(--background));
+}
+html.dark.bg-sage, .dark html.bg-sage {
+  background-color: color-mix(in oklab, var(--sage) 20%, var(--background));
+}
+html.dark.bg-dusk, .dark html.bg-dusk {
+  background-color: color-mix(in oklab, var(--earth) 25%, var(--background));
+}
+html.dark.bg-gradient, .dark html.bg-gradient {
+  background-color: color-mix(in oklab, var(--earth) 16%, var(--background));
 }
 
 /* Fix mobile line artifacts: background-attachment: fixed only on desktop displays */

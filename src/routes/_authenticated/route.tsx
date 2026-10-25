@@ -268,22 +268,22 @@ function AuthedShell() {
     { to: "/library", icon: BookOpen, label: "Library" },
   ], [lifeStages.pregnancy]);
 
-  // Dynamic opacity based on animation intensity setting: clear & vibrant in light mode, deep in dark mode
+  // Dynamic opacity based on animation intensity setting: crisp & vibrant in light mode, deep in dark mode
   const videoOpacity =
     animation === "off"
       ? 0
       : animation === "bloom"
-      ? "opacity-[0.65] dark:opacity-[0.45]"
-      : "opacity-[0.42] dark:opacity-[0.28]";
+      ? "opacity-[0.70] dark:opacity-[0.50]"
+      : "opacity-[0.45] dark:opacity-[0.30]";
 
   return (
     <SidebarProvider>
       <div className="min-h-dvh flex w-full text-foreground bg-transparent relative overflow-x-hidden">
-        {/* Full-screen ambient blooming background with calibrated contrast veil */}
+        {/* Full-screen ambient blooming background: 100% visible preset background in light mode, deep veil in dark mode */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
           {animation !== "off" && (
             <video
-              className={`hidden md:block absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover ${videoOpacity} transition-opacity duration-700 motion-reduce:hidden`}
+              className={`hidden md:block absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover ${videoOpacity} mix-blend-screen transition-opacity duration-700 motion-reduce:hidden`}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -300,32 +300,26 @@ function AuthedShell() {
               playsInline
             />
           )}
-          {/* Color blend: infuses user's exact chosen accent color softly into ambient backdrop */}
-          {animation !== "off" && (
-            <div
-              className="absolute inset-0 mix-blend-color opacity-80 transition-colors duration-700 pointer-events-none"
-              style={{ backgroundColor: accent }}
-            />
-          )}
-          {/* Subtle screen blend highlight on larger displays only (zero mobile frame drops) */}
+          {/* Subtle screen blend highlight on larger displays */}
           {animation === "bloom" && (
             <div
-              className="absolute inset-0 mix-blend-screen opacity-55 transition-all duration-700 pointer-events-none"
+              className="absolute inset-0 mix-blend-screen opacity-50 transition-all duration-700 pointer-events-none"
               style={{
                 background: `radial-gradient(circle at 55% 45%, ${accent}cc 0%, ${accent}55 45%, transparent 75%)`,
               }}
             />
           )}
-          {/* Soft contrast veil in light mode to keep background vibrant; deep veil in dark mode */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/15 to-background/35 dark:from-[#14080e]/90 dark:via-[#14080e]/75 dark:to-[#12080c]/92 pointer-events-none transition-colors duration-500" />
+          {/* Luminous accent color blooms illuminating the ambient atmosphere */}
           <div
-            className="absolute -top-32 -left-32 w-[28rem] h-[28rem] rounded-full blur-[100px] pointer-events-none transition-colors duration-700"
-            style={{ backgroundColor: `${accent}35` }}
+            className="absolute -top-32 -left-32 w-[34rem] h-[34rem] rounded-full blur-[90px] pointer-events-none transition-colors duration-700 opacity-70 dark:opacity-30"
+            style={{ backgroundColor: `${accent}40` }}
           />
           <div
-            className="absolute top-1/3 -right-32 w-[30rem] h-[30rem] rounded-full blur-[120px] pointer-events-none transition-colors duration-700"
-            style={{ backgroundColor: `${accent}35` }}
+            className="absolute top-1/3 -right-32 w-[36rem] h-[36rem] rounded-full blur-[110px] pointer-events-none transition-colors duration-700 opacity-70 dark:opacity-30"
+            style={{ backgroundColor: `${accent}45` }}
           />
+          {/* Dark mode contrast veil only (protects nocturnal text legibility; light mode stays clean & vibrant) */}
+          <div className="hidden dark:block absolute inset-0 bg-gradient-to-b from-[#14080e]/90 via-[#14080e]/75 to-[#12080c]/95 pointer-events-none transition-colors duration-500" />
         </div>
 
         <Sidebar collapsible="icon" className="border-r border-border/70 bg-sidebar/95 backdrop-blur-md">
