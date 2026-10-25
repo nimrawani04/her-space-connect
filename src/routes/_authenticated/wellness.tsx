@@ -274,16 +274,16 @@ function Wellness() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Frosted Sanctuary Header */}
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card border border-border/80 p-5 sm:p-7 md:p-8 shadow-xs overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-primary" />
           <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
             Emotional Sanctuary &amp; Reflection
           </p>
         </div>
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif italic text-foreground tracking-tight break-normal">
+            <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-serif italic text-foreground tracking-tight break-normal whitespace-normal [hyphens:none]">
               Mental Wellness
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">

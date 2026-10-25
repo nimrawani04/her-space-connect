@@ -48,17 +48,17 @@ function Dashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Warm Sanctuary Greeting Header */}
-      <header className="relative p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-primary/20 via-card/95 to-card/98 backdrop-blur-md border border-primary/25 shadow-sm overflow-hidden [background-clip:padding-box]">
+      <header className="relative p-5 sm:p-7 md:p-8 rounded-3xl bg-card border border-border/80 shadow-sm overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2 h-2 rounded-full bg-primary" />
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold font-sans">{today}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-foreground/75 dark:text-foreground/80 font-semibold font-sans">{today}</p>
             </div>
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight">
               {greeting}, {name}.
             </h1>
-            <p className="text-sm text-muted-foreground mt-2 font-sans font-light max-w-xl">
+            <p className="text-sm text-foreground/85 dark:text-foreground/90 mt-2 font-sans font-light max-w-xl leading-relaxed">
               Welcome back to your quiet room. Your cycle, sisterhood, and wellness space are waiting for you.
             </p>
           </div>
@@ -87,13 +87,13 @@ function Dashboard() {
               </Badge>
             </div>
             <CardTitle className="font-serif italic text-2xl sm:text-3xl text-foreground">Today's Cycle Phase</CardTitle>
-            <p className="text-sm text-muted-foreground font-light">
+            <p className="text-sm text-foreground/80 dark:text-foreground/85 font-light leading-relaxed">
               Log a quick check-in to see emotional, hormonal, and physical patterns over time.
             </p>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
             <div className="space-y-2">
-              <div className="flex justify-between text-xs text-muted-foreground font-medium">
+              <div className="flex justify-between text-xs text-foreground/75 font-medium">
                 <span>Phase Progress</span>
                 <span className="text-primary font-semibold">Day 8 of 28</span>
               </div>
@@ -102,7 +102,7 @@ function Dashboard() {
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <p className="text-xs text-muted-foreground italic">
+              <p className="text-xs text-foreground/70 dark:text-foreground/80 italic">
                 Energy and mental focus often rise during this phase. Be gentle with yourself.
               </p>
               <Button asChild className="rounded-full" size="sm">
@@ -113,7 +113,7 @@ function Dashboard() {
         </Card>
 
         {/* Daily Journal Prompt */}
-        <Card className="bg-gradient-to-br from-sage/10 via-card to-card border-sage/20 relative overflow-hidden group hover:border-sage/40 transition-all flex flex-col justify-between">
+        <Card className="bg-card border border-border/80 relative overflow-hidden group hover:border-sage/40 transition-all flex flex-col justify-between shadow-xs">
           <CardHeader className="p-4 sm:p-6 pb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-sage dark:text-emerald-300">
               Mind &amp; Reflection
@@ -123,7 +123,7 @@ function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4 flex-1 flex flex-col justify-between">
-            <p className="font-serif italic text-lg text-foreground/90 leading-relaxed bg-background/50 p-4 rounded-2xl border border-border/50">
+            <p className="font-serif italic text-base sm:text-lg text-foreground leading-relaxed bg-secondary/50 dark:bg-secondary/30 p-4 rounded-2xl border border-border/60">
               &ldquo;What boundary served your peace best yesterday?&rdquo;
             </p>
             <Button asChild variant="outline" className="rounded-full w-full">

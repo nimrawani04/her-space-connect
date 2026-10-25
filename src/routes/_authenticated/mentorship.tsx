@@ -220,16 +220,16 @@ export function Mentorship() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Sanctuary Header Card */}
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card border border-border/80 p-5 sm:p-7 md:p-8 shadow-xs overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-primary" />
           <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
             Leadership, Craft &amp; Sisterhood Mentorship
           </p>
         </div>
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif italic text-foreground tracking-tight break-normal">
+            <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-serif italic text-foreground tracking-tight break-normal whitespace-normal [hyphens:none]">
               Mentorship &amp; Services
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
@@ -237,11 +237,11 @@ export function Mentorship() {
               Hire independent female professionals or book 1-on-1 mentorship sessions.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-medium pb-1 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/70">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-medium pb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/80 border border-border/70">
               <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Private Sanctuary
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/70">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/80 border border-border/70">
               <Globe className="w-3.5 h-3.5 text-primary" /> Remote &amp; Worldwide
             </span>
           </div>
@@ -249,9 +249,9 @@ export function Mentorship() {
       </header>
 
       {/* Main Grid: "List Me" Form + Directory List */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* Left Column: Form to List Yourself */}
-        <Card className="lg:col-span-5 rounded-3xl bg-card/90 border border-border/80 backdrop-blur-md shadow-xs">
+        <Card className="xl:col-span-5 rounded-3xl bg-card border border-border/80 shadow-xs">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -360,7 +360,7 @@ export function Mentorship() {
         </Card>
 
         {/* Right Column: Search, Filters & Directory Cards */}
-        <div className="lg:col-span-7 space-y-5">
+        <div className="xl:col-span-7 space-y-5">
           {/* Search & Location Bar */}
           <div className="flex flex-col sm:flex-row gap-2.5 items-center">
             <div className="relative w-full">

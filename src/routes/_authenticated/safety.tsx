@@ -67,12 +67,12 @@ type Alert = { id: string; alert_type: string; city: string; country: string; lo
 function Safety() {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 sm:space-y-8 min-w-0 overflow-x-hidden">
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden w-full max-w-full min-w-0">
+      <header className="relative rounded-3xl bg-card border border-border/80 p-5 sm:p-7 md:p-8 shadow-xs overflow-hidden w-full max-w-full min-w-0">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-primary" />
           <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Community Safety Network</p>
         </div>
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif italic text-foreground tracking-tight break-normal">Safety Network</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-serif italic text-foreground tracking-tight break-normal whitespace-normal [hyphens:none]">Safety Network</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-xs sm:text-base leading-relaxed font-light">
           Safe havens, reviews by women for women, and community alerts. Your peace of mind matters everywhere.
         </p>

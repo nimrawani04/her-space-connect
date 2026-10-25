@@ -307,10 +307,10 @@ function Community() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Sanctuary Header Card */}
-      <header className="relative rounded-3xl bg-card/90 border border-border/80 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xs overflow-hidden">
+      <header className="relative rounded-3xl bg-card border border-border/80 p-5 sm:p-7 md:p-8 shadow-xs overflow-hidden">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-primary" />
             <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
               Sisterhood Community
             </p>
@@ -326,7 +326,7 @@ function Community() {
             {live ? "Live Real-Time Pulse" : "Connecting…"}
           </span>
         </div>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif italic text-foreground tracking-tight break-normal">
+        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-serif italic text-foreground tracking-tight break-normal whitespace-normal [hyphens:none]">
           Safe Space
         </h1>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base leading-relaxed font-light">
@@ -335,9 +335,9 @@ function Community() {
         </p>
       </header>
 
-      <div className="grid md:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* Left Column: Share something form */}
-        <Card className="md:col-span-5 rounded-3xl bg-card/90 border border-border/80 backdrop-blur-md shadow-xs self-start">
+        <Card className="xl:col-span-5 rounded-3xl bg-card border border-border/80 shadow-xs self-start">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -418,7 +418,7 @@ function Community() {
         </Card>
 
         {/* Right Column: Feed with Filter, Search, and Posts */}
-        <div className="md:col-span-7 space-y-4">
+        <div className="xl:col-span-7 space-y-4">
           {/* Search bar */}
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

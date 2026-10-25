@@ -283,7 +283,7 @@ function AuthedShell() {
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
           {animation !== "off" && (
             <video
-              className={`absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover ${videoOpacity} transition-opacity duration-700 motion-reduce:hidden`}
+              className={`hidden md:block absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover ${videoOpacity} transition-opacity duration-700 motion-reduce:hidden`}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -317,7 +317,7 @@ function AuthedShell() {
             />
           )}
           {/* Solid contrast veil to guarantee 100% text readability over all cards and themes */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95 dark:from-[#14080e]/85 dark:via-[#14080e]/60 dark:to-[#12080c]/90 pointer-events-none transition-colors duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/88 to-background/98 dark:from-[#14080e]/95 dark:via-[#14080e]/88 dark:to-[#12080c]/98 pointer-events-none transition-colors duration-500" />
           <div
             className="hidden md:block absolute -top-32 -left-32 w-[24rem] h-[24rem] rounded-full blur-[100px] pointer-events-none transition-colors duration-700"
             style={{ backgroundColor: `${accent}18` }}
