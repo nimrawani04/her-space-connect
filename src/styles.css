@@ -257,27 +257,27 @@ body {
 
 html.bg-warm {
   background-image: 
-    radial-gradient(at 15% 15%, color-mix(in oklab, var(--earth) 14%, transparent), transparent 60%),
-    radial-gradient(at 85% 85%, color-mix(in oklab, #fce7e7 45%, transparent), transparent 60%);
+    radial-gradient(at 15% 15%, color-mix(in oklab, var(--earth) 30%, transparent), transparent 60%),
+    radial-gradient(at 85% 85%, color-mix(in oklab, #fce0e0 65%, transparent), transparent 60%);
 }
 html.bg-sage {
   background-image: 
-    radial-gradient(at 80% 12%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 55%),
-    radial-gradient(at 12% 88%, color-mix(in oklab, var(--sand) 80%, transparent), transparent 55%);
+    radial-gradient(at 80% 12%, color-mix(in oklab, var(--sage) 35%, transparent), transparent 55%),
+    radial-gradient(at 12% 88%, color-mix(in oklab, var(--sand) 90%, transparent), transparent 55%);
 }
 html.bg-dusk {
   background-image: 
-    linear-gradient(180deg, color-mix(in oklab, var(--earth) 10%, var(--background)) 0%, color-mix(in oklab, #f3d8dc 12%, var(--background)) 50%, var(--background) 100%);
+    linear-gradient(180deg, color-mix(in oklab, var(--earth) 24%, var(--background)) 0%, color-mix(in oklab, #f5ccd3 25%, var(--background)) 50%, var(--background) 100%);
 }
 html.bg-gradient {
   background-image: 
-    radial-gradient(circle at 10% 20%, color-mix(in oklab, var(--earth) 16%, transparent), transparent 45%),
-    radial-gradient(circle at 90% 80%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 45%),
-    radial-gradient(circle at 50% 50%, color-mix(in oklab, #fce4e4 20%, transparent), transparent 60%);
+    radial-gradient(circle at 10% 20%, color-mix(in oklab, var(--earth) 28%, transparent), transparent 45%),
+    radial-gradient(circle at 90% 80%, color-mix(in oklab, var(--sage) 28%, transparent), transparent 45%),
+    radial-gradient(circle at 50% 50%, color-mix(in oklab, #fcdada 35%, transparent), transparent 60%);
 }
 html.bg-grain {
   background-image:
-    radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px);
+    radial-gradient(color-mix(in oklab, var(--foreground) 16%, transparent) 1px, transparent 1px);
   background-size: 8px 8px;
 }
 

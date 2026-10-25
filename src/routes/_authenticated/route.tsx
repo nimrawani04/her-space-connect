@@ -268,18 +268,18 @@ function AuthedShell() {
     { to: "/library", icon: BookOpen, label: "Library" },
   ], [lifeStages.pregnancy]);
 
-  // Dynamic opacity based on animation intensity setting
+  // Dynamic opacity based on animation intensity setting: clear & vibrant in light mode, deep in dark mode
   const videoOpacity =
     animation === "off"
       ? 0
       : animation === "bloom"
-      ? "opacity-[0.40] dark:opacity-[0.45]"
-      : "opacity-[0.20] dark:opacity-[0.28]";
+      ? "opacity-[0.65] dark:opacity-[0.45]"
+      : "opacity-[0.42] dark:opacity-[0.28]";
 
   return (
     <SidebarProvider>
-      <div className="min-h-dvh flex w-full text-foreground bg-background dark:bg-[#12080c] relative overflow-x-hidden">
-        {/* Full-screen ambient blooming background with hardware-accelerated contrast veil */}
+      <div className="min-h-dvh flex w-full text-foreground bg-transparent relative overflow-x-hidden">
+        {/* Full-screen ambient blooming background with calibrated contrast veil */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
           {animation !== "off" && (
             <video
@@ -303,28 +303,28 @@ function AuthedShell() {
           {/* Color blend: infuses user's exact chosen accent color softly into ambient backdrop */}
           {animation !== "off" && (
             <div
-              className="hidden sm:block absolute inset-0 mix-blend-color opacity-70 transition-colors duration-700 pointer-events-none"
+              className="absolute inset-0 mix-blend-color opacity-80 transition-colors duration-700 pointer-events-none"
               style={{ backgroundColor: accent }}
             />
           )}
           {/* Subtle screen blend highlight on larger displays only (zero mobile frame drops) */}
           {animation === "bloom" && (
             <div
-              className="hidden sm:block absolute inset-0 mix-blend-screen opacity-50 transition-all duration-700 pointer-events-none"
+              className="absolute inset-0 mix-blend-screen opacity-55 transition-all duration-700 pointer-events-none"
               style={{
-                background: `radial-gradient(circle at 55% 45%, ${accent}aa 0%, ${accent}33 40%, transparent 75%)`,
+                background: `radial-gradient(circle at 55% 45%, ${accent}cc 0%, ${accent}55 45%, transparent 75%)`,
               }}
             />
           )}
-          {/* Solid contrast veil to guarantee 100% text readability over all cards and themes */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/88 to-background/98 dark:from-[#14080e]/95 dark:via-[#14080e]/88 dark:to-[#12080c]/98 pointer-events-none transition-colors duration-500" />
+          {/* Soft contrast veil in light mode to keep background vibrant; deep veil in dark mode */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/15 to-background/35 dark:from-[#14080e]/90 dark:via-[#14080e]/75 dark:to-[#12080c]/92 pointer-events-none transition-colors duration-500" />
           <div
-            className="hidden md:block absolute -top-32 -left-32 w-[24rem] h-[24rem] rounded-full blur-[100px] pointer-events-none transition-colors duration-700"
-            style={{ backgroundColor: `${accent}18` }}
+            className="absolute -top-32 -left-32 w-[28rem] h-[28rem] rounded-full blur-[100px] pointer-events-none transition-colors duration-700"
+            style={{ backgroundColor: `${accent}35` }}
           />
           <div
-            className="hidden md:block absolute top-1/3 -right-32 w-[26rem] h-[26rem] rounded-full blur-[120px] pointer-events-none transition-colors duration-700"
-            style={{ backgroundColor: `${accent}20` }}
+            className="absolute top-1/3 -right-32 w-[30rem] h-[30rem] rounded-full blur-[120px] pointer-events-none transition-colors duration-700"
+            style={{ backgroundColor: `${accent}35` }}
           />
         </div>
 
