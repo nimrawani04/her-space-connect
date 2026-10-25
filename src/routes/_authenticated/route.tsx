@@ -273,17 +273,17 @@ function AuthedShell() {
     animation === "off"
       ? 0
       : animation === "bloom"
-      ? "opacity-[0.70] dark:opacity-[0.50]"
-      : "opacity-[0.45] dark:opacity-[0.30]";
+      ? "opacity-[0.75] dark:opacity-[0.55]"
+      : "opacity-[0.50] dark:opacity-[0.38]";
 
   return (
     <SidebarProvider>
       <div className="min-h-dvh flex w-full text-foreground bg-transparent relative overflow-x-hidden">
-        {/* Full-screen ambient blooming background: 100% visible preset background in light mode, deep veil in dark mode */}
+        {/* Full-screen ambient blooming background: prominently visible across small mobile screens & desktop in both light and dark modes */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
           {animation !== "off" && (
             <video
-              className={`hidden md:block absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover ${videoOpacity} mix-blend-screen transition-opacity duration-700 motion-reduce:hidden`}
+              className={`absolute inset-0 !w-full !h-full !max-w-none !max-h-none object-cover ${videoOpacity} mix-blend-screen transition-opacity duration-700 motion-reduce:hidden`}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -300,26 +300,36 @@ function AuthedShell() {
               playsInline
             />
           )}
-          {/* Subtle screen blend highlight on larger displays */}
+          {/* Screen blend highlight on larger displays */}
           {animation === "bloom" && (
             <div
-              className="absolute inset-0 mix-blend-screen opacity-50 transition-all duration-700 pointer-events-none"
+              className="absolute inset-0 mix-blend-screen opacity-55 transition-all duration-700 pointer-events-none"
               style={{
                 background: `radial-gradient(circle at 55% 45%, ${accent}cc 0%, ${accent}55 45%, transparent 75%)`,
               }}
             />
           )}
-          {/* Luminous accent color blooms illuminating the ambient atmosphere */}
+          {/* Luminous accent color blooms illuminating ambient atmosphere across small mobile screens & desktop */}
           <div
-            className="absolute -top-32 -left-32 w-[34rem] h-[34rem] rounded-full blur-[90px] pointer-events-none transition-colors duration-700 opacity-70 dark:opacity-30"
-            style={{ backgroundColor: `${accent}40` }}
+            className="absolute -top-16 inset-x-0 h-96 sm:h-[32rem] rounded-full blur-[70px] sm:blur-[110px] pointer-events-none transition-colors duration-700 opacity-90 sm:opacity-75 dark:opacity-50"
+            style={{
+              background: `radial-gradient(ellipse at 50% 15%, ${accent}55 0%, ${accent}25 50%, transparent 80%)`,
+            }}
           />
           <div
-            className="absolute top-1/3 -right-32 w-[36rem] h-[36rem] rounded-full blur-[110px] pointer-events-none transition-colors duration-700 opacity-70 dark:opacity-30"
-            style={{ backgroundColor: `${accent}45` }}
+            className="absolute top-1/3 inset-x-0 h-[28rem] rounded-full blur-[80px] sm:blur-[120px] pointer-events-none transition-colors duration-700 opacity-80 sm:opacity-70 dark:opacity-40"
+            style={{
+              background: `radial-gradient(ellipse at 65% 50%, ${accent}45 0%, ${accent}20 50%, transparent 80%)`,
+            }}
           />
-          {/* Dark mode contrast veil only (protects nocturnal text legibility; light mode stays clean & vibrant) */}
-          <div className="hidden dark:block absolute inset-0 bg-gradient-to-b from-[#14080e]/90 via-[#14080e]/75 to-[#12080c]/95 pointer-events-none transition-colors duration-500" />
+          <div
+            className="absolute bottom-10 inset-x-0 h-80 rounded-full blur-[75px] pointer-events-none transition-colors duration-700 opacity-85 sm:opacity-75 dark:opacity-45"
+            style={{
+              background: `radial-gradient(ellipse at 35% 80%, ${accent}50 0%, ${accent}20 50%, transparent 80%)`,
+            }}
+          />
+          {/* Light-touch dark mode contrast veil only (protects nocturnal text legibility while keeping colors rich) */}
+          <div className="hidden dark:block absolute inset-0 bg-gradient-to-b from-[#14080e]/45 via-[#14080e]/25 to-[#12080c]/55 pointer-events-none transition-colors duration-500" />
         </div>
 
         <Sidebar collapsible="icon" className="border-r border-border/70 bg-sidebar/95 backdrop-blur-md">
@@ -408,7 +418,7 @@ function AuthedShell() {
 
           {/* Main content viewport with bottom padding on mobile for floating bar */}
           <main
-            className="flex-1 p-2.5 sm:p-6 md:p-10 pb-44 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden"
+            className="flex-1 px-3.5 py-3 sm:p-6 md:p-10 pb-44 sm:pb-10 max-w-7xl w-full mx-auto relative z-10 min-w-0 overflow-x-hidden"
             style={{ paddingBottom: "max(11rem, calc(9rem + env(safe-area-inset-bottom, 0px)))" }}
           >
             <Outlet />

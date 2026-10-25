@@ -290,16 +290,56 @@ html.bg-grain {
 
 /* Maintain dark mode nocturnal depths */
 html.dark.bg-warm, .dark html.bg-warm {
-  background-color: color-mix(in oklab, var(--earth) 20%, var(--background));
+  background-color: color-mix(in oklab, var(--earth) 28%, var(--background));
+  background-image: 
+    radial-gradient(at 15% 15%, color-mix(in oklab, var(--earth) 55%, transparent), transparent 60%),
+    radial-gradient(at 85% 85%, color-mix(in oklab, #f7b5be 45%, transparent), transparent 60%);
 }
 html.dark.bg-sage, .dark html.bg-sage {
-  background-color: color-mix(in oklab, var(--sage) 20%, var(--background));
+  background-color: color-mix(in oklab, var(--sage) 28%, var(--background));
+  background-image: 
+    radial-gradient(at 85% 10%, color-mix(in oklab, var(--sage) 55%, transparent), transparent 60%),
+    radial-gradient(at 10% 90%, color-mix(in oklab, var(--sage) 45%, transparent), transparent 60%);
 }
 html.dark.bg-dusk, .dark html.bg-dusk {
-  background-color: color-mix(in oklab, var(--earth) 25%, var(--background));
+  background-color: color-mix(in oklab, var(--earth) 30%, var(--background));
+  background-image: 
+    linear-gradient(180deg, color-mix(in oklab, var(--earth) 45%, var(--background)) 0%, color-mix(in oklab, #f0abb6 35%, var(--background)) 50%, var(--background) 100%);
 }
 html.dark.bg-gradient, .dark html.bg-gradient {
-  background-color: color-mix(in oklab, var(--earth) 16%, var(--background));
+  background-color: color-mix(in oklab, var(--earth) 22%, color-mix(in oklab, var(--sage) 22%, var(--background)));
+  background-image: 
+    radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--earth) 45%, transparent), transparent 50%),
+    radial-gradient(circle at 88% 82%, color-mix(in oklab, var(--sage) 48%, transparent), transparent 50%);
+}
+
+/* Small screens: ensure background depth is prominent and distinct around cards in both modes */
+@media (max-width: 767px) {
+  html.bg-warm {
+    background-color: color-mix(in oklab, var(--earth) 26%, var(--background));
+  }
+  html.bg-sage {
+    background-color: color-mix(in oklab, var(--sage) 28%, var(--background));
+  }
+  html.bg-dusk {
+    background-color: color-mix(in oklab, var(--earth) 24%, var(--background));
+  }
+  html.bg-gradient {
+    background-color: color-mix(in oklab, var(--earth) 18%, color-mix(in oklab, var(--sage) 18%, var(--background)));
+  }
+
+  html.dark.bg-warm, .dark html.bg-warm {
+    background-color: color-mix(in oklab, var(--earth) 34%, var(--background));
+  }
+  html.dark.bg-sage, .dark html.bg-sage {
+    background-color: color-mix(in oklab, var(--sage) 34%, var(--background));
+  }
+  html.dark.bg-dusk, .dark html.bg-dusk {
+    background-color: color-mix(in oklab, var(--earth) 36%, var(--background));
+  }
+  html.dark.bg-gradient, .dark html.bg-gradient {
+    background-color: color-mix(in oklab, var(--earth) 28%, var(--background));
+  }
 }
 
 /* Fix mobile line artifacts: background-attachment: fixed only on desktop displays */
