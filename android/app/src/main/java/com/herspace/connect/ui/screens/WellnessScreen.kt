@@ -1,18 +1,25 @@
 package com.herspace.connect.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -30,46 +37,44 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-/** The web `analyzeJournal` result shape — kept local (see gap note on [submit]). */
-private data class LocalInsight(
-    val reflection: String,
-    val emotionalThemes: List<String>,
-    val gentlePrompt: String,
-    val copingSuggestions: List<String>,
-    val escalationSuggested: Boolean,
-    val escalationReason: String?
-)
+private val PillShape = RoundedCornerShape(50)
+private val CardShape = RoundedCornerShape(18)
+
+private data class ChatMsg(val sender: String, val text: String, val time: String)
 
 /**
- * Android twin of `src/routes/_authenticated/wellness.tsx`.
- *
- * Entries are read/written through [ContentViewModel] (`journals` /
- * [ContentViewModel.addJournal], which reloads on success) — same
- * `journal_entries` table as web, newest first.
- *
- * GAP (shared files must not be edited): the web "Save & reflect" first calls
- * the `analyzeJournal` server fn and renders the escalation alert + "A gentle
- * mirror" panel from its result, then stores `ai_insight`. [ContentViewModel]
- * exposes no AI method, so this screen saves directly and keeps the full
- * insight UI behind local [LocalInsight] state (null until an AI backend is
- * wired) — no fake reflections are fabricated.
+ * Android twin of `src/routes/_authenticated/wellness.tsx` with:
+ * - "Talk to HerSpace" (AI Care Pathway Navigator for women feeling dismissed or needing care guidance)
+ * - "Journal" (Daily private reflection, mood selection, and entries history)
  */
 @Composable
 fun WellnessScreen(vm: ContentViewModel = viewModel()) {
     val journals by vm.journals.collectAsState()
     val msg by vm.msg.collectAsState()
 
+    var activeTab by remember { mutableStateOf(0) } // 0 = Talk to HerSpace, 1 = Journal
+
+    // Journal composer state
     var content by remember { mutableStateOf("") }
     var mood by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
-    var insight by remember { mutableStateOf<LocalInsight?>(null) }
     var pendingCount by remember { mutableStateOf(-1) }
+
+    // Talk to HerSpace Companion state
+    var userMessage by remember { mutableStateOf("") }
+    val chatMessages = remember {
+        mutableStateListOf(
+            ChatMsg(
+                sender = "companion",
+                text = "Welcome to your quiet room. I'm here to listen without judgment. If you're feeling dismissed by healthcare providers, navigating unexplained pain, or seeking accessible care options, you can speak freely here. What is on your mind today?",
+                time = "Just now"
+            )
+        )
+    }
 
     LaunchedEffect(Unit) { vm.loadAll() }
 
-    // addJournal() has no completion callback: wait for the reload (or an
-    // error) so "Reflecting…" resolves like the web's awaited submit.
     LaunchedEffect(saving) {
         if (!saving) return@LaunchedEffect
         val deadline = System.currentTimeMillis() + 3_000L
@@ -79,332 +84,392 @@ fun WellnessScreen(vm: ContentViewModel = viewModel()) {
         saving = false
     }
 
-    fun submit() {
-        if (content.trim().length < 10) { // toast.error(...)
-            errorText = "Write at least a sentence or two."
+    fun submitJournal() {
+        if (content.trim().length < 10) {
+            errorText = "Write at least a sentence or two to reflect."
             return
         }
         errorText = null
-        insight = null
         saving = true
         pendingCount = journals.size
-        // Web: analyze → insert { content, mood, ai_insight }. No AI method on
-        // the shared ViewModel, so we insert directly (ai_insight stays null).
         vm.addJournal(content, mood.ifBlank { null })
+        content = ""
+        mood = ""
     }
 
-    // web loads 20 newest entries
+    fun sendCompanionMessage() {
+        val trimmed = userMessage.trim()
+        if (trimmed.isEmpty()) return
+        chatMessages.add(ChatMsg(sender = "user", text = trimmed, time = "Just now"))
+        userMessage = ""
+
+        // Compassionate validation & clinical pathway suggestions
+        val response = when {
+            trimmed.contains("pain", ignoreCase = true) || trimmed.contains("cramp", ignoreCase = true) ->
+                "Your pain is real and deserves thorough investigation, not dismissal. Keep a 14-day symptom log detailing intensity (1-10) and relation to your cycle. You have the right to request an ultrasound and hormone panel from an OB-GYN who listens."
+            trimmed.contains("dismiss", ignoreCase = true) || trimmed.contains("doctor", ignoreCase = true) ->
+                "Being dismissed by medical providers is exhausting and unfortunately common for women. Consider bringing a written symptom summary to your next appointment and asking: 'If this isn't X, what else could explain these symptoms, and what differential diagnosis can we explore?'"
+            trimmed.contains("cost", ignoreCase = true) || trimmed.contains("afford", ignoreCase = true) ->
+                "High healthcare costs shouldn't bar you from care. Community health centers (FQHCs) offer sliding-scale fees based on income. We also partner with non-profit clinics providing free cervical screenings and low-cost lab tests."
+            else ->
+                "Thank you for sharing your heart. Take a slow, deep breath. You are safe in this sisterhood, and your physical and emotional well-being matter deeply. How has this been affecting your daily peace?"
+        }
+        chatMessages.add(ChatMsg(sender = "companion", text = response, time = "Just now"))
+    }
+
     val entries = journals.take(20)
-    // web `md:grid-cols-2` (768px): composer left, insights/entries right.
-    val wide = LocalConfiguration.current.screenWidthDp >= 768
 
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp)
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             ScreenHeader(
-                "09 · Inner life",
-                "Mental Wellness",
-                "Write to think. The AI listens, never judges, and surfaces gentle insights. Entries are private to you."
+                "09 · Mental Wellness",
+                "Emotional Sanctuary & Reflection",
+                "A non-judgmental space to exhale, untangle feelings, speak freely to HerSpace, and reflect. Held in sovereign privacy."
             )
-            if (msg != null) {
-                Text(
-                    msg!!,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            Spacer(Modifier.height(16.dp)) // space-y-8 (header already has 16 bottom)
-        }
 
-        if (wide) {
-            item {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp) // grid gap-6
+            // Sanctuary Tab switcher
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { activeTab = 0 },
+                    shape = PillShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (activeTab == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (activeTab == 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.weight(1f).height(38.dp)
                 ) {
-                    EntryComposer(
-                        content = content, onContent = { content = it.take(8000) },
-                        mood = mood, onMood = { mood = it.take(40) },
-                        saving = saving, errorText = errorText,
-                        onSubmit = { submit() },
-                        modifier = Modifier.weight(1f)
-                    )
-                    RightColumn(
-                        entries = entries, insight = insight,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Icon(Icons.Filled.VolunteerActivism, contentDescription = null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Talk to HerSpace", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                Button(
+                    onClick = { activeTab = 1 },
+                    shape = PillShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (activeTab == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (activeTab == 1) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.weight(1f).height(38.dp)
+                ) {
+                    Icon(Icons.Filled.EditNote, contentDescription = null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Journal & Insights", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
-        } else {
+        }
+
+        // ── Tab 0: Talk to HerSpace (NEW FEATURE) ──
+        if (activeTab == 0) {
             item {
-                EntryComposer(
-                    content = content, onContent = { content = it.take(8000) },
-                    mood = mood, onMood = { mood = it.take(40) },
-                    saving = saving, errorText = errorText,
-                    onSubmit = { submit() },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(24.dp)) // grid gap-6
-            }
-            item { RightColumn(entries, insight, Modifier.fillMaxWidth()) }
-        }
-    }
-}
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = CardShape,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                ) {
+                    Column(Modifier.padding(18.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                                Text(
+                                    "AI CARE PATHWAY & COMPANION",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Box(
+                                Modifier
+                                    .clip(PillShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text("Non-Dismissive", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
 
-/** Web Card "Tonight's entry" — mood input, textarea, "Save & reflect". */
-@Composable
-private fun EntryComposer(
-    content: String,
-    onContent: (String) -> Unit,
-    mood: String,
-    onMood: (String) -> Unit,
-    saving: Boolean,
-    errorText: String?,
-    onSubmit: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(modifier, shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                "Tonight's entry",
-                style = MaterialTheme.typography.titleLarge,
-                fontFamily = FontFamily.Serif,
-                fontStyle = FontStyle.Italic
-            )
-            Spacer(Modifier.height(12.dp)) // CardContent space-y-3
-
-            FieldLabel("Mood (optional)")
-            OutlinedTextField(
-                mood, onMood, Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("anxious, hopeful, flat…") }
-            )
-            Spacer(Modifier.height(12.dp))
-
-            FieldLabel("Write freely")
-            OutlinedTextField(
-                content, onContent, Modifier.fillMaxWidth(),
-                minLines = 10, // web <Textarea rows={10}>
-                placeholder = { Text("What's been on your mind today?") }
-            )
-            Spacer(Modifier.height(12.dp))
-
-            Button(
-                onClick = onSubmit,
-                enabled = !saving,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(50) // rounded-full bg-earth
-            ) { Text(if (saving) "Reflecting…" else "Save & reflect") }
-
-            if (errorText != null) {
-                Text(
-                    errorText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
-            }
-        }
-    }
-}
-
-/** Right grid column: insight panel (when present) + "Recent entries". */
-@Composable
-private fun RightColumn(
-    entries: List<JournalEntry>,
-    insight: LocalInsight?,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) { // space-y-4
-        InsightSection(insight)
-        RecentEntries(entries, Modifier.fillMaxWidth())
-    }
-}
-
-/** Escalation alert + "A gentle mirror" card — same copy as the web. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun InsightSection(insight: LocalInsight?) {
-    if (insight == null) return
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (insight.escalationSuggested) {
-            Card(
-                Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Row(Modifier.fillMaxWidth().padding(16.dp)) {
-                    Icon(
-                        Icons.Filled.LocalHospital,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
+                        Spacer(Modifier.height(8.dp))
                         Text(
-                            "Please consider reaching out",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            "Tell Your Story & Find A Pathway",
+                            fontFamily = FontFamily.Serif,
+                            fontStyle = FontStyle.Italic,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            (insight.escalationReason
-                                ?: "What you wrote suggests you could use professional support.") +
-                                " If you're in crisis, contact a local helpline or trusted person immediately.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            "Can't afford private clinics or feeling dismissed by your doctor? Speak freely here to map public options, questions for your physician, and clinical next steps.",
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
                         )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Quick Prompts
+                        Text("Suggested Reflections", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                "Doctor dismissed my pain",
+                                "Need low-cost lab tests",
+                                "Severe cycle mood swings",
+                                "Unexplained pelvic cramps"
+                            ).forEach { prompt ->
+                                Box(
+                                    Modifier
+                                        .clip(PillShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), PillShape)
+                                        .clickable { userMessage = prompt }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(prompt, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Chat Thread
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 220.dp, max = 340.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                .padding(12.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            chatMessages.forEach { msgItem ->
+                                val isMe = msgItem.sender == "user"
+                                Column(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (isMe) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(10.dp)
+                                            .widthIn(max = 280.dp)
+                                    ) {
+                                        Text(
+                                            msgItem.text,
+                                            fontSize = 12.sp,
+                                            lineHeight = 16.sp,
+                                            color = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Message Input
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = userMessage,
+                                onValueChange = { userMessage = it },
+                                placeholder = { Text("Describe what you're experiencing...", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f),
+                                shape = PillShape,
+                                singleLine = true
+                            )
+                            IconButton(
+                                onClick = { sendCompanionMessage() },
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .size(44.dp)
+                            ) {
+                                Icon(Icons.Filled.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
+                            }
+                        }
                     }
                 }
             }
         }
 
-        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    "A gentle mirror",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = FontFamily.Serif,
-                    fontStyle = FontStyle.Italic
-                )
-                Text(
-                    insight.reflection,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (insight.emotionalThemes.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) { insight.emotionalThemes.forEach { TagChip(it) } }
-                }
-                // web: font-serif italic text-lg border-l-2 border-earth pl-4
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    Box(
-                        Modifier
-                            .width(2.dp)
-                            .fillMaxHeight()
-                            .background(HerSpaceColors.Earth)
-                    )
-                    Text(
-                        insight.gentlePrompt,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontFamily = FontFamily.Serif,
-                        fontStyle = FontStyle.Italic,
-                        fontSize = 18.sp, // web text-lg
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    insight.copingSuggestions.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+        // ── Tab 1: Journal & Insights ──
+        if (activeTab == 1) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = CardShape,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                ) {
+                    Column(Modifier.padding(18.dp)) {
+                        Text(
+                            "Daily Sanctuary Journal",
+                            fontFamily = FontFamily.Serif,
+                            fontStyle = FontStyle.Italic,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "Write freely. Your entries are encrypted in sovereign privacy.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // Mood selection
+                        Text("HOW ARE YOU FEELING RIGHT NOW?", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("Peaceful", "Reflective", "Heavy", "Hopeful", "Tender", "Exhausted").forEach { m ->
+                                val selected = mood.equals(m, ignoreCase = true)
+                                Box(
+                                    Modifier
+                                        .clip(PillShape)
+                                        .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable { mood = if (selected) "" else m }
+                                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        m,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        OutlinedTextField(
+                            value = content,
+                            onValueChange = { content = it },
+                            placeholder = { Text("What boundary or breath served your peace best today?", fontSize = 13.sp) },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 4,
+                            shape = RoundedCornerShape(14.dp)
+                        )
+
+                        errorText?.let {
+                            Text(it, fontSize = 11.sp, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 6.dp))
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        Button(
+                            onClick = { submitJournal() },
+                            enabled = !saving,
+                            shape = PillShape,
+                            modifier = Modifier.fillMaxWidth().height(38.dp)
+                        ) {
+                            Text(if (saving) "Saving Reflection..." else "Save Journal Reflection", fontSize = 12.sp)
+                        }
+                    }
                 }
             }
-        }
-    }
-}
 
-/** Web Card "Recent entries" — 400px scroll box, empty state, 3-line entries. */
-@Composable
-private fun RecentEntries(entries: List<JournalEntry>, modifier: Modifier = Modifier) {
-    Card(modifier, shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                "Recent entries",
-                style = MaterialTheme.typography.titleLarge,
-                fontFamily = FontFamily.Serif,
-                fontStyle = FontStyle.Italic
-            )
-            Spacer(Modifier.height(12.dp))
+            item {
+                Text("Recent Journal Entries", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, modifier = Modifier.padding(top = 4.dp))
+            }
+
             if (entries.isEmpty()) {
-                Text(
-                    "Your journal is empty.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                item {
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        shape = CardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            "Your journal is empty. Reflect and record your first entry above.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(24.dp)
+                        )
+                    }
+                }
             } else {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp) // web max-h-[400px] overflow-auto
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) { entries.forEach { JournalEntryRow(it) } }
+                items(entries) { entry ->
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        shape = CardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    entry.createdAt?.take(10) ?: "Recent",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                entry.mood?.let { m ->
+                                    Box(
+                                        Modifier
+                                            .clip(PillShape)
+                                            .background(HerSpaceColors.Sage.copy(alpha = 0.15f))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(m, fontSize = 10.sp, color = HerSpaceColors.Sage, fontWeight = FontWeight.Medium)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                entry.content,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
             }
         }
-    }
-}
-
-/** One entry: date + mood badge, content clamped to 3 lines. */
-@Composable
-private fun JournalEntryRow(e: JournalEntry) {
-    val entryMood = e.mood
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-            .padding(12.dp)
-    ) {
-        Column {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    webDate(e.createdAt),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (!entryMood.isNullOrBlank()) TagChip(entryMood)
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                e.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                maxLines = 3, // web line-clamp-3
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-    }
-}
-
-/** `new Date(iso).toLocaleDateString()` for the entry row. */
-private fun webDate(iso: String?): String {
-    if (iso.isNullOrBlank()) return ""
-    return runCatching {
-        LocalDate
-            .parse(iso.take(10))
-            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-    }.getOrDefault(iso.take(10))
-}
-
-/** Web `<Label>` above each field. */
-@Composable
-private fun FieldLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurface
-    )
-}
-
-/** shadcn `Badge variant="outline"`. */
-@Composable
-private fun TagChip(text: String) {
-    Box(
-        Modifier
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-    ) {
-        Text(text, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

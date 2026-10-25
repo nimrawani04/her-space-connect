@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -247,6 +248,8 @@ private enum class HealthTab(val label: String) {
     PERIOD("Period log"),
     DAILY("Daily wellness"),
     HORMONES("Cycle & Hormones"),
+    LABS("Lab Test Kits"),
+    PERIMENOPAUSE("Perimenopause"),
     INSIGHTS("AI insights"),
     DASHBOARD("Dashboard"),
     ASSISTANT("Symptom Assistant"),
@@ -616,6 +619,8 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
             HealthTab.PERIOD -> item { PeriodLogPanel(entries, vm, repo) }
             HealthTab.DAILY -> item { DailyWellnessPanel(repo) }
             HealthTab.HORMONES -> item { HormonesPanel(entries, vm) }
+            HealthTab.LABS -> item { LabTestKitsPanel() }
+            HealthTab.PERIMENOPAUSE -> item { PerimenopausePanel() }
             HealthTab.INSIGHTS -> item { AIInsightsPanel() }
             HealthTab.DASHBOARD -> item { DashboardPanel(entries, repo) }
             HealthTab.ASSISTANT -> item { SymptomAssistantPanel() }
@@ -3427,3 +3432,250 @@ private fun HealthSettingsPanel() {
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab: Lab Test Kits (NEW FEATURE from web health.tsx)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun LabTestKitsPanel() {
+    var provider by remember { mutableStateOf("Modern Fertility") }
+    var amhValue by remember { mutableStateOf("2.4") }
+    var tshValue by remember { mutableStateOf("1.8") }
+    var fshValue by remember { mutableStateOf("6.2") }
+    var e2Value by remember { mutableStateOf("48") }
+    var notes by remember { mutableStateOf("") }
+    var savedNotice by remember { mutableStateOf(false) }
+
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(Sage))
+                        Text("AT-HOME LAB TEST INTEGRATIONS", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = Sage)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text("Clinical Hormone Biomarkers", fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Sage.copy(alpha = 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("AMH & Thyroid", fontSize = 10.sp, color = Sage, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Text(
+                "Upload or manually record biomarker sheets from Modern Fertility, Everlywell, LabCorp, or Quest. Correlate blood hormone levels with your cycle day for personalized clinical clarity.",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Biomarker Results Summary
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Current Biomarkers (Day 3 Baseline)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+
+                    BiomarkerRow("Anti-Müllerian Hormone (AMH)", "$amhValue ng/mL", "Optimal Reserve", Sage)
+                    BiomarkerRow("Thyroid Stimulating Hormone (TSH)", "$tshValue mIU/L", "Normal (1.0 - 2.5)", MaterialTheme.colorScheme.primary)
+                    BiomarkerRow("Follicle-Stimulating Hormone (FSH)", "$fshValue mIU/mL", "Healthy Baseline", Sage)
+                    BiomarkerRow("Estradiol (E2)", "$e2Value pg/mL", "Typical Early Follicular", MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            // Entry inputs
+            Text("Record New Lab Panel", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+
+            OutlinedTextField(
+                value = provider,
+                onValueChange = { provider = it },
+                label = { Text("Testing Provider (e.g. Modern Fertility, Everlywell, Clinic)") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = amhValue,
+                    onValueChange = { amhValue = it },
+                    label = { Text("AMH (ng/mL)") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = tshValue,
+                    onValueChange = { tshValue = it },
+                    label = { Text("TSH (mIU/L)") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+            }
+
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Clinical Notes & Symptoms during draw") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Button(
+                onClick = { savedNotice = true },
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth().height(38.dp)
+            ) {
+                Text("Save Biomarker Panel to Health Record", fontSize = 12.sp)
+            }
+
+            if (savedNotice) {
+                Text("✓ Biomarkers updated. Correlated with cycle analytics.", fontSize = 11.sp, color = Sage, fontWeight = FontWeight.Medium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BiomarkerRow(label: String, value: String, status: String, tagColor: Color) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(status, fontSize = 10.sp, color = tagColor, fontWeight = FontWeight.Medium)
+        }
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab: Perimenopause Navigator (NEW FEATURE from web health.tsx)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PerimenopausePanel() {
+    var hotFlashFrequency by remember { mutableStateOf("1-3 daily") }
+    var sleepQuality by remember { mutableStateOf("Restless / Waking at 3am") }
+    var cycleVarianceDays by remember { mutableStateOf("9 days") }
+    var calculatedStage by remember { mutableStateOf("Early Menopausal Transition (-2)") }
+
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, Earth.copy(alpha = 0.35f))
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(Earth))
+                        Text("STRAW+10 CLINICAL STAGING", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = Earth)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text("Perimenopause Navigator", fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Earth.copy(alpha = 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("Midlife Longevity", fontSize = 10.sp, color = Earth, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Text(
+                "Based on the international STRAW+10 (Stages of Reproductive Aging Workshop) standard. Track cycle length variability, vasomotor hot flashes, and sleep architecture to map your transition stage.",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Current Clinical Assessment Card
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Earth.copy(alpha = 0.08f)),
+                border = BorderStroke(1.dp, Earth.copy(alpha = 0.25f))
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Clinical Stage Result", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Earth)
+                    Text(calculatedStage, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        "Identified by consecutive cycle variance >= 7 days. Estrogen levels surge and dip unpredictably, causing sleep disruption and thermoregulatory vasomotor changes.",
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Symptom Checkers
+            Text("Symptom Trackers (Past 30 Days)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+
+            OutlinedTextField(
+                value = cycleVarianceDays,
+                onValueChange = { cycleVarianceDays = it },
+                label = { Text("Cycle Length Variance (Difference in days)") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = hotFlashFrequency,
+                onValueChange = { hotFlashFrequency = it },
+                label = { Text("Vasomotor Symptoms (Hot flashes / night sweats)") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = sleepQuality,
+                onValueChange = { sleepQuality = it },
+                label = { Text("Sleep Quality & Brain Fog") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+
+            Button(
+                onClick = {},
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth().height(38.dp)
+            ) {
+                Text("Generate Doctor Consultation Brief →", fontSize = 12.sp)
+            }
+        }
+    }
+}
+

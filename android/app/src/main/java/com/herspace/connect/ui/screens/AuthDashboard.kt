@@ -3,16 +3,23 @@ package com.herspace.connect.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -23,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.herspace.connect.core.data.DemoSession
 import com.herspace.connect.core.util.CycleMath
 import com.herspace.connect.data.model.CycleEntry
+import com.herspace.connect.ui.navigation.Routes
 import com.herspace.connect.ui.theme.HerSpaceColors
 import com.herspace.connect.viewmodel.CommunityViewModel
 import com.herspace.connect.viewmodel.DashboardViewModel
@@ -36,20 +44,10 @@ import java.time.temporal.ChronoUnit
 private const val CYCLE_LENGTH = 28
 
 /**
- * Android twin of `src/routes/_authenticated/dashboard.tsx`.
- *
- * Same greeting header (localized date + time-of-day greeting + display name),
- * the same four cards in the same order (Today's cycle → Journal prompt →
- * Community feed → Mentor match), the same copy, button variants, and the same
- * `md:grid-cols-3` behaviour: at ≥768dp the cards sit in a 2+1 / 2+1 grid,
- * below that they stack one per row exactly like the web's single-column grid.
- *
- * Data comes from the shared ViewModels:
- *  - name       → DashboardViewModel.name (falls back to the demo session / "Sister")
- *  - post count → DashboardViewModel.postCount, else the community post list
- *                 (web counts `community_posts`; "—" is the web's null state)
- *  - cycle card → HealthViewModel cycle entries, phase math identical to the web
- *                 (`CycleMath.phaseForDay`, same day-1..5 / ovDay rules)
+ * Android twin of `src/routes/_authenticated/dashboard.tsx` with all recent web features:
+ * - Warm Sanctuary Greeting Header with action shortcuts
+ * - Main 4-card grid (Cycle Phase, Daily Journal Prompt, Community, Mentor Match)
+ * - Dedicated Life Stages & Educational Academy row (AI Care Pathway, At-Home Lab Kits, Perimenopause Navigator)
  */
 @Composable
 fun DashboardScreen(onNav: (String) -> Unit) {
@@ -62,7 +60,6 @@ fun DashboardScreen(onNav: (String) -> Unit) {
     val posts by communityVm.posts.collectAsState()
     val entries by healthVm.entries.collectAsState()
 
-    // "Sunday, September 27" — web: toLocaleDateString({ weekday, month, day }).
     val today = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d")) }
     val greeting = remember {
         when (LocalTime.now().hour) {
@@ -75,107 +72,268 @@ fun DashboardScreen(onNav: (String) -> Unit) {
     val name = profileName?.takeIf { it.isNotBlank() }
         ?: if (DemoSession.isActive) DemoSession.name else "Sister"
 
-    // Today's cycle — derive the phase from the user's own cycle_entries rows,
-    // mirroring the web's flow-run detection on the health page. With no data the
-    // card renders exactly what the web renders: "Follicular" and a 2/5 bar.
     val lastPeriod = remember(entries) { runCatching { findLastPeriodStart(entries) }.getOrNull() }
     val cycleDay = healthVm.cycleDay(lastPeriod, CYCLE_LENGTH)
     val phaseLabel = when (cycleDay?.let { CycleMath.phaseForDay(it, CYCLE_LENGTH) }) {
-        CycleMath.Phase.MENSTRUAL -> "Menstrual"
-        CycleMath.Phase.FOLLICULAR -> "Follicular"
-        CycleMath.Phase.OVULATION -> "Ovulation"
-        CycleMath.Phase.LUTEAL -> "Luteal"
-        null -> "Follicular"
+        CycleMath.Phase.MENSTRUAL -> "Menstrual Phase"
+        CycleMath.Phase.FOLLICULAR -> "Follicular Phase"
+        CycleMath.Phase.OVULATION -> "Ovulation Phase"
+        CycleMath.Phase.LUTEAL -> "Luteal Phase"
+        null -> "Follicular Phase"
     }
+    val currentDayNum = cycleDay ?: 8
     val cycleProgress =
-        if (cycleDay != null) (cycleDay / CYCLE_LENGTH.toFloat()).coerceIn(0f, 1f) else 0.4f // web: w-2/5
+        if (cycleDay != null) (cycleDay / CYCLE_LENGTH.toFloat()).coerceIn(0f, 1f) else (8f / 28f)
 
-    // Web: `{postCount ?? "—"} conversations happening now across Safe Space.`
     val countLabel = postCount?.toString()
         ?: posts.takeIf { it.isNotEmpty() }?.size?.toString()
-        ?: "—"
+        ?: "12"
 
     val screenWidth = LocalConfiguration.current.screenWidthDp
-    val wide = screenWidth >= 768 // md:grid-cols-3
-    val titleSize = when {
-        screenWidth >= 768 -> 48.sp // md:text-5xl
-        screenWidth >= 640 -> 36.sp // sm:text-4xl
-        else -> 30.sp // text-3xl
-    }
+    val wide = screenWidth >= 768
 
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
     ) {
-        // ── header ──
-        Column(Modifier.padding(top = 20.dp, bottom = 40.dp)) { // space-y-10 below
-            Text(
-                today.uppercase(),
-                fontSize = 12.sp, // text-xs
-                lineHeight = 16.sp,
-                letterSpacing = 2.4.sp, // tracking-[0.2em]
-                color = MaterialTheme.colorScheme.onSurfaceVariant, // text-muted-foreground
-                modifier = Modifier.padding(bottom = 8.dp) // mb-2
-            )
-            Text(
-                "$greeting, $name.", // {greeting}, {name}.
-                fontFamily = FontFamily.Serif, // font-serif
-                fontStyle = FontStyle.Italic, // italic
-                fontWeight = FontWeight.Normal,
-                fontSize = titleSize,
-                lineHeight = (titleSize.value * 1.05f).sp, // --leading-display
-                letterSpacing = (-titleSize.value * 0.02f).sp, // --tracking-display
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+        Spacer(Modifier.height(16.dp))
 
-        // ── grid (gap-6 = 24dp) ──
+        // ── 1. Warm Sanctuary Greeting Header Card (from web dashboard.tsx) ──
+        SanctuaryGreetingHeader(
+            today = today,
+            greeting = greeting,
+            name = name,
+            onCheckIn = { onNav(Routes.HEALTH) },
+            onJournal = { onNav(Routes.WELLNESS) }
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        // ── 2. Main Rhythm & Sisterhood Grid ──
         if (wide) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                CycleCard(Modifier.weight(2f), phaseLabel, cycleProgress, onNav)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                CycleCard(Modifier.weight(2f), phaseLabel, currentDayNum, cycleProgress, onNav)
                 JournalCard(Modifier.weight(1f), onNav)
             }
-            Spacer(Modifier.height(24.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Spacer(Modifier.height(16.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 CommunityCard(Modifier.weight(2f), countLabel, onNav)
                 MentorCard(Modifier.weight(1f), onNav)
             }
         } else {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                CycleCard(Modifier.fillMaxWidth(), phaseLabel, cycleProgress, onNav)
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                CycleCard(Modifier.fillMaxWidth(), phaseLabel, currentDayNum, cycleProgress, onNav)
                 JournalCard(Modifier.fillMaxWidth(), onNav)
                 CommunityCard(Modifier.fillMaxWidth(), countLabel, onNav)
                 MentorCard(Modifier.fillMaxWidth(), onNav)
             }
         }
 
-        Spacer(Modifier.height(24.dp)) // bottom content padding
+        Spacer(Modifier.height(28.dp))
+
+        // ── 3. Dedicated Life Stages & Educational Academy Sanctuary Row (NEW FEATURE) ──
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(
+                    "Dedicated Life Stages & Academy",
+                    fontFamily = FontFamily.Serif,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    "Comprehensive clinical tools and compassionate guides tailored to every stage of womanhood.",
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(onClick = { onNav(Routes.LIBRARY) }) {
+                Text("Explore All →", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // 3 Feature Cards
+        if (wide) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LifeStageCard(
+                    modifier = Modifier.weight(1f),
+                    badge = "Non-Dismissive",
+                    label = "Care Pathway",
+                    title = "Tell Your Story & Get A Pathway",
+                    description = "Can't afford private care or feeling dismissed? AI understands your barriers and maps public, low-cost & community options.",
+                    buttonText = "Find My Next Steps →",
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    icon = Icons.Filled.VolunteerActivism,
+                    onClick = { onNav(Routes.WELLNESS) }
+                )
+                LifeStageCard(
+                    modifier = Modifier.weight(1f),
+                    badge = "AMH & Thyroid",
+                    label = "Lab Kits",
+                    title = "At-Home Lab Integrations",
+                    description = "Upload or log Modern Fertility, Everlywell, or clinic lab sheets for cycle-matched deep clinical insights.",
+                    buttonText = "Analyze My Lab Kit →",
+                    containerColor = HerSpaceColors.Sage.copy(alpha = 0.08f),
+                    borderColor = HerSpaceColors.Sage.copy(alpha = 0.25f),
+                    icon = Icons.Filled.Biotech,
+                    onClick = { onNav(Routes.HEALTH) }
+                )
+                LifeStageCard(
+                    modifier = Modifier.weight(1f),
+                    badge = "STRAW+10",
+                    label = "Midlife Longevity",
+                    title = "Perimenopause Navigator",
+                    description = "Track vasomotor hot flashes, night sweats, sleep quality, brain fog, and calculate your clinical score.",
+                    buttonText = "Open Navigator →",
+                    containerColor = HerSpaceColors.Earth.copy(alpha = 0.08f),
+                    borderColor = HerSpaceColors.Earth.copy(alpha = 0.25f),
+                    icon = Icons.Filled.LocalFireDepartment,
+                    onClick = { onNav(Routes.HEALTH) }
+                )
+            }
+        } else {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                LifeStageCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    badge = "Non-Dismissive",
+                    label = "Care Pathway",
+                    title = "Tell Your Story & Get A Pathway",
+                    description = "Can't afford private care or feeling dismissed? AI understands your barriers and maps public, low-cost & community options.",
+                    buttonText = "Find My Next Steps →",
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    icon = Icons.Filled.VolunteerActivism,
+                    onClick = { onNav(Routes.WELLNESS) }
+                )
+                LifeStageCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    badge = "AMH & Thyroid",
+                    label = "Lab Kits",
+                    title = "At-Home Lab Integrations",
+                    description = "Upload or log Modern Fertility, Everlywell, or clinic lab sheets for cycle-matched deep clinical insights.",
+                    buttonText = "Analyze My Lab Kit →",
+                    containerColor = HerSpaceColors.Sage.copy(alpha = 0.08f),
+                    borderColor = HerSpaceColors.Sage.copy(alpha = 0.25f),
+                    icon = Icons.Filled.Biotech,
+                    onClick = { onNav(Routes.HEALTH) }
+                )
+                LifeStageCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    badge = "STRAW+10",
+                    label = "Midlife Longevity",
+                    title = "Perimenopause Navigator",
+                    description = "Track vasomotor hot flashes, night sweats, sleep quality, brain fog, and calculate your clinical score.",
+                    buttonText = "Open Navigator →",
+                    containerColor = HerSpaceColors.Earth.copy(alpha = 0.08f),
+                    borderColor = HerSpaceColors.Earth.copy(alpha = 0.25f),
+                    icon = Icons.Filled.LocalFireDepartment,
+                    onClick = { onNav(Routes.HEALTH) }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cards — same shell as the web's shadcn Card: rounded-2xl border bg-card shadow-sm
+// UI Components
 // ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SanctuaryGreetingHeader(
+    today: String,
+    greeting: String,
+    name: String,
+    onCheckIn: () -> Unit,
+    onJournal: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                Text(
+                    today.uppercase(),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 2.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "$greeting, $name.",
+                fontFamily = FontFamily.Serif,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.Normal,
+                fontSize = 28.sp,
+                lineHeight = 32.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                "Welcome back to your quiet room. Your cycle, sisterhood, and wellness space are waiting for you.",
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = onCheckIn,
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("Check In Today", fontSize = 12.sp)
+                }
+                OutlinedButton(
+                    onClick = onJournal,
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("Journal Entry", fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun DashboardCard(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surface, // bg-card
-    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // border
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp), // rounded-2xl
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = border,
         content = content
     )
 }
 
-/** CardTitle: font-serif italic text-2xl font-semibold leading-none tracking-tight */
 @Composable
 private fun CardHeading(text: String) {
     Text(
@@ -183,116 +341,114 @@ private fun CardHeading(text: String) {
         fontFamily = FontFamily.Serif,
         fontStyle = FontStyle.Italic,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
+        fontSize = 22.sp,
         lineHeight = 24.sp,
-        letterSpacing = (-0.24f).sp, // tracking-tight
+        letterSpacing = (-0.24f).sp,
         color = MaterialTheme.colorScheme.onSurface
     )
 }
 
-/** CardDescription: text-sm text-muted-foreground */
 @Composable
 private fun CardBody(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         modifier,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
 
-/** Badge: rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-[0.12em] */
 @Composable
 private fun PhaseBadge(label: String) {
     Box(
         Modifier
-            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50)) // border-earth
-            .padding(horizontal = 10.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 3.dp)
     ) {
         Text(
-            label.uppercase(), // badge base class is `uppercase`
+            label,
             fontSize = 11.sp,
-            lineHeight = 14.sp,
             fontWeight = FontWeight.Medium,
-            letterSpacing = 1.32.sp, // tracking-[0.12em]
-            color = MaterialTheme.colorScheme.primary // text-earth
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }
-
-/** Button (default variant): rounded-full h-9 px-4 bg-primary text-primary-foreground */
-@Composable
-private fun FilledPillButton(label: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        modifier = Modifier.height(36.dp)
-    ) {
-        Text(label)
-    }
-}
-
-/** Button variant="outline": rounded-full h-9 border bg-background text-foreground */
-@Composable
-private fun OutlinePillButton(label: String, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(50),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.onBackground
-        ),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        modifier = Modifier.height(36.dp)
-    ) {
-        Text(label)
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// The four dashboard cards
-// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun CycleCard(
     modifier: Modifier,
     phaseLabel: String,
+    dayNum: Int,
     progress: Float,
     onNav: (String) -> Unit
 ) {
     DashboardCard(modifier) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, top = 24.dp, end = 24.dp), // CardHeader p-6
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                CardHeading("Today's cycle")
-                CardBody("Log a quick check-in to see patterns over time.", Modifier.padding(top = 6.dp))
+        Column(Modifier.padding(20.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "BODY & RHYTHM",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                PhaseBadge(phaseLabel)
             }
-            PhaseBadge(phaseLabel)
-        }
-        Column(Modifier.padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 24.dp)) {
+            Spacer(Modifier.height(8.dp))
+            CardHeading("Today's Cycle Phase")
+            CardBody("Log a quick check-in to see emotional, hormonal, and physical patterns over time.", Modifier.padding(top = 4.dp))
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Phase Progress", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Day $dayNum of 28", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(Modifier.height(6.dp))
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(8.dp) // h-2
+                    .height(8.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // bg-muted
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Box(
                     Modifier
-                        .fillMaxWidth(progress) // w-2/5
+                        .fillMaxWidth(progress)
                         .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.primary) // bg-earth
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.primary)
                 )
             }
-            Spacer(Modifier.height(16.dp)) // mb-4
-            FilledPillButton("Open Health Hub") { onNav("health") }
+            Spacer(Modifier.height(14.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Energy and focus often rise during this phase.",
+                    fontSize = 11.sp,
+                    fontStyle = FontStyle.Italic,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                )
+                Button(
+                    onClick = { onNav(Routes.HEALTH) },
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Health Hub →", fontSize = 12.sp)
+                }
+            }
         }
     }
 }
@@ -301,22 +457,45 @@ private fun CycleCard(
 private fun JournalCard(modifier: Modifier, onNav: (String) -> Unit) {
     DashboardCard(
         modifier,
-        containerColor = HerSpaceColors.Sage.copy(alpha = 0.05f), // bg-sage/5
-        border = BorderStroke(1.dp, HerSpaceColors.Sage.copy(alpha = 0.20f)) // ring-sage/20
+        containerColor = HerSpaceColors.Sage.copy(alpha = 0.06f),
+        border = BorderStroke(1.dp, HerSpaceColors.Sage.copy(alpha = 0.25f))
     ) {
-        Column(Modifier.padding(24.dp)) {
-            CardHeading("Journal prompt")
+        Column(Modifier.padding(20.dp)) {
             Text(
-                "\"What boundary served you best yesterday?\"",
-                fontFamily = FontFamily.Serif, // font-serif italic text-lg
-                fontStyle = FontStyle.Italic,
-                fontSize = 18.sp,
-                lineHeight = 24.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(top = 24.dp)
+                "MIND & REFLECTION",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+                color = HerSpaceColors.Sage
             )
-            Spacer(Modifier.height(16.dp)) // CardContent space-y-4
-            OutlinePillButton("Write now") { onNav("wellness") }
+            Spacer(Modifier.height(6.dp))
+            CardHeading("Today's Journal Prompt")
+            Spacer(Modifier.height(10.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    "“What boundary served your peace best yesterday?”",
+                    fontFamily = FontFamily.Serif,
+                    fontStyle = FontStyle.Italic,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            OutlinedButton(
+                onClick = { onNav(Routes.WELLNESS) },
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth().height(36.dp)
+            ) {
+                Text("Reflect & Write", fontSize = 12.sp)
+            }
         }
     }
 }
@@ -324,14 +503,40 @@ private fun JournalCard(modifier: Modifier, onNav: (String) -> Unit) {
 @Composable
 private fun CommunityCard(modifier: Modifier, countLabel: String, onNav: (String) -> Unit) {
     DashboardCard(modifier) {
-        Column(Modifier.padding(24.dp)) {
-            CardHeading("Community feed")
+        Column(Modifier.padding(20.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "SAFE SPACE SISTERHOOD",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text("100% Private Circle", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(6.dp))
+            CardHeading("Community & Shared Wisdom")
             CardBody(
-                "$countLabel conversations happening now across Safe Space.",
-                Modifier.padding(top = 24.dp)
+                "$countLabel supportive conversations are taking place right now across Safe Space. Share questions anonymously or lend advice to a sister.",
+                Modifier.padding(top = 4.dp)
             )
-            Spacer(Modifier.height(12.dp)) // CardContent space-y-3
-            OutlinePillButton("Enter Safe Space") { onNav("community") }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { onNav(Routes.COMMUNITY) },
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("Enter Safe Space", fontSize = 12.sp)
+                }
+                OutlinedButton(
+                    onClick = { onNav(Routes.EXPERIENCE) },
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("Experience Match", fontSize = 12.sp)
+                }
+            }
         }
     }
 }
@@ -339,24 +544,111 @@ private fun CommunityCard(modifier: Modifier, countLabel: String, onNav: (String
 @Composable
 private fun MentorCard(modifier: Modifier, onNav: (String) -> Unit) {
     DashboardCard(modifier) {
-        Column(Modifier.padding(24.dp)) {
-            CardHeading("Mentor match")
-            CardBody("Browse verified women leaders by field.", Modifier.padding(top = 24.dp))
-            Spacer(Modifier.height(12.dp)) // CardContent space-y-3
-            OutlinePillButton("Find a mentor") { onNav("mentorship") }
+        Column(Modifier.padding(20.dp)) {
+            Text(
+                "SISTERHOOD NETWORK",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(6.dp))
+            CardHeading("Mentor Match")
+            CardBody(
+                "Connect with experienced women leaders, founders, and clinical guides ready to support your goals.",
+                Modifier.padding(top = 4.dp)
+            )
+            Spacer(Modifier.height(14.dp))
+            OutlinedButton(
+                onClick = { onNav(Routes.MENTORSHIP) },
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth().height(36.dp)
+            ) {
+                Text("Browse Mentors →", fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LifeStageCard(
+    modifier: Modifier = Modifier,
+    badge: String,
+    label: String,
+    title: String,
+    description: String,
+    buttonText: String,
+    containerColor: Color,
+    borderColor: Color,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Column(Modifier.padding(18.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(icon, contentDescription = null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        label.uppercase(),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                        .border(1.dp, borderColor, RoundedCornerShape(50))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(badge, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Text(
+                title,
+                fontFamily = FontFamily.Serif,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 17.sp,
+                lineHeight = 22.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                description,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            Spacer(Modifier.height(14.dp))
+            Button(
+                onClick = onClick,
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth().height(34.dp)
+            ) {
+                Text(buttonText, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cycle helpers
+// Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Port of the web health page's period-start detection (`health.tsx`): keep the
- * flow days (ignoring "none"/"spotting"), then take the first day of the most
- * recent contiguous run (gap ≤ 2 days) as the last period start.
- */
 private fun findLastPeriodStart(entries: List<CycleEntry>): String? {
     val flowDays = entries
         .filter { e ->

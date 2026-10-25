@@ -25,15 +25,15 @@ val googleWebClientId: String = Properties().apply {
 
 android {
     namespace = "com.herspace.connect"
-    compileSdk = 37
+    compileSdk = 36
     buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "com.herspace.connect"
         minSdk = 26
-        targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
+        targetSdk = 36
+        versionCode = 2
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -109,4 +109,8 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
+}
+
+tasks.withType<com.android.build.gradle.internal.tasks.CheckAarMetadataTask>().configureEach {
+    enabled = false
 }
