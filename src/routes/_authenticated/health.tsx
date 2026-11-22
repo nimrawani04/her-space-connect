@@ -40,6 +40,7 @@ import { PerimenopauseHub } from "@/components/health/PerimenopauseHub";
 import { TeenPeriodHub } from "@/components/health/TeenPeriodHub";
 import LabTestIntegrations from "@/components/health/LabTestIntegrations";
 import { useLifeStagePreferences } from "@/hooks/use-life-stage-preferences";
+import { periodStarts as extractPeriodStarts, cycleLengths, summarizeCycles, PeriodEntry } from "@/lib/cycle-stats";
 
 class TabErrorBoundary extends Component<
   { tabName?: string; children: ReactNode },
@@ -339,7 +340,7 @@ function HealthHub() {
             <div className="space-y-6">
               <CyclePrediction />
               <PhaseTimeline />
-              <HormoneCycle />
+              <HormoneCycle isActive={activeTab === "hormones"} />
             </div>
           </TabErrorBoundary>
         </TabsContent>
@@ -910,7 +911,7 @@ const HORMONES: Array<{
   { key: "fsh", label: "FSH (Follicle-stim.)", color: "#f59e0b", what: "Recruits and matures ovarian follicles early in the cycle." },
 ];
 
-function HormoneCycle() {
+function HormoneCycle({ isActive }: { isActive?: boolean }) {
   const [lastPeriod, setLastPeriod] = useState<string>("");
   const [cycleLength, setCycleLength] = useState<number>(28);
   const [irregularity, setIrregularity] = useState<"regular" | "somewhat" | "very">("regular");
@@ -939,51 +940,53 @@ function HormoneCycle() {
     } catch { /* ignore */ }
   }, [cycleLength, irregularity]);
 
-  useEffect(() => {
-    (async () => {
+  async function loadCycles() {
+    setLoading(true);
+    try {
       const { data } = await supabase
         .from("cycle_entries")
-        .select("entry_date, flow")
+        .select("*")
         .order("entry_date", { ascending: false })
-        .limit(60);
-      const rows = (data ?? []) as Array<{ entry_date: string; flow: string | null }>;
-      // Detect last period start = earliest day of the most recent contiguous run of "flow" entries
-      const flowDays = rows
-        .filter((r) => r.flow && !["none", "spotting"].includes(r.flow.toLowerCase()))
-        .map((r) => r.entry_date)
-        .sort();
-      if (flowDays.length > 0) {
-        // group contiguous, take last group's first day
-        let group: string[] = [flowDays[0]];
-        const groups: string[][] = [group];
-        for (let i = 1; i < flowDays.length; i++) {
-          const prev = new Date(flowDays[i - 1]);
-          const cur = new Date(flowDays[i]);
-          const diff = (cur.getTime() - prev.getTime()) / 86400000;
-          if (diff <= 2) group.push(flowDays[i]);
-          else { group = [flowDays[i]]; groups.push(group); }
+        .limit(365);
+      const rows = (data ?? []) as PeriodEntry[];
+
+      let starts = extractPeriodStarts(rows);
+      if (starts.length === 0 && rows.length > 0) {
+        starts = Array.from(new Set(rows.map((r) => r.entry_date))).sort((a, b) => b.localeCompare(a));
+      }
+
+      setPeriodStarts(starts);
+
+      if (starts.length > 0) {
+        // Automatically retrieve and populate last period from the most recent period start
+        setLastPeriod((prev) => (prev && starts.includes(prev) ? prev : starts[0]));
+
+        // Auto-detect cycle statistics from user's logged periods
+        const stats = summarizeCycles(rows);
+        if (stats.avgCycle && stats.avgCycle >= 20 && stats.avgCycle <= 45) {
+          setCycleLength(stats.avgCycle);
         }
-        const starts = groups.map((g) => g[0]).sort((a, b) => (a < b ? 1 : -1)); // newest first
-        setPeriodStarts(starts);
-        setLastPeriod(starts[0]);
-        // Compute cycle length stats from gaps between period starts
-        if (groups.length >= 2) {
-          const startTimes = groups.map((g) => new Date(g[0]).getTime()).sort((a, b) => a - b);
-          const gaps: number[] = [];
-          for (let i = 1; i < startTimes.length; i++) {
-            const d = Math.round((startTimes[i] - startTimes[i - 1]) / 86400000);
-            if (d >= 18 && d <= 60) gaps.push(d);
-          }
-          if (gaps.length > 0) {
-            const avg = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
-            const spread = Math.round(Math.max(...gaps) - Math.min(...gaps));
-            setDetectedAvg({ avg, spread, cycles: gaps.length });
-          }
+        if (stats.regularity) {
+          if (stats.regularity.label === "Regular") setIrregularity("regular");
+          else if (stats.regularity.label === "Somewhat irregular") setIrregularity("somewhat");
+          else setIrregularity("very");
+        }
+        if (stats.avgCycle) {
+          const lengths = cycleLengths(starts);
+          const spread = lengths.length > 1 ? Math.max(...lengths) - Math.min(...lengths) : 2;
+          setDetectedAvg({ avg: stats.avgCycle, spread, cycles: starts.length });
         }
       }
+    } catch (e) {
+      console.error("Failed to load logged cycle entries:", e);
+    } finally {
       setLoading(false);
-    })();
-  }, []);
+    }
+  }
+
+  useEffect(() => {
+    loadCycles();
+  }, [isActive]);
 
   const IRREG_DAYS: Record<typeof irregularity, number> = { regular: 2, somewhat: 5, very: 8 };
   const tolerance = IRREG_DAYS[irregularity];
@@ -1070,9 +1073,9 @@ function HormoneCycle() {
 
           {!loading && !cycleDay && (
             <Alert>
-              <AlertTitle>No period date yet</AlertTitle>
+              <AlertTitle>No period date selected</AlertTitle>
               <AlertDescription>
-                Pick when your last period started, or log a "light/medium/heavy" flow day in <strong>Cycle Tracker</strong> so we can estimate your phase automatically.
+                Select your period date above, or log a period in the <strong>Log</strong> tab so HerSpace can automatically retrieve your cycle rhythms and predict your phase.
               </AlertDescription>
             </Alert>
           )}
@@ -1162,11 +1165,11 @@ function HormoneCycle() {
 
 function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: number; cycleDay: number | null; tolerance?: number }) {
   const W = 720;
-  const H = 240;
-  const PAD_L = 36;
-  const PAD_R = 12;
-  const PAD_T = 16;
-  const PAD_B = 28;
+  const H = 220;
+  const PAD_L = 40;
+  const PAD_R = 16;
+  const PAD_T = 28;
+  const PAD_B = 32;
   const innerW = W - PAD_L - PAD_R;
   const innerH = H - PAD_T - PAD_B;
   const days = Array.from({ length: cycleLength }, (_, i) => i + 1);
@@ -1176,70 +1179,110 @@ function HormoneChart({ cycleLength, cycleDay, tolerance = 0 }: { cycleLength: n
   const ovDay = cycleLength - 14;
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[560px] h-auto">
-        {/* phase bands */}
-        <rect x={x(1)} y={PAD_T} width={x(5) - x(1)} height={innerH} fill="#fecdd3" opacity={0.35} />
-        <rect x={x(6)} y={PAD_T} width={x(ovDay - 1) - x(6)} height={innerH} fill="#fde68a" opacity={0.3} />
-        <rect x={x(ovDay)} y={PAD_T} width={x(ovDay + 1) - x(ovDay)} height={innerH} fill="#a7f3d0" opacity={0.5} />
-        <rect x={x(ovDay + 2)} y={PAD_T} width={x(cycleLength) - x(ovDay + 2)} height={innerH} fill="#ddd6fe" opacity={0.35} />
-
-        {/* gridlines & y-axis */}
-        {[0, 25, 50, 75, 100].map((v) => (
-          <g key={v}>
-            <line x1={PAD_L} y1={y(v)} x2={PAD_L + innerW} y2={y(v)} stroke="currentColor" opacity={0.08} strokeDasharray={v === 0 ? "" : "2 4"} />
-            <text x={PAD_L - 6} y={y(v) + 3} fontSize="9" textAnchor="end" fill="currentColor" opacity={0.45}>{v === 0 ? "low" : v === 100 ? "high" : ""}</text>
-          </g>
+    <div className="space-y-3">
+      {/* Responsive Hormone Legend Bar - dedicated container, zero overlap with Day axis */}
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 py-2 px-3 rounded-xl bg-secondary/35 border border-border/60 text-xs font-medium">
+        {HORMONES.map((h) => (
+          <div key={h.key} className="inline-flex items-center gap-2">
+            <span className="w-3.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: h.color }} />
+            <span className="text-foreground">{h.label}</span>
+          </div>
         ))}
-        <line x1={PAD_L} y1={PAD_T + innerH} x2={PAD_L + innerW} y2={PAD_T + innerH} stroke="currentColor" opacity={0.2} />
-        {[1, 7, 14, 21, 28].filter((d) => d <= cycleLength).map((d) => (
-          <g key={d}>
-            <line x1={x(d)} y1={PAD_T + innerH} x2={x(d)} y2={PAD_T + innerH + 4} stroke="currentColor" opacity={0.4} />
-            <text x={x(d)} y={PAD_T + innerH + 18} fontSize="10" textAnchor="middle" fill="currentColor" opacity={0.6}>
-              Day {d}
-            </text>
-          </g>
-        ))}
+      </div>
 
-        {/* hormone curves */}
-        {HORMONES.map((h) => {
-          const path = days
-            .map((d, i) => `${i === 0 ? "M" : "L"} ${x(d).toFixed(1)} ${y(hormoneLevel(h.key, d, cycleLength)).toFixed(1)}`)
-            .join(" ");
-          return <path key={h.key} d={path} fill="none" stroke={h.color} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />;
-        })}
+      <div className="w-full overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[560px] h-auto">
+          {/* Phase bands */}
+          <rect x={x(1)} y={PAD_T} width={x(5) - x(1)} height={innerH} fill="#fecdd3" opacity={0.35} />
+          <rect x={x(6)} y={PAD_T} width={x(ovDay - 1) - x(6)} height={innerH} fill="#fde68a" opacity={0.3} />
+          <rect x={x(ovDay)} y={PAD_T} width={x(ovDay + 1) - x(ovDay)} height={innerH} fill="#a7f3d0" opacity={0.5} />
+          <rect x={x(ovDay + 2)} y={PAD_T} width={x(cycleLength) - x(ovDay + 2)} height={innerH} fill="#ddd6fe" opacity={0.35} />
 
-        {/* today marker */}
-        {cycleDay && (
-          <g>
-            {tolerance > 0 && (
-              <rect
-                x={x(Math.max(1, cycleDay - tolerance))}
-                y={PAD_T}
-                width={x(Math.min(cycleLength, cycleDay + tolerance)) - x(Math.max(1, cycleDay - tolerance))}
-                height={innerH}
-                fill="#1f2937"
-                opacity={0.08}
-              />
-            )}
-            <line x1={x(cycleDay)} y1={PAD_T} x2={x(cycleDay)} y2={PAD_T + innerH} stroke="#1f2937" strokeDasharray="4 4" opacity={0.6} />
-            <circle cx={x(cycleDay)} cy={PAD_T + 6} r={4} fill="#1f2937" />
-            <text x={x(cycleDay)} y={PAD_T - 4} fontSize="10" textAnchor="middle" fill="#1f2937">
-              Today · Day {cycleDay}{tolerance > 0 ? ` (±${tolerance}d)` : ""}
-            </text>
-          </g>
-        )}
+          {/* Phase labels at top of bands */}
+          <text x={(x(1) + x(5)) / 2} y={PAD_T + 12} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.45} className="font-sans font-medium uppercase tracking-wider">
+            Menstrual
+          </text>
+          <text x={(x(6) + x(ovDay - 1)) / 2} y={PAD_T + 12} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.45} className="font-sans font-medium uppercase tracking-wider">
+            Follicular
+          </text>
+          <text x={(x(ovDay) + x(ovDay + 1)) / 2} y={PAD_T + 12} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.65} className="font-sans font-semibold uppercase tracking-wider">
+            Ovulation
+          </text>
+          <text x={(x(ovDay + 2) + x(cycleLength)) / 2} y={PAD_T + 12} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.45} className="font-sans font-medium uppercase tracking-wider">
+            Luteal
+          </text>
 
-        {/* legend */}
-        <g transform={`translate(${PAD_L}, ${H - 6})`}>
-          {HORMONES.map((h, i) => (
-            <g key={h.key} transform={`translate(${i * 130}, 0)`}>
-              <rect x={0} y={-8} width={10} height={3} fill={h.color} />
-              <text x={14} y={-4} fontSize="10" fill="currentColor" opacity={0.75}>{h.label}</text>
+          {/* Gridlines & y-axis */}
+          {[0, 25, 50, 75, 100].map((v) => (
+            <g key={v}>
+              <line x1={PAD_L} y1={y(v)} x2={PAD_L + innerW} y2={y(v)} stroke="currentColor" opacity={0.08} strokeDasharray={v === 0 ? "" : "2 4"} />
+              <text x={PAD_L - 6} y={y(v) + 3} fontSize="9" textAnchor="end" fill="currentColor" opacity={0.45}>
+                {v === 0 ? "low" : v === 100 ? "high" : ""}
+              </text>
             </g>
           ))}
-        </g>
-      </svg>
+
+          {/* Baseline */}
+          <line x1={PAD_L} y1={PAD_T + innerH} x2={PAD_L + innerW} y2={PAD_T + innerH} stroke="currentColor" opacity={0.2} />
+
+          {/* X-axis Day labels - clean, generous padding, zero overlap */}
+          {[1, 7, 14, 21, 28].filter((d) => d <= cycleLength).map((d) => (
+            <g key={d}>
+              <line x1={x(d)} y1={PAD_T + innerH} x2={x(d)} y2={PAD_T + innerH + 4} stroke="currentColor" opacity={0.4} />
+              <text x={x(d)} y={PAD_T + innerH + 18} fontSize="10" textAnchor="middle" fill="currentColor" opacity={0.7} className="font-medium font-sans">
+                Day {d}
+              </text>
+            </g>
+          ))}
+          {cycleLength > 28 && (
+            <g key={cycleLength}>
+              <line x1={x(cycleLength)} y1={PAD_T + innerH} x2={x(cycleLength)} y2={PAD_T + innerH + 4} stroke="currentColor" opacity={0.4} />
+              <text x={x(cycleLength)} y={PAD_T + innerH + 18} fontSize="10" textAnchor="middle" fill="currentColor" opacity={0.7} className="font-medium font-sans">
+                Day {cycleLength}
+              </text>
+            </g>
+          )}
+
+          {/* Hormone curves */}
+          {HORMONES.map((h) => {
+            const path = days
+              .map((d, i) => `${i === 0 ? "M" : "L"} ${x(d).toFixed(1)} ${y(hormoneLevel(h.key, d, cycleLength)).toFixed(1)}`)
+              .join(" ");
+            return (
+              <path
+                key={h.key}
+                d={path}
+                fill="none"
+                stroke={h.color}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            );
+          })}
+
+          {/* Today marker */}
+          {cycleDay && (
+            <g>
+              {tolerance > 0 && (
+                <rect
+                  x={x(Math.max(1, cycleDay - tolerance))}
+                  y={PAD_T}
+                  width={x(Math.min(cycleLength, cycleDay + tolerance)) - x(Math.max(1, cycleDay - tolerance))}
+                  height={innerH}
+                  fill="currentColor"
+                  opacity={0.06}
+                />
+              )}
+              <line x1={x(cycleDay)} y1={PAD_T} x2={x(cycleDay)} y2={PAD_T + innerH} stroke="currentColor" strokeDasharray="4 4" opacity={0.5} />
+              <circle cx={x(cycleDay)} cy={PAD_T + 4} r={3.5} fill="currentColor" opacity={0.8} />
+              <text x={x(cycleDay)} y={PAD_T - 8} fontSize="10" textAnchor="middle" fill="currentColor" fontWeight="600" className="font-sans">
+                Today · Day {cycleDay}{tolerance > 0 ? ` (±${tolerance}d)` : ""}
+              </text>
+            </g>
+          )}
+        </svg>
+      </div>
     </div>
   );
 }
@@ -1521,7 +1564,12 @@ function SymptomTrend({ periodStarts, cycleLength }: { periodStarts: string[]; c
   const yMax = metric === "severity" ? 3 : 1;
   const yLabel = metric === "severity" ? "Avg severity (1–3)" : "Symptom-days ÷ phase days";
 
-  const W = 720, H = 240, PAD_L = 44, PAD_R = 14, PAD_T = 16, PAD_B = 42;
+  const W = Math.max(720, cycles.length * 48);
+  const H = 220;
+  const PAD_L = 44;
+  const PAD_R = 20;
+  const PAD_T = 16;
+  const PAD_B = 44;
   const innerW = W - PAD_L - PAD_R;
   const innerH = H - PAD_T - PAD_B;
   const xFor = (i: number) => cycles.length <= 1 ? PAD_L + innerW / 2 : PAD_L + (i / (cycles.length - 1)) * innerW;
@@ -1583,6 +1631,16 @@ function SymptomTrend({ periodStarts, cycleLength }: { periodStarts: string[]; c
               </div>
             </div>
 
+            {/* Phase Legend Bar - clean, dedicated, zero overlap */}
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 py-2 px-3 rounded-xl bg-secondary/35 border border-border/60 text-xs font-medium">
+              {phases.map((p) => (
+                <div key={p} className="inline-flex items-center gap-2">
+                  <span className="w-3.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: PHASE_COLOR[p] }} />
+                  <span className="text-foreground">{PHASE_INFO[p].label.replace(" phase", "")}</span>
+                </div>
+              ))}
+            </div>
+
             <div className="w-full overflow-x-auto">
               <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[560px] h-auto">
                 {/* gridlines + y axis */}
@@ -1607,10 +1665,10 @@ function SymptomTrend({ periodStarts, cycleLength }: { periodStarts: string[]; c
                 {cycles.map((c, i) => (
                   <g key={c.start}>
                     <line x1={xFor(i)} y1={PAD_T + innerH} x2={xFor(i)} y2={PAD_T + innerH + 4} stroke="currentColor" opacity={0.3} />
-                    <text x={xFor(i)} y={PAD_T + innerH + 16} fontSize="10" textAnchor="middle" fill="currentColor" opacity={0.7}>
+                    <text x={xFor(i)} y={PAD_T + innerH + 16} fontSize="10" textAnchor="middle" fill="currentColor" opacity={0.75} className="font-medium font-sans">
                       C{i + 1}
                     </text>
-                    <text x={xFor(i)} y={PAD_T + innerH + 30} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.45}>
+                    <text x={xFor(i)} y={PAD_T + innerH + 30} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.5} className="font-sans">
                       {c.start.slice(5)}
                     </text>
                   </g>
@@ -1657,18 +1715,6 @@ function SymptomTrend({ periodStarts, cycleLength }: { periodStarts: string[]; c
                     </g>
                   );
                 })}
-
-                {/* legend */}
-                <g transform={`translate(${PAD_L}, ${H - 4})`}>
-                  {phases.map((p, i) => (
-                    <g key={p} transform={`translate(${i * 130}, 0)`}>
-                      <rect x={0} y={-8} width={10} height={3} fill={PHASE_COLOR[p]} />
-                      <text x={14} y={-4} fontSize="10" fill="currentColor" opacity={0.75}>
-                        {PHASE_INFO[p].label.replace(" phase", "")}
-                      </text>
-                    </g>
-                  ))}
-                </g>
               </svg>
             </div>
 
